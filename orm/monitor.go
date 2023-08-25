@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type BatchConfirm struct {
 	BatchIndex         uint64 `gorm:"primaryKey"`
-	EventStatus        bool
+	DepositStatus      bool
 	WithdrawRootStatus bool
 }
 

@@ -75,7 +75,7 @@ func (c *ChainMonitor) ChainMonitor(ctx context.Context) {
 
 	res := tx.Save(&orm.BatchConfirm{
 		BatchIndex:         batchIndex,
-		EventStatus:        l1Count == l2Count,
+		DepositStatus:      l1Count == l2Count,
 		WithdrawRootStatus: rootStatus,
 	})
 	if err = res.Error; err != nil {
@@ -91,6 +91,6 @@ func (c *ChainMonitor) ChainMonitor(ctx context.Context) {
 	if !eventStatus || !rootStatus {
 		log.Error("event count or withdraw root is not right", "batch_index", batchIndex, "l1_count", l1Count, "l2_count", l2Count, "withdraw_root_status", rootStatus)
 	} else {
-		log.Info("scan batch successful", "batch_index", batchIndex, "event_status", eventStatus, "withdraw_root_status", rootStatus)
+		log.Info("scan batch successful", "batch_index", batchIndex, "deposit_status", eventStatus, "withdraw_root_status", rootStatus)
 	}
 }

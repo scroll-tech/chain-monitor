@@ -28,5 +28,5 @@ func (m *ChainConfirm) ConfirmBatch(ctx *gin.Context) {
 		types.RenderJSON(ctx, types.ErrConfirmWithdrawRootByBatchIndex, err, nil)
 		return
 	}
-	types.RenderJSON(ctx, types.Success, nil, confirmBatch.WithdrawRootStatus && confirmBatch.EventStatus)
+	types.RenderJSON(ctx, types.Success, nil, confirmBatch.WithdrawRootStatus && confirmBatch.DepositStatus)
 }
