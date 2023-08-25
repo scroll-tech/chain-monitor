@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"chain-monitor/internal/types"
-	"chain-monitor/orm"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"chain-monitor/internal/types"
+	"chain-monitor/orm"
 )
 
 type ChainConfirm struct {

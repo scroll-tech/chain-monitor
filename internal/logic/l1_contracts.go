@@ -3,7 +3,6 @@ package logic
 import (
 	"context"
 
-	"chain-monitor/orm"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/crypto"
@@ -12,9 +11,10 @@ import (
 
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L1"
-	l1gateway "chain-monitor/bytecode/scroll/L1/gateway"
+	"chain-monitor/bytecode/scroll/L1/gateway"
 	"chain-monitor/bytecode/scroll/L1/rollup"
 	"chain-monitor/internal/config"
+	"chain-monitor/orm"
 )
 
 type L1Contracts struct {
@@ -22,13 +22,13 @@ type L1Contracts struct {
 	tx     *gorm.DB
 	client *ethclient.Client
 
-	ETHGateway           *l1gateway.L1ETHGateway
-	WETHGateway          *l1gateway.L1WETHGateway
-	DAIGateway           *l1gateway.L1DAIGateway
-	StandardERC20Gateway *l1gateway.L1StandardERC20Gateway
-	CustomERC20Gateway   *l1gateway.L1CustomERC20Gateway
-	ERC721Gateway        *l1gateway.L1ERC721Gateway
-	ERC1155Gateway       *l1gateway.L1ERC1155Gateway
+	ETHGateway           *gateway.L1ETHGateway
+	WETHGateway          *gateway.L1WETHGateway
+	DAIGateway           *gateway.L1DAIGateway
+	StandardERC20Gateway *gateway.L1StandardERC20Gateway
+	CustomERC20Gateway   *gateway.L1CustomERC20Gateway
+	ERC721Gateway        *gateway.L1ERC721Gateway
+	ERC1155Gateway       *gateway.L1ERC1155Gateway
 
 	ScrollChain     *rollup.ScrollChain
 	ScrollMessenger *L1.L1ScrollMessenger
@@ -48,31 +48,31 @@ func NewL1Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.L1Contrac
 	if err != nil {
 		return nil, err
 	}
-	cts.ETHGateway, err = l1gateway.NewL1ETHGateway(cfg.ETHGateway, client)
+	cts.ETHGateway, err = gateway.NewL1ETHGateway(cfg.ETHGateway, client)
 	if err != nil {
 		return nil, err
 	}
-	cts.WETHGateway, err = l1gateway.NewL1WETHGateway(cfg.WETHGateway, client)
+	cts.WETHGateway, err = gateway.NewL1WETHGateway(cfg.WETHGateway, client)
 	if err != nil {
 		return nil, err
 	}
-	cts.StandardERC20Gateway, err = l1gateway.NewL1StandardERC20Gateway(cfg.StandardERC20Gateway, client)
+	cts.StandardERC20Gateway, err = gateway.NewL1StandardERC20Gateway(cfg.StandardERC20Gateway, client)
 	if err != nil {
 		return nil, err
 	}
-	cts.CustomERC20Gateway, err = l1gateway.NewL1CustomERC20Gateway(cfg.CustomERC20Gateway, client)
+	cts.CustomERC20Gateway, err = gateway.NewL1CustomERC20Gateway(cfg.CustomERC20Gateway, client)
 	if err != nil {
 		return nil, err
 	}
-	cts.ERC721Gateway, err = l1gateway.NewL1ERC721Gateway(cfg.ERC721Gateway, client)
+	cts.ERC721Gateway, err = gateway.NewL1ERC721Gateway(cfg.ERC721Gateway, client)
 	if err != nil {
 		return nil, err
 	}
-	cts.ERC1155Gateway, err = l1gateway.NewL1ERC1155Gateway(cfg.ERC1155Gateway, client)
+	cts.ERC1155Gateway, err = gateway.NewL1ERC1155Gateway(cfg.ERC1155Gateway, client)
 	if err != nil {
 		return nil, err
 	}
-	cts.DAIGateway, err = l1gateway.NewL1DAIGateway(cfg.DAIGateway, client)
+	cts.DAIGateway, err = gateway.NewL1DAIGateway(cfg.DAIGateway, client)
 	if err != nil {
 		return nil, err
 	}
@@ -125,47 +125,47 @@ func (l1 *L1Contracts) ParseL1Events(ctx context.Context, start, end uint64) err
 }
 
 func (l1 *L1Contracts) registerEventHandlers() {
-	l1.ETHGateway.RegisterDepositETH(func(vLog *types.Log, data *l1gateway.L1ETHGatewayDepositETHEvent) error {
+	l1.ETHGateway.RegisterDepositETH(func(vLog *types.Log, data *gateway.L1ETHGatewayDepositETHEvent) error {
 		return orm.SaveL1ETHEvent(l1.tx, orm.L1DepositETH, vLog, data.From, data.To, data.Amount)
 	})
-	l1.ETHGateway.RegisterFinalizeWithdrawETH(func(vLog *types.Log, data *l1gateway.L1ETHGatewayFinalizeWithdrawETHEvent) error {
+	l1.ETHGateway.RegisterFinalizeWithdrawETH(func(vLog *types.Log, data *gateway.L1ETHGatewayFinalizeWithdrawETHEvent) error {
 		return orm.SaveL1ETHEvent(l1.tx, orm.L1FinalizeWithdrawETH, vLog, data.From, data.To, data.Amount)
 	})
-	l1.WETHGateway.RegisterDepositERC20(func(vLog *types.Log, data *l1gateway.L1WETHGatewayDepositERC20Event) error {
+	l1.WETHGateway.RegisterDepositERC20(func(vLog *types.Log, data *gateway.L1WETHGatewayDepositERC20Event) error {
 		return orm.SaveL1ETH20Event(l1.tx, orm.L1DepositWETH, vLog, data.L1Token, data.L2Token, data.From, data.To, data.Amount)
 	})
-	l1.WETHGateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *l1gateway.L1WETHGatewayFinalizeWithdrawERC20Event) error {
+	l1.WETHGateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *gateway.L1WETHGatewayFinalizeWithdrawERC20Event) error {
 		return orm.SaveL1ETH20Event(l1.tx, orm.L1FinalizeWithdrawWETH, vLog, data.L1Token, data.L2Token, data.From, data.To, data.Amount)
 	})
-	l1.DAIGateway.RegisterDepositERC20(func(vLog *types.Log, data *l1gateway.L1DAIGatewayDepositERC20Event) error {
+	l1.DAIGateway.RegisterDepositERC20(func(vLog *types.Log, data *gateway.L1DAIGatewayDepositERC20Event) error {
 		return orm.SaveL1ETH20Event(l1.tx, orm.L1DepositDAI, vLog, data.L1Token, data.L2Token, data.From, data.To, data.Amount)
 	})
-	l1.DAIGateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *l1gateway.L1DAIGatewayFinalizeWithdrawERC20Event) error {
+	l1.DAIGateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *gateway.L1DAIGatewayFinalizeWithdrawERC20Event) error {
 		return orm.SaveL1ETH20Event(l1.tx, orm.L1FinalizeWithdrawDAI, vLog, data.L1Token, data.L2Token, data.From, data.To, data.Amount)
 	})
-	l1.StandardERC20Gateway.RegisterDepositERC20(func(vLog *types.Log, data *l1gateway.L1StandardERC20GatewayDepositERC20Event) error {
+	l1.StandardERC20Gateway.RegisterDepositERC20(func(vLog *types.Log, data *gateway.L1StandardERC20GatewayDepositERC20Event) error {
 		return orm.SaveL1ETH20Event(l1.tx, orm.L1DepositStandardERC20, vLog, data.L1Token, data.L2Token, data.From, data.To, data.Amount)
 	})
-	l1.StandardERC20Gateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *l1gateway.L1StandardERC20GatewayFinalizeWithdrawERC20Event) error {
+	l1.StandardERC20Gateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *gateway.L1StandardERC20GatewayFinalizeWithdrawERC20Event) error {
 		return orm.SaveL1ETH20Event(l1.tx, orm.L1FinalizeWithdrawStandardERC20, vLog, data.L1Token, data.L2Token, data.From, data.To, data.Amount)
 	})
-	l1.CustomERC20Gateway.RegisterDepositERC20(func(vLog *types.Log, data *l1gateway.L1CustomERC20GatewayDepositERC20Event) error {
+	l1.CustomERC20Gateway.RegisterDepositERC20(func(vLog *types.Log, data *gateway.L1CustomERC20GatewayDepositERC20Event) error {
 		return orm.SaveL1ETH20Event(l1.tx, orm.L1DepositCustomERC20, vLog, data.L1Token, data.L2Token, data.From, data.To, data.Amount)
 	})
-	l1.CustomERC20Gateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *l1gateway.L1CustomERC20GatewayFinalizeWithdrawERC20Event) error {
+	l1.CustomERC20Gateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *gateway.L1CustomERC20GatewayFinalizeWithdrawERC20Event) error {
 		return orm.SaveL1ETH20Event(l1.tx, orm.L1FinalizeWithdrawCustomERC20, vLog, data.L1Token, data.L2Token, data.From, data.To, data.Amount)
 	})
 
-	l1.ERC721Gateway.RegisterDepositERC721(func(vLog *types.Log, data *l1gateway.L1ERC721GatewayDepositERC721Event) error {
+	l1.ERC721Gateway.RegisterDepositERC721(func(vLog *types.Log, data *gateway.L1ERC721GatewayDepositERC721Event) error {
 		return orm.SaveL1ERC721Event(l1.tx, orm.L1DepositERC721, vLog, data.L1Token, data.L2Token, data.From, data.To, data.TokenId)
 	})
-	l1.ERC721Gateway.RegisterFinalizeWithdrawERC721(func(vLog *types.Log, data *l1gateway.L1ERC721GatewayFinalizeWithdrawERC721Event) error {
+	l1.ERC721Gateway.RegisterFinalizeWithdrawERC721(func(vLog *types.Log, data *gateway.L1ERC721GatewayFinalizeWithdrawERC721Event) error {
 		return orm.SaveL1ERC721Event(l1.tx, orm.L1FinalizeWithdrawERC721, vLog, data.L1Token, data.L2Token, data.From, data.To, data.TokenId)
 	})
-	l1.ERC1155Gateway.RegisterDepositERC1155(func(vLog *types.Log, data *l1gateway.L1ERC1155GatewayDepositERC1155Event) error {
+	l1.ERC1155Gateway.RegisterDepositERC1155(func(vLog *types.Log, data *gateway.L1ERC1155GatewayDepositERC1155Event) error {
 		return orm.SaveL1ERC1155Event(l1.tx, orm.L1DepositERC1155, vLog, data.L1Token, data.L2Token, data.From, data.To, data.TokenId, data.Amount)
 	})
-	l1.ERC1155Gateway.RegisterFinalizeWithdrawERC1155(func(vLog *types.Log, data *l1gateway.L1ERC1155GatewayFinalizeWithdrawERC1155Event) error {
+	l1.ERC1155Gateway.RegisterFinalizeWithdrawERC1155(func(vLog *types.Log, data *gateway.L1ERC1155GatewayFinalizeWithdrawERC1155Event) error {
 		return orm.SaveL1ERC1155Event(l1.tx, orm.L1FinalizeWithdrawERC1155, vLog, data.L1Token, data.L2Token, data.From, data.To, data.TokenId, data.Amount)
 	})
 

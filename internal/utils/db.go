@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"chain-monitor/internal/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"chain-monitor/internal/config"
 )
 
 // InitDB init the db handler

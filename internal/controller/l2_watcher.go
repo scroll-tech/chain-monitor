@@ -1,18 +1,20 @@
 package controller
 
 import (
-	"chain-monitor/internal/config"
-	"chain-monitor/internal/logic"
-	"chain-monitor/orm"
 	"context"
+	"math/big"
+	"sync/atomic"
+	"time"
+
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
-	"math/big"
 	"modernc.org/mathutil"
-	"sync/atomic"
-	"time"
+
+	"chain-monitor/internal/config"
+	"chain-monitor/internal/logic"
+	"chain-monitor/orm"
 )
 
 // L2Watcher return a new instance of L2Watcher.

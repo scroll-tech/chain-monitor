@@ -49,7 +49,7 @@ func GetMessengerCount(db *gorm.DB, start, end uint64) (uint64, uint64, error) {
 	res := db.Table("l2_messenger_events as l2me").
 		Select("COUNT(l1me.*) as l1_count, COUNT(l2me.*) as l2_count").
 		Joins("LEFT JOIN l1_messenger_events as l1me ON l2me.message_hash = l1me.message_hash").
-		Where("l2me.type = ? AND l2me.number BETWEEN ? AND ?", L2RelayedMessage, start, end).
+		Where("l2me.type = ? AND l1me.type = ? AND l2me.number BETWEEN ? AND ?", L2RelayedMessage, L1SentMessage, start, end).
 		Scan(&result)
 	if res.Error != nil {
 		return 0, 0, res.Error

@@ -1,15 +1,16 @@
 package controller
 
 import (
-	"chain-monitor/internal/config"
-	"chain-monitor/internal/logic"
 	"context"
+	"time"
+
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
 	"modernc.org/mathutil"
-	"time"
 
+	"chain-monitor/internal/config"
+	"chain-monitor/internal/logic"
 	"chain-monitor/orm"
 )
 
