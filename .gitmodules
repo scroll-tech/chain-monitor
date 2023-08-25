@@ -1,0 +1,3 @@
+[submodule "scroll"]
+	path = scroll
+	url = git@github.com:scroll-tech/scroll.git
