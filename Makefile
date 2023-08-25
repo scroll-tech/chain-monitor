@@ -9,7 +9,8 @@ submodule:
 chain-monitor:
 	go build -o build/bin/chain-monitor ./cmd/main.go
 
-abi:
+abi: submodule
+	cd scroll/contracts && yarn install && forge build
 	make -C bytecode scroll
 
 docker:
