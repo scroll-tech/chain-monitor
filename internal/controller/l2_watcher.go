@@ -79,6 +79,9 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 		log.Error("l2Watcher failed to get start and end number", "err", err)
 		return
 	}
+	if start > end {
+		return
+	}
 
 	cts := l2.contracts
 	err = cts.ParseL2Events(ctx, start, end)

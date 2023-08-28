@@ -61,9 +61,11 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		log.Error("failed to get l1Chain start and end number", "err", err)
 		return
 	}
+	if start > end {
+		return
+	}
 
 	cts := l1.contracts
-
 	err = cts.ParseL1Events(ctx, start, end)
 	if err != nil {
 		log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
