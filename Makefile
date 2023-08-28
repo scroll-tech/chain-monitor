@@ -14,7 +14,7 @@ abi: submodule
 	make -C bytecode scroll
 
 docker:
-	docker build -t scrolltech/${IMAGE_NAME}:${IMAGE_VERSION} ./
+	docker build --platform linux/amd64 -t scrolltech/${IMAGE_NAME}:${IMAGE_VERSION} ./
 
 update: ## Let's keep it and docker version in consistent.
 	#git submodule update --init --recursive
