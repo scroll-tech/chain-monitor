@@ -67,7 +67,6 @@ func action(ctx *cli.Context) error {
 			log.Error("failed to migrate tables", "err", err)
 			return err
 		}
-		return nil
 	}
 
 	// Start onchain_metrics server.

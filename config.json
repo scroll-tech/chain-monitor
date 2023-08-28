@@ -38,6 +38,6 @@
     "dsn": "postgres://maskpp:123456@localhost/postgres?sslmode=disable",
     "maxOpenNum": 100,
     "maxIdleNum": 20,
-    "logLevel": 3
+    "logLevel": 1
   }
 }
