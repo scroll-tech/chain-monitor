@@ -1,6 +1,6 @@
 module chain-monitor
 
-go 1.20
+go 1.19
 
 require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
