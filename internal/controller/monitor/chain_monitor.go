@@ -31,7 +31,7 @@ func NewChainMonitor(cfg *config.ChainMonitor, db *gorm.DB, l2API L2API) *ChainM
 }
 
 func (c *ChainMonitor) ChainMonitor(ctx context.Context) {
-	tx := c.db.Begin()
+	tx := c.db.WithContext(ctx).Begin()
 	latestIndex, err := orm.GetConfirmedBatchIndex(tx)
 	if err != nil {
 		log.Error("failed to get latest batchIndex in BatchConfirm loop", "err", err)

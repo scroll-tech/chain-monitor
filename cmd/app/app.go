@@ -90,9 +90,9 @@ func action(ctx *cli.Context) error {
 	chainMonitor := monitor.NewChainMonitor(cfg.ChainMonitor, db.WithContext(subCtx), l2Watcher)
 	_ = chainMonitor
 
-	go utils.LoopWithContext(subCtx, time.Second*2, l1Watcher.ScanL1Chain)
+	//go utils.LoopWithContext(subCtx, time.Second*2, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Second*2, l2Watcher.ScanL2Chain)
-	go utils.LoopWithContext(subCtx, time.Second*3, chainMonitor.ChainMonitor)
+	//go utils.LoopWithContext(subCtx, time.Second*3, chainMonitor.ChainMonitor)
 
 	// Catch CTRL-C to ensure a graceful shutdown.
 	interrupt := make(chan os.Signal, 1)

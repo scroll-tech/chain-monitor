@@ -15,8 +15,8 @@ var (
 		&L2ERC721Event{},
 		&L1ERC1155Event{},
 		&L2ERC1155Event{},
-		&L1MessengerEvent{},
-		&L2MessengerEvent{},
+		//&L1MessengerEvent{},
+		//&L2MessengerEvent{},
 		&ScrollChainEvent{},
 
 		&BatchConfirm{},

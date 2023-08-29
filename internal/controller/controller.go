@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/scroll-tech/go-ethereum/common"
 	"gorm.io/gorm"
 
 	"chain-monitor/internal/types"
@@ -18,15 +20,30 @@ func NewMetricsController(db *gorm.DB) *ChainConfirm {
 
 // ConfirmBatch return batch status
 func (m *ChainConfirm) ConfirmBatch(ctx *gin.Context) {
-	var req types.QueryByBatchIndexRequest
-	if err := ctx.ShouldBind(&req); err != nil {
+	var req types.QueryByBatchIndexOrHashRequest
+	err := ctx.ShouldBind(&req)
+	if err != nil {
 		types.RenderJSON(ctx, types.ErrParameterInvalidNo, err, nil)
 		return
 	}
-	confirmBatch, err := orm.GetConfirmBatchByIndex(m.db, req.BatchIndex)
-	if err != nil {
-		types.RenderJSON(ctx, types.ErrConfirmWithdrawRootByBatchIndex, err, nil)
+
+	var confirmBatch *orm.BatchConfirm
+	if req.BatchHash != (common.Hash{}) {
+		confirmBatch, err = orm.GetConfirmBatchByHash(m.db, req.BatchHash)
+		if err != nil {
+			types.RenderJSON(ctx, types.ErrConfirmWithdrawRootByBatchIndex, err, nil)
+			return
+		}
+	} else if req.BatchIndex != 0 {
+		confirmBatch, err = orm.GetConfirmBatchByIndex(m.db, req.BatchIndex)
+		if err != nil {
+			types.RenderJSON(ctx, types.ErrConfirmWithdrawRootByBatchHash, err, nil)
+			return
+		}
+	} else {
+		types.RenderJSON(ctx, types.ErrParameterInvalidNo, errors.New("invalid parameters"), nil)
 		return
 	}
+
 	types.RenderJSON(ctx, types.Success, nil, confirmBatch.WithdrawRootStatus && confirmBatch.DepositStatus)
 }
