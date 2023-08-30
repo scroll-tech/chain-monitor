@@ -64,7 +64,7 @@ func (l2 *L2Watcher) StartNumber() uint64 {
 func (l2 *L2Watcher) WithdrawRoot(ctx context.Context, number uint64) (common.Hash, error) {
 	data, err := l2.client.StorageAt(
 		ctx,
-		l2.cfg.MessageQueue,
+		l2.cfg.L2gateways.MessageQueue,
 		common.BigToHash(big.NewInt(0)), big.NewInt(0).SetUint64(number),
 	)
 	if err != nil {

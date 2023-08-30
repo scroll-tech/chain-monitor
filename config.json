@@ -12,6 +12,7 @@
       "erc1155_gateway": "0xa5Df8530766A85936EE3E139dECE3bF081c83146",
       "dai_gateway": "0x8b0B9c4e9f41b9bbDEfFee24F9f11C328093d248",
       "scroll_messenger": "0x50c7d3e7f7c656493D1D76aaa1a836CedfCBB16A",
+      "message_queue": "0xF0B2293F5D834eAe920c6974D50957A1732de763",
       "scroll_chain": "0x2D567EcE699Eabe5afCd141eDB7A4f2D0D6ce8a0"
     }
   },
@@ -26,9 +27,9 @@
       "erc721_gateway": "0x179B9415194B67DC3c0b8760E075cD4415785c97",
       "erc1155_gateway": "0xe17C9b9C66FAF07753cdB04316D09f52144612A5",
       "dai_gateway": "0xbF28c28490988026Dca2396148DE50136A54534e",
-      "scroll_messenger": "0xBa50f5340FB9F3Bd074bD638c9BE13eCB36E603d"
-    },
-    "message_queue": "0x5300000000000000000000000000000000000000"
+      "scroll_messenger": "0xBa50f5340FB9F3Bd074bD638c9BE13eCB36E603d",
+      "message_queue": "0x5300000000000000000000000000000000000000"
+    }
   },
   "chain_monitor": {
     "bridge_history_url": "https://sepolia-api-bridge.scroll.io"

@@ -11,7 +11,7 @@ l1=("L1ScrollMessenger")
 l1_gateway=("L1ETHGateway" "L1ERC20Gateway" "L1DAIGateway" "L1WETHGateway" "L1StandardERC20Gateway" "L1CustomERC20Gateway" "L1ERC721Gateway" "L1ERC1155Gateway")
 
 # L1/rollup
-l1_rollup=("ScrollChain")
+l1_rollup=("ScrollChain" "L1MessageQueue")
 
 # L2
 l2=("L2ScrollMessenger")

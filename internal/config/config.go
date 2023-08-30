@@ -9,6 +9,7 @@ import (
 
 // Gateway address list.
 type Gateway struct {
+	MessageQueue         common.Address `json:"message_queue"`
 	ScrollMessenger      common.Address `json:"scroll_messenger"`
 	ETHGateway           common.Address `json:"eth_gateway"`
 	DAIGateway           common.Address `json:"dai_gateway"`
@@ -34,10 +35,9 @@ type L1Config struct {
 
 // L2Config l1 chain config.
 type L2Config struct {
-	L2gateways   *Gateway `json:"l2_gateways"`
-	L2ChainURL   string   `json:"l2chain_url"`
-	Confirm      uint64
-	MessageQueue common.Address `json:"message_queue"`
+	L2gateways *Gateway `json:"l2_gateways"`
+	L2ChainURL string   `json:"l2chain_url"`
+	Confirm    uint64
 }
 
 // DBConfig db config

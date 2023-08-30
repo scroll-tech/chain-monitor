@@ -6,19 +6,20 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
-	"github.com/scroll-tech/go-ethereum/crypto"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"gorm.io/gorm"
 
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L2"
 	"chain-monitor/bytecode/scroll/L2/gateway"
+	"chain-monitor/bytecode/scroll/L2/predeploys"
 	"chain-monitor/internal/config"
 	"chain-monitor/orm"
 )
 
 type L2Contracts struct {
 	db     *gorm.DB
+	tx     *gorm.DB
 	client *ethclient.Client
 
 	messengerEvents map[string]common.Hash
@@ -36,6 +37,7 @@ type L2Contracts struct {
 	ERC1155Gateway       *gateway.L2ERC1155Gateway
 
 	ScrollMessenger *L2.L2ScrollMessenger
+	MessageQueue    *predeploys.L2MessageQueue
 
 	filter *bytecode.ContractsFilter
 }
@@ -81,9 +83,14 @@ func NewL2Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.Gateway) 
 	if err != nil {
 		return nil, err
 	}
+	cts.MessageQueue, err = predeploys.NewL2MessageQueue(cfg.MessageQueue, client)
+	if err != nil {
+		return nil, err
+	}
 
 	cts.filter = bytecode.NewContractsFilter([]bytecode.ContractAPI{
 		cts.ScrollMessenger,
+		cts.MessageQueue,
 
 		cts.ETHGateway,
 		cts.WETHGateway,
@@ -109,10 +116,10 @@ func (l2 *L2Contracts) clean() {
 
 func (l2 *L2Contracts) ParseL2Events(ctx context.Context, start, end uint64) error {
 	l2.clean()
-	tx := l2.db.Begin()
+	l2.tx = l2.db.Begin()
 	count, err := l2.filter.ParseLogs(ctx, l2.client, start, end)
 	if err != nil {
-		tx.Rollback()
+		l2.tx.Rollback()
 		return err
 	}
 
@@ -124,8 +131,8 @@ func (l2 *L2Contracts) ParseL2Events(ctx context.Context, start, end uint64) err
 		}
 	}
 	if len(l2.ethEvents) > 0 {
-		if err := tx.Save(l2.ethEvents).Error; err != nil {
-			tx.Rollback()
+		if err := l2.tx.Save(l2.ethEvents).Error; err != nil {
+			l2.tx.Rollback()
 			return err
 		}
 	}
@@ -138,8 +145,8 @@ func (l2 *L2Contracts) ParseL2Events(ctx context.Context, start, end uint64) err
 		}
 	}
 	if len(l2.erc20Events) > 0 {
-		if err := tx.Save(l2.erc20Events).Error; err != nil {
-			tx.Rollback()
+		if err := l2.tx.Save(l2.erc20Events).Error; err != nil {
+			l2.tx.Rollback()
 			return err
 		}
 	}
@@ -153,8 +160,8 @@ func (l2 *L2Contracts) ParseL2Events(ctx context.Context, start, end uint64) err
 		}
 	}
 	if len(l2.erc721Events) > 0 {
-		if err := tx.Save(l2.erc721Events).Error; err != nil {
-			tx.Rollback()
+		if err := l2.tx.Save(l2.erc721Events).Error; err != nil {
+			l2.tx.Rollback()
 			return err
 		}
 	}
@@ -167,22 +174,22 @@ func (l2 *L2Contracts) ParseL2Events(ctx context.Context, start, end uint64) err
 		}
 	}
 	if len(l2.erc1155Events) > 0 {
-		if err := tx.Save(l2.erc1155Events).Error; err != nil {
-			tx.Rollback()
+		if err := l2.tx.Save(l2.erc1155Events).Error; err != nil {
+			l2.tx.Rollback()
 			return err
 		}
 	}
 
-	err = tx.Save(&orm.L2Block{
+	err = l2.tx.Save(&orm.L2Block{
 		Number:     end,
 		EventCount: count,
 	}).Error
 	if err != nil {
-		tx.Rollback()
+		l2.tx.Rollback()
 		return err
 	}
 
-	if err = tx.Commit().Error; err != nil {
+	if err = l2.tx.Commit().Error; err != nil {
 		return err
 	}
 	return nil
@@ -249,22 +256,18 @@ func (l2 *L2Contracts) registerDepositHandlers() {
 		return nil
 	})
 
-	l2.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerSentMessageEvent) error {
-		msgHash := crypto.Keccak256Hash(data.Message)
-		l2.messengerEvents[vLog.TxHash.String()] = msgHash
-		return nil //orm.SaveL2Messenger(l2.tx, orm.L2SentMessage, vLog, msgHash)
+	l2.MessageQueue.RegisterAppendMessage(func(vLog *types.Log, data *predeploys.L2MessageQueueAppendMessageEvent) error {
+		l2.messengerEvents[vLog.TxHash.String()] = data.MessageHash
+		return orm.SaveL2Messenger(l2.tx, orm.L2SentMessage, vLog, data.MessageHash)
 	})
-
 	l2.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerRelayedMessageEvent) error {
-		msgHash := common.BytesToHash(data.MessageHash[:])
-		l2.messengerEvents[vLog.TxHash.String()] = msgHash
-		return nil //orm.SaveL2Messenger(l2.tx, orm.L2RelayedMessage, vLog, msgHash)
+		l2.messengerEvents[vLog.TxHash.String()] = data.MessageHash
+		return orm.SaveL2Messenger(l2.tx, orm.L2RelayedMessage, vLog, data.MessageHash)
 	})
 
 	l2.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerFailedRelayedMessageEvent) error {
-		msgHash := common.BytesToHash(data.MessageHash[:])
-		l2.messengerEvents[vLog.TxHash.String()] = msgHash
-		return nil //orm.SaveL2Messenger(l2.tx, orm.L2FailedRelayedMessage, vLog, msgHash)
+		l2.messengerEvents[vLog.TxHash.String()] = data.MessageHash
+		return orm.SaveL2Messenger(l2.tx, orm.L2FailedRelayedMessage, vLog, data.MessageHash)
 	})
 }
 

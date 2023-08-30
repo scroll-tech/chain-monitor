@@ -39,6 +39,7 @@ type L1Contracts struct {
 
 	ScrollChain     *rollup.ScrollChain
 	ScrollMessenger *L1.L1ScrollMessenger
+	MessageQueue    *rollup.L1MessageQueue
 
 	filter *bytecode.ContractsFilter
 }
@@ -57,6 +58,10 @@ func NewL1Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.L1Contrac
 		err error
 	)
 	cts.ScrollMessenger, err = L1.NewL1ScrollMessenger(cfg.ScrollMessenger, client)
+	if err != nil {
+		return nil, err
+	}
+	cts.MessageQueue, err = rollup.NewL1MessageQueue(cfg.MessageQueue, client)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +100,7 @@ func NewL1Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.L1Contrac
 
 	cts.filter = bytecode.NewContractsFilter([]bytecode.ContractAPI{
 		cts.ScrollMessenger,
+		cts.MessageQueue,
 		cts.ETHGateway,
 		cts.DAIGateway,
 		cts.WETHGateway,
@@ -260,20 +266,20 @@ func (l1 *L1Contracts) registerEventHandlers() {
 		return nil
 	})
 
-	l1.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerSentMessageEvent) error {
-		msgHash := crypto.Keccak256Hash(data.Message)
+	l1.MessageQueue.RegisterQueueTransaction(func(vLog *types.Log, data *rollup.L1MessageQueueQueueTransactionEvent) error {
+		msgHash := crypto.Keccak256Hash(data.Data)
 		l1.messengerEvents[vLog.TxHash.String()] = msgHash
-		return nil //orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
+		return orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
 	})
 	l1.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerRelayedMessageEvent) error {
 		msgHash := common.BytesToHash(data.MessageHash[:])
 		l1.messengerEvents[vLog.TxHash.String()] = msgHash
-		return nil //orm.SaveL1Messenger(l1.tx, orm.L1RelayedMessage, vLog, msgHash)
+		return orm.SaveL1Messenger(l1.tx, orm.L1RelayedMessage, vLog, msgHash)
 	})
 	l1.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerFailedRelayedMessageEvent) error {
 		msgHash := common.BytesToHash(data.MessageHash[:])
 		l1.messengerEvents[vLog.TxHash.String()] = msgHash
-		return nil //orm.SaveL1Messenger(l1.tx, orm.L1FailedRelayedMessage, vLog, msgHash)
+		return orm.SaveL1Messenger(l1.tx, orm.L1FailedRelayedMessage, vLog, msgHash)
 	})
 
 	l1.ScrollChain.RegisterCommitBatch(func(vLog *types.Log, data *rollup.ScrollChainCommitBatchEvent) error {

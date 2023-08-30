@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/scroll-tech/go-ethereum/common"
 	"gorm.io/gorm"

@@ -1,13 +1,15 @@
 package monitor
 
 import (
-	"chain-monitor/internal/config"
-	"chain-monitor/orm"
 	"context"
+	"time"
+
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
-	"time"
+
+	"chain-monitor/internal/config"
+	"chain-monitor/orm"
 )
 
 type L2API interface {
