@@ -45,7 +45,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	}
 
 	// Create a event filter instance.
-	l1Contracts, err := logic.NewL2Contracts(client, db, cfg.L2gateways)
+	l1Contracts, err := logic.NewL2Contracts(client, cfg.L2gateways)
 	if err != nil {
 		return nil, err
 	}

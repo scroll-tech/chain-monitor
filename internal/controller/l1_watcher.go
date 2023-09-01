@@ -39,7 +39,7 @@ type L1Watcher struct {
 
 func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 	client, err := ethclient.Dial(cfg.L1ChainURL)
-	contracts, err := logic.NewL1Contracts(client, db, cfg.L1Gateways)
+	contracts, err := logic.NewL1Contracts(client, cfg.L1Gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		// get events by number
 		start = header.Number.Uint64()
 		end = start
-		err = l1.contracts.ParseL1Events(ctx, start, end)
+		err = l1.contracts.ParseL1Events(ctx, l1.db, start, end)
 		if err != nil {
 			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
 			return
@@ -99,7 +99,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		}
 		l1.headerCache = append(l1.headerCache, header)
 	} else {
-		err = l1.contracts.ParseL1Events(ctx, start, end)
+		err = l1.contracts.ParseL1Events(ctx, l1.db, start, end)
 		if err != nil {
 			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
 			return
@@ -135,6 +135,7 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		l1.curTime = curTime
 	}
 
+	// Scan l2chain number one by one.
 	return start, start, nil
 }
 

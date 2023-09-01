@@ -10,6 +10,7 @@ var (
 
 // L1ScrollChainEvent records l1 chain batches.
 type L1ScrollChainEvent struct {
+	Number     uint64 `gorm:"index"`
 	BatchIndex uint64 `gorm:"index; comment: batch index, increase one by one"`
 	BatchHash  string `gorm:"primaryKey; comment: batch content hash, it is unique"`
 

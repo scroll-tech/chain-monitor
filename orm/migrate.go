@@ -1,9 +1,12 @@
 package orm
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"sync"
+)
 
 var (
-	tables = []interface{}{
+	L1Tables = []interface{}{
 		&L1Block{},
 		&L1ETHEvent{},
 		&L1ERC20Event{},
@@ -11,17 +14,27 @@ var (
 		&L1ERC1155Event{},
 		&L1MessengerEvent{},
 		&L1ScrollChainEvent{},
-
+	}
+	L2Tables = []interface{}{
 		&L2Block{},
 		&L2ETHEvent{},
 		&L2ERC20Event{},
 		&L2ERC721Event{},
 		&L2ERC1155Event{},
 		&L2MessengerEvent{},
-
+	}
+	tables = []interface{}{
 		&ChainConfirm{},
 	}
+	once sync.Once
 )
+
+func init() {
+	once.Do(func() {
+		tables = append(tables, L1Tables)
+		tables = append(tables, L2Tables)
+	})
+}
 
 func CreateTables(db *gorm.DB) error {
 	if err := db.AutoMigrate(tables...); err != nil {

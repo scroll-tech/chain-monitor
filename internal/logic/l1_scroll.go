@@ -42,6 +42,7 @@ func (l1 *L1Contracts) registerScrollHandlers() {
 			return err
 		}
 		return l1.tx.Create(&orm.L1ScrollChainEvent{
+			Number:        vLog.BlockNumber,
 			BatchIndex:    data.BatchIndex.Uint64(),
 			BatchHash:     common.BytesToHash(data.BatchHash[:]).String(),
 			CommitNumber:  vLog.BlockNumber,

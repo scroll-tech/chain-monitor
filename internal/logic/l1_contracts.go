@@ -16,7 +16,6 @@ import (
 )
 
 type L1Contracts struct {
-	db     *gorm.DB
 	tx     *gorm.DB
 	client *ethclient.Client
 
@@ -41,11 +40,10 @@ type L1Contracts struct {
 	filter *bytecode.ContractsFilter
 }
 
-func NewL1Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.L1Contracts) (*L1Contracts, error) {
+func NewL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*L1Contracts, error) {
 	var (
 		cts = &L1Contracts{
 			client:        client,
-			db:            db,
 			txHashMsgHash: map[string]common.Hash{},
 			ethEvents:     []*orm.L1ETHEvent{},
 			erc20Events:   []*orm.L1ERC20Event{},
@@ -123,9 +121,9 @@ func (l1 *L1Contracts) clean() {
 	l1.erc1155Events = l1.erc1155Events[:0]
 }
 
-func (l1 *L1Contracts) ParseL1Events(ctx context.Context, start, end uint64) error {
+func (l1 *L1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) error {
 	l1.clean()
-	l1.tx = l1.db.Begin()
+	l1.tx = db.Begin().WithContext(ctx)
 	count, err := l1.filter.ParseLogs(ctx, l1.client, start, end)
 	if err != nil {
 		l1.tx.Rollback()
