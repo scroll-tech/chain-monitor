@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"math/big"
-	"sync/atomic"
 	"time"
 
 	"chain-monitor/internal/config"
@@ -45,7 +44,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	}
 
 	// Create a event filter instance.
-	l1Contracts, err := logic.NewL2Contracts(client, cfg.L2gateways)
+	l1Contracts, err := logic.NewL2Contracts(client, db, cfg.L2gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +60,6 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	}
 
 	return watcher, nil
-}
-
-func (l2 *L2Watcher) StartNumber() uint64 {
-	return atomic.LoadUint64(&l2.startNumber)
 }
 
 func (l2 *L2Watcher) WithdrawRoot(ctx context.Context, number uint64) (common.Hash, error) {
@@ -85,7 +80,7 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 		log.Error("l2Watcher failed to get start and end number", "err", err)
 		return
 	}
-	if end > l2.safeNumber {
+	if end > l2.SafeNumber() {
 		return
 	}
 
@@ -96,22 +91,22 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 		return
 	}
 
-	atomic.StoreUint64(&l2.startNumber, end)
+	l2.setStartNumber(end)
 	log.Info("scan l2chain successful", "start", start, "end", end)
 	return
 }
 
 func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
-		start = atomic.LoadUint64(&l2.startNumber) + 1
+		start = l2.StartNumber() + 1
 		end   = start + BatchSize - 1
 	)
 
-	if end <= l2.safeNumber {
+	if end <= l2.SafeNumber() {
 		return start, end, nil
 	}
-	if start < l2.safeNumber {
-		return start, l2.safeNumber - 1, nil
+	if start < l2.SafeNumber() {
+		return start, l2.SafeNumber() - 1, nil
 	}
 
 	curTime := time.Now()
@@ -120,7 +115,7 @@ func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		if err != nil {
 			return 0, 0, err
 		}
-		l2.safeNumber = latestNumber - l2.cfg.Confirm
+		l2.setSafeNumber(latestNumber - l2.cfg.Confirm)
 		l2.curTime = curTime
 	}
 	return start, start, nil

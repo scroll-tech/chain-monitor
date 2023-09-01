@@ -28,8 +28,8 @@ func init() {
 	// Set up event-watcher app info.
 	app = cli.NewApp()
 	app.Action = action
-	app.Name = "event-watcher"
-	app.Usage = "The Scroll Event Watcher"
+	app.Name = "chain-monitor"
+	app.Usage = "The Scroll chain monitor"
 	app.Version = utils.Version
 	app.Flags = append(app.Flags, utils.CommonFlags...)
 	app.Flags = append(app.Flags, initFlag)
@@ -85,16 +85,16 @@ func action(ctx *cli.Context) error {
 	}
 	_ = l2Watcher
 
-	chainMonitor, err := monitor.NewChainMonitor(cfg.ChainMonitor, db.WithContext(subCtx), l2Watcher)
+	chainMonitor, err := monitor.NewChainMonitor(db.WithContext(subCtx), l1Watcher, l2Watcher)
 	if err != nil {
-		log.Error("failed to create chain monitor instance", "err", err)
+		log.Error("failed to create chain chainMonitor instance", "err", err)
 		return err
 	}
 	_ = chainMonitor
 
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
-	//go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.ChainMonitor)
+	go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.ChainMonitor)
 
 	// Catch CTRL-C to ensure a graceful shutdown.
 	interrupt := make(chan os.Signal, 1)

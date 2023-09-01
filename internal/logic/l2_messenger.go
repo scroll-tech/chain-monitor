@@ -61,9 +61,9 @@ func (l2 *L2Contracts) storeMessengerEvents(ctx context.Context) error {
 				return err
 			}
 			chainMonitors[i] = orm.ChainConfirm{
-				Number:             msg.Number,
-				ActualWithdrawRoot: expectRoot.String(),
-				WithdrawStatus:     expectRoot == l2.withdraw.MessageRoot(),
+				Number:         msg.Number,
+				WithdrawRoot:   expectRoot.String(),
+				WithdrawStatus: expectRoot == l2.withdraw.MessageRoot(),
 			}
 		}
 	}

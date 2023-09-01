@@ -45,7 +45,7 @@ type L2Contracts struct {
 	filter *bytecode.ContractsFilter
 }
 
-func NewL2Contracts(client *ethclient.Client, cfg *config.Gateway) (*L2Contracts, error) {
+func NewL2Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.Gateway) (*L2Contracts, error) {
 	var (
 		cts = &L2Contracts{
 			client:        client,
@@ -107,7 +107,7 @@ func NewL2Contracts(client *ethclient.Client, cfg *config.Gateway) (*L2Contracts
 	}...)
 
 	// Init withdraw root.
-	if err = cts.initWithdraw(); err != nil {
+	if err = cts.initWithdraw(db); err != nil {
 		return nil, err
 	}
 
@@ -117,8 +117,8 @@ func NewL2Contracts(client *ethclient.Client, cfg *config.Gateway) (*L2Contracts
 	return cts, nil
 }
 
-func (l2 *L2Contracts) initWithdraw() error {
-	tx := l2.tx.Where("type = ?", orm.L2SentMessage)
+func (l2 *L2Contracts) initWithdraw(db *gorm.DB) error {
+	tx := db.Where("type = ?", orm.L2SentMessage)
 	var msg orm.L2MessengerEvent
 	err := tx.Last(&msg).Error
 	if err != nil && err.Error() != gorm.ErrRecordNotFound.Error() {

@@ -118,6 +118,8 @@ var (
 
 func BeforeAction(ctx *cli.Context) error {
 	var err error
+
+	// Init logger.
 	err = LogSetup(ctx)
 	if err != nil {
 		return err

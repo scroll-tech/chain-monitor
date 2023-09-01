@@ -31,8 +31,8 @@ var (
 
 func init() {
 	once.Do(func() {
-		tables = append(tables, L1Tables)
-		tables = append(tables, L2Tables)
+		tables = append(tables, L1Tables...)
+		tables = append(tables, L2Tables...)
 	})
 }
 

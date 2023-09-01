@@ -74,7 +74,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		log.Error("failed to get l1Chain start and end number", "err", err)
 		return
 	}
-	if end > l1.safeNumber {
+	if end > l1.SafeNumber() {
 		return
 	}
 
@@ -105,7 +105,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 			return
 		}
 	}
-	l1.startNumber = end
+	l1.setStartNumber(end)
 
 	log.Info("scan l1chain successful", "start", start, "end", end)
 	return
@@ -113,10 +113,10 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 
 func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
-		start = l1.startNumber + 1
+		start = l1.StartNumber() + 1
 		end   = start + BatchSize - 1
 	)
-	safeNumber := l1.safeNumber - uint64(l1.cacheLen/2)
+	safeNumber := l1.SafeNumber() - uint64(l1.cacheLen/2)
 	if end <= safeNumber {
 		return start, end, nil
 	}
@@ -126,12 +126,12 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 
 	// update latest number
 	curTime := time.Now()
-	if int(curTime.Sub(l1.curTime).Seconds()) >= 5 {
+	if int(curTime.Sub(l1.curTime).Seconds()) >= 3 {
 		latestNumber, err := l1.client.BlockNumber(ctx)
 		if err != nil {
 			return 0, 0, err
 		}
-		l1.safeNumber = latestNumber - l1.cfg.Confirm
+		l1.setSafeNumber(latestNumber - l1.cfg.Confirm)
 		l1.curTime = curTime
 	}
 
@@ -142,7 +142,7 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	var number uint64
 	if len(l1.headerCache) == 0 {
-		number = l1.startNumber
+		number = l1.StartNumber()
 	} else {
 		number = l1.headerCache[len(l1.headerCache)-1].Number.Uint64()
 	}
@@ -180,7 +180,7 @@ func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 
 	// TODO: A deeper rollback is required
 	if len(l1.headerCache) == 0 {
-		return nil, fmt.Errorf("l1chain reorged too deep")
+		panic(fmt.Errorf("l1chain reorged too deep"))
 	}
 
 	// Reorg stored events if the reorg headers is not empty.
@@ -199,14 +199,7 @@ func deleteReorgEvents(ctx context.Context, db *gorm.DB, numbers []uint64) error
 	var (
 		start  = numbers[0]
 		end    = numbers[len(numbers)-1]
-		tables = []interface{}{
-			&orm.L1Block{},
-			&orm.L1ETHEvent{},
-			&orm.L1ERC20Event{},
-			&orm.L1ERC721Event{},
-			&orm.L1ERC1155Event{},
-			&orm.L1MessengerEvent{},
-		}
+		tables = orm.L1Tables
 		result *gorm.DB
 	)
 	tx := db.Begin().WithContext(ctx)
