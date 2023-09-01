@@ -2,12 +2,14 @@ package controller
 
 import (
 	"context"
-	"time"
-
+	"fmt"
+	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
+	"math/big"
 	"modernc.org/mathutil"
+	"time"
 
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/logic"
@@ -15,7 +17,7 @@ import (
 )
 
 var (
-	BatchSize uint64 = 100
+	BatchSize uint64 = 300
 )
 
 // L1Watcher return a new instance of L1Watcher.
@@ -25,9 +27,12 @@ type L1Watcher struct {
 
 	contracts *logic.L1Contracts
 
-	latestNumber uint64
-	safeNumber   uint64
-	startNumber  uint64
+	cacheLen    int
+	headerCache []*types.Header
+
+	curTime     time.Time
+	startNumber uint64
+	safeNumber  uint64
 
 	db *gorm.DB
 }
@@ -43,13 +48,21 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 	if err != nil {
 		return nil, err
 	}
+	latestNumber, err := client.BlockNumber(context.Background())
+	if err != nil {
+		return nil, err
+	}
 
 	watcherClient := &L1Watcher{
 		cfg:         cfg,
 		db:          db,
 		client:      client,
 		contracts:   contracts,
+		cacheLen:    32,
+		headerCache: make([]*types.Header, 0, 32),
+		curTime:     time.Now(),
 		startNumber: mathutil.MaxUint64(l1Block.Number, cfg.StartNumber),
+		safeNumber:  latestNumber - cfg.Confirm,
 	}
 
 	return watcherClient, nil
@@ -61,18 +74,39 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		log.Error("failed to get l1Chain start and end number", "err", err)
 		return
 	}
-	if start > end {
+	if end > l1.safeNumber {
 		return
 	}
 
-	cts := l1.contracts
-	err = cts.ParseL1Events(ctx, start, end)
-	if err != nil {
-		log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
-		return
+	// If we sync events one by one.
+	if start == end {
+		header, err := l1.checkReorg(ctx)
+		if err != nil {
+			log.Error("appear error when do l1chain reorg process", "number", start, "err", err)
+			return
+		}
+		// get events by number
+		start = header.Number.Uint64()
+		end = start
+		err = l1.contracts.ParseL1Events(ctx, start, end)
+		if err != nil {
+			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
+			return
+		}
+		// append block header
+		if len(l1.headerCache) >= l1.cacheLen {
+			l1.headerCache = l1.headerCache[:l1.cacheLen-1]
+		}
+		l1.headerCache = append(l1.headerCache, header)
+	} else {
+		err = l1.contracts.ParseL1Events(ctx, start, end)
+		if err != nil {
+			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
+			return
+		}
 	}
-
 	l1.startNumber = end
+
 	log.Info("scan l1chain successful", "start", start, "end", end)
 	return
 }
@@ -82,16 +116,110 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		start = l1.startNumber + 1
 		end   = start + BatchSize - 1
 	)
-	if end > l1.safeNumber {
-		// Get safeNumber block latestHeight.
-		number, err := l1.client.BlockNumber(ctx)
+	safeNumber := l1.safeNumber - uint64(l1.cacheLen/2)
+	if end <= safeNumber {
+		return start, end, nil
+	}
+	if start < safeNumber {
+		return start, safeNumber - 1, nil
+	}
+
+	// update latest number
+	curTime := time.Now()
+	if int(curTime.Sub(l1.curTime).Seconds()) >= 5 {
+		latestNumber, err := l1.client.BlockNumber(ctx)
 		if err != nil {
-			log.Error("failed to get safeNumber block latestHeight", "err", err)
 			return 0, 0, err
 		}
-		l1.latestNumber = number
-		l1.safeNumber = mathutil.MaxUint64(l1.safeNumber, number-l1.cfg.Confirm)
-		time.Sleep(time.Second * 2)
+		l1.safeNumber = latestNumber - l1.cfg.Confirm
+		l1.curTime = curTime
 	}
-	return start, mathutil.MinUint64(end, l1.safeNumber), nil
+
+	return start, start, nil
+}
+
+func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
+	var number uint64
+	if len(l1.headerCache) == 0 {
+		number = l1.startNumber
+	} else {
+		number = l1.headerCache[len(l1.headerCache)-1].Number.Uint64()
+	}
+	number += 1
+
+	// get the next block header.
+	header, err := l1.client.HeaderByNumber(ctx, big.NewInt(0).SetUint64(number))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(l1.headerCache) == 0 {
+		return header, nil
+	}
+
+	var reorgNumbers []uint64
+	for len(l1.headerCache) > 0 {
+		latestHeader := l1.headerCache[len(l1.headerCache)-1]
+		if header.ParentHash == latestHeader.Hash() {
+			break
+		}
+		if header.ParentHash != latestHeader.Hash() {
+			reorgNumbers = append(reorgNumbers, latestHeader.Number.Uint64())
+			l1.headerCache = l1.headerCache[:len(l1.headerCache)-1]
+			var (
+				err        error
+				parentHash = header.ParentHash
+			)
+			header, err = l1.client.HeaderByHash(ctx, parentHash)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// TODO: A deeper rollback is required
+	if len(l1.headerCache) == 0 {
+		return nil, fmt.Errorf("l1chain reorged too deep")
+	}
+
+	// Reorg stored events if the reorg headers is not empty.
+	if err = deleteReorgEvents(ctx, l1.db, reorgNumbers); err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+func deleteReorgEvents(ctx context.Context, db *gorm.DB, numbers []uint64) error {
+	if len(numbers) == 0 {
+		return nil
+	}
+
+	var (
+		start  = numbers[0]
+		end    = numbers[len(numbers)-1]
+		tables = []interface{}{
+			&orm.L1Block{},
+			&orm.L1ETHEvent{},
+			&orm.L1ERC20Event{},
+			&orm.L1ERC721Event{},
+			&orm.L1ERC1155Event{},
+			&orm.L1MessengerEvent{},
+		}
+		result *gorm.DB
+	)
+	tx := db.Begin().WithContext(ctx)
+	for _, tb := range tables {
+		// delete eth events.
+		result = tx.Where("number BETWEEN ? AND ?", start, end).Delete(tb)
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+	}
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
 }

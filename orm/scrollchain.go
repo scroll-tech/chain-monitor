@@ -1,9 +1,5 @@
 package orm
 
-import (
-	"gorm.io/gorm"
-)
-
 type BatchType uint8
 
 var (
@@ -12,8 +8,8 @@ var (
 	BatchRevert   BatchType = 0x03
 )
 
-// ScrollChainEvent records l1 chain batches.
-type ScrollChainEvent struct {
+// L1ScrollChainEvent records l1 chain batches.
+type L1ScrollChainEvent struct {
 	BatchIndex uint64 `gorm:"index; comment: batch index, increase one by one"`
 	BatchHash  string `gorm:"primaryKey; comment: batch content hash, it is unique"`
 
@@ -30,14 +26,4 @@ type ScrollChainEvent struct {
 	L2EndNumber   uint64 `gorm:"comment: l2chain block end number contained in this batch"`
 
 	Status BatchType `gorm:"index"`
-}
-
-func GetScrollChainByIndex(db *gorm.DB, index uint64) (*ScrollChainEvent, error) {
-	tx := db.Where("batch_index = ?", index)
-	var batch ScrollChainEvent
-	err := tx.First(&batch).Error
-	if err != nil {
-		return nil, err
-	}
-	return &batch, nil
 }

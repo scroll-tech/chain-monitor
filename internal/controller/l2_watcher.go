@@ -6,15 +6,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"chain-monitor/internal/config"
+	"chain-monitor/internal/logic"
+	"chain-monitor/orm"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
-	"modernc.org/mathutil"
-
-	"chain-monitor/internal/config"
-	"chain-monitor/internal/logic"
-	"chain-monitor/orm"
 )
 
 // L2Watcher return a new instance of L2Watcher.
@@ -24,9 +22,9 @@ type L2Watcher struct {
 
 	contracts *logic.L2Contracts
 
-	latestNumber uint64
-	safeNumber   uint64
-	startNumber  uint64
+	curTime     time.Time
+	startNumber uint64
+	safeNumber  uint64
 
 	db *gorm.DB
 }
@@ -36,12 +34,18 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	if err != nil {
 		return nil, err
 	}
-	l1Contracts, err := logic.NewL2Contracts(client, db, cfg.L2gateways)
+
+	l2Block, err := orm.GetL2LatestBlock(db)
+	if err != nil {
+		return nil, err
+	}
+	latestNumber, err := client.BlockNumber(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	l2Block, err := orm.GetL2LatestBlock(db)
+	// Create a event filter instance.
+	l1Contracts, err := logic.NewL2Contracts(client, db, cfg.L2gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +55,9 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 		db:          db,
 		client:      client,
 		contracts:   l1Contracts,
+		curTime:     time.Now(),
 		startNumber: l2Block.Number,
+		safeNumber:  latestNumber - cfg.Confirm,
 	}
 
 	return watcher, nil
@@ -79,12 +85,12 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 		log.Error("l2Watcher failed to get start and end number", "err", err)
 		return
 	}
-	if start > end {
+	if end > l2.safeNumber {
 		return
 	}
 
 	cts := l2.contracts
-	err = cts.ParseL2Events(ctx, start, end)
+	err = cts.ParseL2Events(ctx, l2.db, start, end)
 	if err != nil {
 		log.Error("failed to parse l2chain events", "start", start, "end", end, "err", err)
 		return
@@ -100,16 +106,22 @@ func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		start = atomic.LoadUint64(&l2.startNumber) + 1
 		end   = start + BatchSize - 1
 	)
-	if end > l2.safeNumber {
-		// Get safeNumber block latestHeight.
-		number, err := l2.client.BlockNumber(ctx)
+
+	if end <= l2.safeNumber {
+		return start, end, nil
+	}
+	if start < l2.safeNumber {
+		return start, l2.safeNumber - 1, nil
+	}
+
+	curTime := time.Now()
+	if int(curTime.Sub(l2.curTime).Seconds()) >= 5 {
+		latestNumber, err := l2.client.BlockNumber(ctx)
 		if err != nil {
-			log.Error("failed to get safeNumber block latestHeight", "err", err)
 			return 0, 0, err
 		}
-		l2.latestNumber = number
-		l2.safeNumber = mathutil.MaxUint64(l2.safeNumber, number-l2.cfg.Confirm)
-		time.Sleep(time.Second * 2)
+		l2.safeNumber = latestNumber - l2.cfg.Confirm
+		l2.curTime = curTime
 	}
-	return start, mathutil.MinUint64(end, l2.safeNumber), nil
+	return start, start, nil
 }

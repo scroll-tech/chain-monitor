@@ -1,20 +1,18 @@
 package app
 
 import (
-	"fmt"
-	"os"
-	"os/signal"
-	"time"
-
-	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/urfave/cli/v2"
-
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/controller/monitor"
 	"chain-monitor/internal/route"
 	"chain-monitor/internal/utils"
 	"chain-monitor/orm"
+	"fmt"
+	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/urfave/cli/v2"
+	"os"
+	"os/signal"
+	"time"
 )
 
 var (
@@ -87,12 +85,16 @@ func action(ctx *cli.Context) error {
 	}
 	_ = l2Watcher
 
-	chainMonitor := monitor.NewChainMonitor(cfg.ChainMonitor, db.WithContext(subCtx), l2Watcher)
+	chainMonitor, err := monitor.NewChainMonitor(cfg.ChainMonitor, db.WithContext(subCtx), l2Watcher)
+	if err != nil {
+		log.Error("failed to create chain monitor instance", "err", err)
+		return err
+	}
 	_ = chainMonitor
 
-	go utils.LoopWithContext(subCtx, time.Second*2, l1Watcher.ScanL1Chain)
-	go utils.LoopWithContext(subCtx, time.Second*2, l2Watcher.ScanL2Chain)
-	go utils.LoopWithContext(subCtx, time.Second*3, chainMonitor.ChainMonitor)
+	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
+	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
+	//go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.ChainMonitor)
 
 	// Catch CTRL-C to ensure a graceful shutdown.
 	interrupt := make(chan os.Signal, 1)

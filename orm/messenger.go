@@ -19,28 +19,29 @@ var (
 type L1MessengerEvent struct {
 	*TxHead
 	// Make sure cross deposit or withdraw tx successfully confirmed.
-	Confirm     bool   `gorm:"index"`
-	MessageHash string `gorm:"index"`
+	Confirm bool `gorm:"index"`
 }
 
 func SaveL1Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash common.Hash) error {
 	return db.Save(&L1MessengerEvent{
-		TxHead:      NewTxHead(vLog, eventType),
-		MessageHash: msgHash.String(),
+		TxHead: NewTxHead(vLog, eventType),
 	}).Error
 }
 
 type L2MessengerEvent struct {
-	*TxHead
-	// Make sure cross deposit or withdraw tx successfully confirmed.
-	Confirm     bool   `gorm:"index"`
-	MessageHash string `gorm:"index"`
+	Number   uint64    `gorm:"index; comment: block number"`
+	Type     EventType `gorm:"index; comment: tx type"`
+	MsgNonce uint64    `gorm:"primaryKey"`
+	MsgHash  string    `gorm:"index"`
+	MsgProof string
+	Confirm  bool `gorm:"index"`
 }
 
 func SaveL2Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash common.Hash) error {
 	return db.Save(&L2MessengerEvent{
-		TxHead:      NewTxHead(vLog, eventType),
-		MessageHash: msgHash.String(),
+		Number:  vLog.BlockNumber,
+		Type:    eventType,
+		MsgHash: msgHash.String(),
 	}).Error
 }
 

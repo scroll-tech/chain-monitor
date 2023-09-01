@@ -28,7 +28,7 @@ func (m *ChainConfirm) ConfirmBatch(ctx *gin.Context) {
 		return
 	}
 
-	var confirmBatch *orm.BatchConfirm
+	var confirmBatch *orm.ChainConfirm
 	if req.BatchHash != (common.Hash{}) {
 		confirmBatch, err = orm.GetConfirmBatchByHash(m.db, req.BatchHash)
 		if err != nil {
@@ -46,5 +46,5 @@ func (m *ChainConfirm) ConfirmBatch(ctx *gin.Context) {
 		return
 	}
 
-	types.RenderJSON(ctx, types.Success, nil, confirmBatch.WithdrawRootStatus && confirmBatch.DepositStatus)
+	types.RenderJSON(ctx, types.Success, nil, confirmBatch.WithdrawStatus && confirmBatch.DepositStatus)
 }

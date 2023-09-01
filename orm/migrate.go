@@ -5,21 +5,21 @@ import "gorm.io/gorm"
 var (
 	tables = []interface{}{
 		&L1Block{},
-		&L2Block{},
-
 		&L1ETHEvent{},
-		&L2ETHEvent{},
 		&L1ERC20Event{},
-		&L2ERC20Event{},
 		&L1ERC721Event{},
-		&L2ERC721Event{},
 		&L1ERC1155Event{},
-		&L2ERC1155Event{},
 		&L1MessengerEvent{},
-		&L2MessengerEvent{},
-		&ScrollChainEvent{},
+		&L1ScrollChainEvent{},
 
-		&BatchConfirm{},
+		&L2Block{},
+		&L2ETHEvent{},
+		&L2ERC20Event{},
+		&L2ERC721Event{},
+		&L2ERC1155Event{},
+		&L2MessengerEvent{},
+
+		&ChainConfirm{},
 	}
 )
 

@@ -43,10 +43,10 @@ var (
 )
 
 type TxHead struct {
-	Number      uint64    `gorm:"index; comment: block number"`
-	TxHash      string    `gorm:"primaryKey; type: varchar(66); comment: tx hash"`
-	MessageHash string    `gorm:"index"`
-	Type        EventType `gorm:"index; comment: tx type"`
+	Number  uint64    `gorm:"index; comment: block number"`
+	TxHash  string    `gorm:"primaryKey; type: varchar(66); comment: tx hash"`
+	MsgHash string    `gorm:"index"`
+	Type    EventType `gorm:"index; comment: tx type"`
 }
 
 func NewTxHead(vLog *types.Log, tp EventType) *TxHead {
@@ -74,7 +74,6 @@ type L2ETHEvent struct {
 }
 
 type L1ERC20Event struct {
-	MessageHash string `gorm:"index"`
 	*TxHead
 	// event message
 	L1Token string `gorm:"comment: input token contract address"`
