@@ -3,13 +3,14 @@ package controller
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
-	"math/big"
 	"modernc.org/mathutil"
-	"time"
 
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/logic"

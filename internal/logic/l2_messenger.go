@@ -1,18 +1,22 @@
 package logic
 
 import (
-	"chain-monitor/bytecode/scroll/L2"
-	"chain-monitor/orm"
 	"context"
 	"fmt"
+	"sort"
+
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
-	"sort"
+	"github.com/scroll-tech/go-ethereum/log"
+
+	"chain-monitor/bytecode/scroll/L2"
+	"chain-monitor/orm"
 )
 
 func (l2 *L2Contracts) registerMessengerHandlers() {
 	l2.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerSentMessageEvent) error {
 		msgHash := computeMessageHash(l2.ScrollMessenger.ABI, data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
+		log.Info("ScrollMessenger message sent hash", "tx_hash", vLog.TxHash.String(), "msg_hash", msgHash.String())
 		l2.txHashMsgHash[vLog.TxHash.String()] = msgHash
 		l2.msgSentEvents = append(l2.msgSentEvents, &orm.L2MessengerEvent{
 			Number:   vLog.BlockNumber,
@@ -60,10 +64,14 @@ func (l2 *L2Contracts) storeMessengerEvents(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+			actualRoot := l2.withdraw.MessageRoot()
+			if actualRoot != expectRoot {
+				log.Error("withdraw root is not right", "number", msg.Number, "nonce", msg.MsgNonce, "msg_hash", msg.MsgHash)
+			}
 			chainMonitors[i] = orm.ChainConfirm{
 				Number:         msg.Number,
 				WithdrawRoot:   expectRoot.String(),
-				WithdrawStatus: expectRoot == l2.withdraw.MessageRoot(),
+				WithdrawStatus: expectRoot == actualRoot,
 			}
 		}
 	}

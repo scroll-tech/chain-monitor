@@ -5,13 +5,14 @@ import (
 	"math/big"
 	"time"
 
-	"chain-monitor/internal/config"
-	"chain-monitor/internal/logic"
-	"chain-monitor/orm"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
+
+	"chain-monitor/internal/config"
+	"chain-monitor/internal/logic"
+	"chain-monitor/orm"
 )
 
 // L2Watcher return a new instance of L2Watcher.

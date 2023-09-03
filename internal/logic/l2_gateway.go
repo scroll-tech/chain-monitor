@@ -1,11 +1,13 @@
 package logic
 
 import (
-	"chain-monitor/bytecode/scroll/L2/gateway"
-	"chain-monitor/orm"
+	"math/big"
+
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
-	"math/big"
+
+	"chain-monitor/bytecode/scroll/L2/gateway"
+	"chain-monitor/orm"
 )
 
 func (l2 *L2Contracts) registerGatewayHandlers() {

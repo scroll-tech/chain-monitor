@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -10,11 +9,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func StartServer(ctx context.Context, c *cli.Context, handler http.Handler) {
-	if !c.Bool(httpEnabledFlag.Name) {
+func StartServer(ctx *cli.Context, handler http.Handler) {
+	if !ctx.Bool(httpEnabledFlag.Name) {
 		return
 	}
-	endpoint := fmt.Sprintf("%s:%d", c.String(httpListenAddrFlag.Name), c.Int(httpPortFlag.Name))
+	endpoint := fmt.Sprintf("%s:%d", ctx.String(httpListenAddrFlag.Name), ctx.Int(httpPortFlag.Name))
 
 	srv := &http.Server{
 		Handler:      handler,
@@ -25,7 +24,7 @@ func StartServer(ctx context.Context, c *cli.Context, handler http.Handler) {
 	}
 
 	go func() {
-		<-ctx.Done()
+		<-ctx.Context.Done()
 		if err := srv.Close(); err != nil {
 			log.Crit("failed to close chain_monitor serer", "err", err)
 		}

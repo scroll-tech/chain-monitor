@@ -69,7 +69,7 @@ func action(ctx *cli.Context) error {
 	}
 
 	// Start onchain_metrics server.
-	utils.StartServer(subCtx, ctx, route.Route(db.WithContext(subCtx)))
+	utils.StartServer(ctx, route.Route(db.WithContext(subCtx)))
 
 	l1Watcher, err := controller.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
 	if err != nil {

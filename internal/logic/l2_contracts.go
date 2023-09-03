@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"math/big"
 
-	"chain-monitor/bytecode"
-	"chain-monitor/bytecode/scroll/L2"
-	"chain-monitor/bytecode/scroll/L2/gateway"
-	"chain-monitor/internal/config"
-	"chain-monitor/internal/utils/msgproof"
-	"chain-monitor/orm"
-
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"gorm.io/gorm"
+
+	"chain-monitor/bytecode"
+	"chain-monitor/bytecode/scroll/L2"
+	"chain-monitor/bytecode/scroll/L2/gateway"
+	"chain-monitor/bytecode/scroll/L2/predeploys"
+	"chain-monitor/internal/config"
+	"chain-monitor/internal/utils/msgproof"
+	"chain-monitor/orm"
 )
 
 type L2Contracts struct {
@@ -40,7 +41,7 @@ type L2Contracts struct {
 	ERC1155Gateway       *gateway.L2ERC1155Gateway
 
 	ScrollMessenger *L2.L2ScrollMessenger
-	//MessageQueue    *predeploys.L2MessageQueue
+	MessageQueue    *predeploys.L2MessageQueue
 
 	filter *bytecode.ContractsFilter
 }
@@ -88,14 +89,14 @@ func NewL2Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.Gateway) 
 	if err != nil {
 		return nil, err
 	}
-	//cts.MessageQueue, err = predeploys.NewL2MessageQueue(cfg.MessageQueue, client)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
+	cts.MessageQueue, err = predeploys.NewL2MessageQueue(cfg.MessageQueue, client)
+	if err != nil {
+		return nil, err
+	}
+
 	cts.filter = bytecode.NewContractsFilter([]bytecode.ContractAPI{
 		cts.ScrollMessenger,
-		//cts.MessageQueue,
+		cts.MessageQueue,
 
 		cts.ETHGateway,
 		cts.WETHGateway,

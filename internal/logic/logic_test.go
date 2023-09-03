@@ -2,15 +2,32 @@ package logic
 
 import (
 	"chain-monitor/internal/utils/msgproof"
+	"context"
 	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/stretchr/testify/assert"
+	"math/big"
 	"testing"
 )
 
 // 12849,1,199,0x04da566c4a3fb57edc5a238ed907db15cd66189a823814ff6628919b809a1bde,5b1415818a58264eca9b0327963328ad5905d7fea081693b126f014096888e9877be371908f6564366d6caee3d14ac038efcaa97f0265c49802cc02e3e7f9c0a3d5ff82a231127a3115103088a1cc312bdcb22b9867ce0aa650013acfa40235721ddb9a356815c3fac1026b6dec5df3124afbadb485c9ba5a3e3398a04b7ba85e58769b32a1beaf1ea27375a44095a0d1fb664ce2dd358e7fcbfb78c26a193440eb01ebfc9ed27500cd4dfc979272d1f0913cc9f66540d7e8005811109e1cf2d4da8c43920b9bc185ee9f3a5404b98d1c7d444277647ae5dc881397f8acdbd9cef7879d41240cbb0fe34cdc62f3160d02076ed7bd691b119f60e29b9b122154a,false
+// 12851,1,200,0x1fd0c04dbc00c431ea6dc0c7af45e043da66226a344978f07b21af2728022fd3,0000000000000000000000000000000000000000000000000000000000000000ad3228b676f7d3cd4284a5443f17f1962b36e491b30a40b2405849e597ba5fb5b4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30abb9e01f402f845f9bfbcc54dec156ad056663912b1bdce1ceeb541eb0c6e7a0e58769b32a1beaf1ea27375a44095a0d1fb664ce2dd358e7fcbfb78c26a193440eb01ebfc9ed27500cd4dfc979272d1f0913cc9f66540d7e8005811109e1cf2d4da8c43920b9bc185ee9f3a5404b98d1c7d444277647ae5dc881397f8acdbd9cef7879d41240cbb0fe34cdc62f3160d02076ed7bd691b119f60e29b9b122154a,false
 func TestRoot(t *testing.T) {
+	client, err := ethclient.Dial("http://10.5.11.195:8545")
+	assert.NoError(t, err)
+
 	withdraw := msgproof.NewWithdrawTrie()
 	proof := common.Hex2Bytes("5b1415818a58264eca9b0327963328ad5905d7fea081693b126f014096888e9877be371908f6564366d6caee3d14ac038efcaa97f0265c49802cc02e3e7f9c0a3d5ff82a231127a3115103088a1cc312bdcb22b9867ce0aa650013acfa40235721ddb9a356815c3fac1026b6dec5df3124afbadb485c9ba5a3e3398a04b7ba85e58769b32a1beaf1ea27375a44095a0d1fb664ce2dd358e7fcbfb78c26a193440eb01ebfc9ed27500cd4dfc979272d1f0913cc9f66540d7e8005811109e1cf2d4da8c43920b9bc185ee9f3a5404b98d1c7d444277647ae5dc881397f8acdbd9cef7879d41240cbb0fe34cdc62f3160d02076ed7bd691b119f60e29b9b122154a")
 	withdraw.Initialize(199, common.HexToHash("0x04da566c4a3fb57edc5a238ed907db15cd66189a823814ff6628919b809a1bde"), proof)
 	root := withdraw.MessageRoot()
+
+	withdraw.AppendMessages([]common.Hash{common.HexToHash("0x1fd0c04dbc00c431ea6dc0c7af45e043da66226a344978f07b21af2728022fd3")})
+	actualRoot := withdraw.MessageRoot()
+
+	expectRoot, err := client.StorageAt(context.Background(), common.HexToAddress("0x5300000000000000000000000000000000000000"), common.BigToHash(big.NewInt(0)), big.NewInt(12851))
+	assert.NoError(t, err)
+
+	t.Log(common.Bytes2Hex(expectRoot), actualRoot.String())
+
 	t.Log(root.String())
 }

@@ -1,10 +1,10 @@
 package types
 
 import (
-	"github.com/scroll-tech/go-ethereum/common"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/scroll-tech/go-ethereum/common"
 )
 
 const (
