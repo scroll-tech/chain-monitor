@@ -28,6 +28,7 @@ func (m *ChainConfirm) ConfirmWithdrawRoot(ctx *gin.Context) {
 	confirmBlock, err := orm.GetConfirmMsgByNumber(m.db, req.Number)
 	if err != nil {
 		types.RenderJSON(ctx, types.ErrConfirmWithdrawRootByNumber, err, nil)
+		return
 	}
 
 	types.RenderJSON(ctx, types.Success, nil, confirmBlock.WithdrawStatus && confirmBlock.DepositStatus)
