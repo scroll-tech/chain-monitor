@@ -131,8 +131,6 @@ func (l2 *L2Contracts) storeGatewayEvents() error {
 func newL2ETHEvent(eventType orm.EventType, vLog *types.Log, from, to common.Address, amount *big.Int) *orm.L2ETHEvent {
 	return &orm.L2ETHEvent{
 		TxHead: orm.NewTxHead(vLog, eventType),
-		From:   from.String(),
-		To:     to.String(),
 		Amount: amount,
 	}
 }
@@ -142,8 +140,6 @@ func newL2ETH20Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token,
 		TxHead:  orm.NewTxHead(vLog, eventType),
 		L1Token: l1Token.String(),
 		L2Token: l2Token.String(),
-		From:    from.String(),
-		To:      to.String(),
 		Amount:  amount,
 	}
 }
@@ -153,8 +149,6 @@ func newL2ERC721Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token
 		TxHead:  orm.NewTxHead(vLog, eventType),
 		L1Token: l1Token.String(),
 		L2Token: l2Token.String(),
-		From:    from.String(),
-		To:      to.String(),
 		TokenId: tokenId,
 	}
 }
@@ -164,8 +158,6 @@ func newL2ERC1155Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Toke
 		TxHead:  orm.NewTxHead(vLog, eventType),
 		L1Token: l1Token.String(),
 		L2Token: l2Token.String(),
-		From:    from.String(),
-		To:      to.String(),
 		TokenId: tokenId,
 		Amount:  amount,
 	}

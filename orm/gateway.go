@@ -60,36 +60,28 @@ func NewTxHead(vLog *types.Log, tp EventType) *TxHead {
 type L1ETHEvent struct {
 	*TxHead
 	// event message
-	From   string
-	To     string
 	Amount *big.Int `gorm:"type:numeric(32,0)"`
 }
 
 type L2ETHEvent struct {
 	*TxHead
 	// event message
-	From   string
-	To     string
 	Amount *big.Int `gorm:"type:numeric(32,0)"`
 }
 
 type L1ERC20Event struct {
 	*TxHead
 	// event message
-	L1Token string `gorm:"comment: input token contract address"`
-	L2Token string `gorm:"comment: output token contract address"`
-	From    string
-	To      string
+	L1Token string   `gorm:"comment: input token contract address"`
+	L2Token string   `gorm:"comment: output token contract address"`
 	Amount  *big.Int `gorm:"type:numeric(32,0)"`
 }
 
 type L2ERC20Event struct {
 	*TxHead
 	// event message
-	L1Token string `gorm:"comment: input token contract address"`
-	L2Token string `gorm:"comment: output token contract address"`
-	From    string
-	To      string
+	L1Token string   `gorm:"comment: input token contract address"`
+	L2Token string   `gorm:"comment: output token contract address"`
 	Amount  *big.Int `gorm:"type:numeric(32,0)"`
 }
 
@@ -97,8 +89,6 @@ type L1ERC721Event struct {
 	*TxHead
 	L1Token string
 	L2Token string
-	From    string
-	To      string
 	TokenId *big.Int `gorm:"type:serial"`
 }
 
@@ -106,8 +96,6 @@ type L2ERC721Event struct {
 	*TxHead
 	L1Token string
 	L2Token string
-	From    string
-	To      string
 	TokenId *big.Int `gorm:"type:serial"`
 }
 
@@ -115,8 +103,6 @@ type L1ERC1155Event struct {
 	*TxHead
 	L1Token string
 	L2Token string
-	From    string
-	To      string
 	TokenId *big.Int `gorm:"type:serial"`
 	Amount  *big.Int `gorm:"type:numeric(32,0)"`
 }
@@ -125,8 +111,6 @@ type L2ERC1155Event struct {
 	*TxHead
 	L1Token string
 	L2Token string
-	From    string
-	To      string
 	TokenId *big.Int `gorm:"type:serial"`
 	Amount  *big.Int `gorm:"type:numeric(32,0)"`
 }
