@@ -76,67 +76,79 @@ func (o *L2DAIGateway) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L2DAIGateway) ParseLog(vLog *types.Log) error {
+func (o *L2DAIGateway) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterFinalizeDepositERC20, the FinalizeDepositERC20 event ID is 0x165ba69f6ab40c50cade6f65431801e5f9c7d7830b7545391920db039133ba34.
 func (o *L2DAIGateway) RegisterFinalizeDepositERC20(handler func(vLog *types.Log, data *L2DAIGatewayFinalizeDepositERC20Event) error) {
-	o.parsers[o.ABI.Events["FinalizeDepositERC20"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["FinalizeDepositERC20"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2DAIGatewayFinalizeDepositERC20Event)
 		if err := o.L2DAIGatewayCaller.contract.UnpackLog(event, "FinalizeDepositERC20", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "FinalizeDepositERC20"
 }
 
 // RegisterInitialized, the Initialized event ID is 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 func (o *L2DAIGateway) RegisterInitialized(handler func(vLog *types.Log, data *L2DAIGatewayInitializedEvent) error) {
-	o.parsers[o.ABI.Events["Initialized"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Initialized"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2DAIGatewayInitializedEvent)
 		if err := o.L2DAIGatewayCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Initialized"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L2DAIGateway) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L2DAIGatewayOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2DAIGatewayOwnershipTransferredEvent)
 		if err := o.L2DAIGatewayCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterUpdateTokenMapping, the UpdateTokenMapping event ID is 0x2069a26c43c36ffaabe0c2d19bf65e55dd03abecdc449f5cc9663491e97f709d.
 func (o *L2DAIGateway) RegisterUpdateTokenMapping(handler func(vLog *types.Log, data *L2DAIGatewayUpdateTokenMappingEvent) error) {
-	o.parsers[o.ABI.Events["UpdateTokenMapping"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateTokenMapping"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2DAIGatewayUpdateTokenMappingEvent)
 		if err := o.L2DAIGatewayCaller.contract.UnpackLog(event, "UpdateTokenMapping", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateTokenMapping"
 }
 
 // RegisterWithdrawERC20, the WithdrawERC20 event ID is 0xd8d3a3f4ab95694bef40475997598bcf8acd3ed9617a4c1013795429414c27e8.
 func (o *L2DAIGateway) RegisterWithdrawERC20(handler func(vLog *types.Log, data *L2DAIGatewayWithdrawERC20Event) error) {
-	o.parsers[o.ABI.Events["WithdrawERC20"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["WithdrawERC20"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2DAIGatewayWithdrawERC20Event)
 		if err := o.L2DAIGatewayCaller.contract.UnpackLog(event, "WithdrawERC20", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "WithdrawERC20"
 }
 
 // L2DAIGatewayCaller is an auto generated read-only Go binding around an Ethereum contract.

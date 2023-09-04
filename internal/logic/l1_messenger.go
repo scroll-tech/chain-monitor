@@ -3,19 +3,17 @@ package logic
 import (
 	"context"
 
-	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/core/types"
-	"github.com/scroll-tech/go-ethereum/crypto"
-
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L1/rollup"
 	"chain-monitor/orm"
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/core/types"
 )
 
 func (l1 *L1Contracts) registerMessengerHandlers() {
-	l1.MessageQueue.RegisterQueueTransaction(func(vLog *types.Log, data *rollup.L1MessageQueueQueueTransactionEvent) error {
-		msgHash := crypto.Keccak256Hash(data.Data)
+	l1.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerSentMessageEvent) error {
+		msgHash := computeMessageHash(l1.ScrollMessenger.ABI, data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
 		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
 		return orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
 	})

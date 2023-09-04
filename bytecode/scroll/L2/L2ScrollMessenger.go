@@ -76,111 +76,131 @@ func (o *L2ScrollMessenger) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L2ScrollMessenger) ParseLog(vLog *types.Log) error {
+func (o *L2ScrollMessenger) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterFailedRelayedMessage, the FailedRelayedMessage event ID is 0x99d0e048484baa1b1540b1367cb128acd7ab2946d1ed91ec10e3c85e4bf51b8f.
 func (o *L2ScrollMessenger) RegisterFailedRelayedMessage(handler func(vLog *types.Log, data *L2ScrollMessengerFailedRelayedMessageEvent) error) {
-	o.parsers[o.ABI.Events["FailedRelayedMessage"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["FailedRelayedMessage"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerFailedRelayedMessageEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "FailedRelayedMessage", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "FailedRelayedMessage"
 }
 
 // RegisterInitialized, the Initialized event ID is 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 func (o *L2ScrollMessenger) RegisterInitialized(handler func(vLog *types.Log, data *L2ScrollMessengerInitializedEvent) error) {
-	o.parsers[o.ABI.Events["Initialized"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Initialized"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerInitializedEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Initialized"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L2ScrollMessenger) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L2ScrollMessengerOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerOwnershipTransferredEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterPaused, the Paused event ID is 0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258.
 func (o *L2ScrollMessenger) RegisterPaused(handler func(vLog *types.Log, data *L2ScrollMessengerPausedEvent) error) {
-	o.parsers[o.ABI.Events["Paused"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Paused"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerPausedEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "Paused", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Paused"
 }
 
 // RegisterRelayedMessage, the RelayedMessage event ID is 0x4641df4a962071e12719d8c8c8e5ac7fc4d97b927346a3d7a335b1f7517e133c.
 func (o *L2ScrollMessenger) RegisterRelayedMessage(handler func(vLog *types.Log, data *L2ScrollMessengerRelayedMessageEvent) error) {
-	o.parsers[o.ABI.Events["RelayedMessage"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["RelayedMessage"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerRelayedMessageEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "RelayedMessage", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "RelayedMessage"
 }
 
 // RegisterSentMessage, the SentMessage event ID is 0x104371f3b442861a2a7b82a070afbbaab748bb13757bf47769e170e37809ec1e.
 func (o *L2ScrollMessenger) RegisterSentMessage(handler func(vLog *types.Log, data *L2ScrollMessengerSentMessageEvent) error) {
-	o.parsers[o.ABI.Events["SentMessage"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["SentMessage"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerSentMessageEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "SentMessage", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "SentMessage"
 }
 
 // RegisterUnpaused, the Unpaused event ID is 0x5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa.
 func (o *L2ScrollMessenger) RegisterUnpaused(handler func(vLog *types.Log, data *L2ScrollMessengerUnpausedEvent) error) {
-	o.parsers[o.ABI.Events["Unpaused"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Unpaused"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerUnpausedEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "Unpaused", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Unpaused"
 }
 
 // RegisterUpdateFeeVault, the UpdateFeeVault event ID is 0x4aadc32827849f797733838c61302f7f56d2b6db28caa175eb3f7f8e5aba25f5.
 func (o *L2ScrollMessenger) RegisterUpdateFeeVault(handler func(vLog *types.Log, data *L2ScrollMessengerUpdateFeeVaultEvent) error) {
-	o.parsers[o.ABI.Events["UpdateFeeVault"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateFeeVault"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerUpdateFeeVaultEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "UpdateFeeVault", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateFeeVault"
 }
 
 // RegisterUpdateMaxFailedExecutionTimes, the UpdateMaxFailedExecutionTimes event ID is 0x8a4c22c9b46f23dedd49b843839940ce0c36fa1612073a9bc7dbaeef9ee547ba.
 func (o *L2ScrollMessenger) RegisterUpdateMaxFailedExecutionTimes(handler func(vLog *types.Log, data *L2ScrollMessengerUpdateMaxFailedExecutionTimesEvent) error) {
-	o.parsers[o.ABI.Events["UpdateMaxFailedExecutionTimes"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateMaxFailedExecutionTimes"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ScrollMessengerUpdateMaxFailedExecutionTimesEvent)
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "UpdateMaxFailedExecutionTimes", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateMaxFailedExecutionTimes"
 }
 
 // L2ScrollMessengerCaller is an auto generated read-only Go binding around an Ethereum contract.

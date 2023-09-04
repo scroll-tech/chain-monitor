@@ -76,67 +76,79 @@ func (o *L1ETHGateway) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L1ETHGateway) ParseLog(vLog *types.Log) error {
+func (o *L1ETHGateway) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterDepositETH, the DepositETH event ID is 0x6670de856ec8bf5cb2b7e957c5dc24759716056f79d97ea5e7c939ca0ba5a675.
 func (o *L1ETHGateway) RegisterDepositETH(handler func(vLog *types.Log, data *L1ETHGatewayDepositETHEvent) error) {
-	o.parsers[o.ABI.Events["DepositETH"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["DepositETH"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1ETHGatewayDepositETHEvent)
 		if err := o.L1ETHGatewayCaller.contract.UnpackLog(event, "DepositETH", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "DepositETH"
 }
 
 // RegisterFinalizeWithdrawETH, the FinalizeWithdrawETH event ID is 0x96db5d1cee1dd2760826bb56fabd9c9f6e978083e0a8b88559c741a29e9746e7.
 func (o *L1ETHGateway) RegisterFinalizeWithdrawETH(handler func(vLog *types.Log, data *L1ETHGatewayFinalizeWithdrawETHEvent) error) {
-	o.parsers[o.ABI.Events["FinalizeWithdrawETH"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["FinalizeWithdrawETH"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1ETHGatewayFinalizeWithdrawETHEvent)
 		if err := o.L1ETHGatewayCaller.contract.UnpackLog(event, "FinalizeWithdrawETH", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "FinalizeWithdrawETH"
 }
 
 // RegisterInitialized, the Initialized event ID is 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 func (o *L1ETHGateway) RegisterInitialized(handler func(vLog *types.Log, data *L1ETHGatewayInitializedEvent) error) {
-	o.parsers[o.ABI.Events["Initialized"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Initialized"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1ETHGatewayInitializedEvent)
 		if err := o.L1ETHGatewayCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Initialized"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L1ETHGateway) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L1ETHGatewayOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1ETHGatewayOwnershipTransferredEvent)
 		if err := o.L1ETHGatewayCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterRefundETH, the RefundETH event ID is 0x289360176646a5f99cb4b6300628426dca46b723f40db3c04449d6ed1745a0e7.
 func (o *L1ETHGateway) RegisterRefundETH(handler func(vLog *types.Log, data *L1ETHGatewayRefundETHEvent) error) {
-	o.parsers[o.ABI.Events["RefundETH"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["RefundETH"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1ETHGatewayRefundETHEvent)
 		if err := o.L1ETHGatewayCaller.contract.UnpackLog(event, "RefundETH", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "RefundETH"
 }
 
 // L1ETHGatewayCaller is an auto generated read-only Go binding around an Ethereum contract.

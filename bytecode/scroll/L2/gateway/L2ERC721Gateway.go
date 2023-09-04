@@ -76,89 +76,105 @@ func (o *L2ERC721Gateway) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L2ERC721Gateway) ParseLog(vLog *types.Log) error {
+func (o *L2ERC721Gateway) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterBatchWithdrawERC721, the BatchWithdrawERC721 event ID is 0xbdb7b5cec70093e3ce49b258071951d245c0871c006fd9327778c69d0e9f244d.
 func (o *L2ERC721Gateway) RegisterBatchWithdrawERC721(handler func(vLog *types.Log, data *L2ERC721GatewayBatchWithdrawERC721Event) error) {
-	o.parsers[o.ABI.Events["BatchWithdrawERC721"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["BatchWithdrawERC721"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ERC721GatewayBatchWithdrawERC721Event)
 		if err := o.L2ERC721GatewayCaller.contract.UnpackLog(event, "BatchWithdrawERC721", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "BatchWithdrawERC721"
 }
 
 // RegisterFinalizeBatchDepositERC721, the FinalizeBatchDepositERC721 event ID is 0xafa88b850da44ca05b319e813873eac8d08e7c041d2d9b3072db0f087e3cd29e.
 func (o *L2ERC721Gateway) RegisterFinalizeBatchDepositERC721(handler func(vLog *types.Log, data *L2ERC721GatewayFinalizeBatchDepositERC721Event) error) {
-	o.parsers[o.ABI.Events["FinalizeBatchDepositERC721"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["FinalizeBatchDepositERC721"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ERC721GatewayFinalizeBatchDepositERC721Event)
 		if err := o.L2ERC721GatewayCaller.contract.UnpackLog(event, "FinalizeBatchDepositERC721", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "FinalizeBatchDepositERC721"
 }
 
 // RegisterFinalizeDepositERC721, the FinalizeDepositERC721 event ID is 0xc655ec1de34d98630aa4572239414f926d6b3d07653dde093a6df97377e31b41.
 func (o *L2ERC721Gateway) RegisterFinalizeDepositERC721(handler func(vLog *types.Log, data *L2ERC721GatewayFinalizeDepositERC721Event) error) {
-	o.parsers[o.ABI.Events["FinalizeDepositERC721"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["FinalizeDepositERC721"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ERC721GatewayFinalizeDepositERC721Event)
 		if err := o.L2ERC721GatewayCaller.contract.UnpackLog(event, "FinalizeDepositERC721", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "FinalizeDepositERC721"
 }
 
 // RegisterInitialized, the Initialized event ID is 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 func (o *L2ERC721Gateway) RegisterInitialized(handler func(vLog *types.Log, data *L2ERC721GatewayInitializedEvent) error) {
-	o.parsers[o.ABI.Events["Initialized"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Initialized"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ERC721GatewayInitializedEvent)
 		if err := o.L2ERC721GatewayCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Initialized"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L2ERC721Gateway) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L2ERC721GatewayOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ERC721GatewayOwnershipTransferredEvent)
 		if err := o.L2ERC721GatewayCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterUpdateTokenMapping, the UpdateTokenMapping event ID is 0x2069a26c43c36ffaabe0c2d19bf65e55dd03abecdc449f5cc9663491e97f709d.
 func (o *L2ERC721Gateway) RegisterUpdateTokenMapping(handler func(vLog *types.Log, data *L2ERC721GatewayUpdateTokenMappingEvent) error) {
-	o.parsers[o.ABI.Events["UpdateTokenMapping"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateTokenMapping"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ERC721GatewayUpdateTokenMappingEvent)
 		if err := o.L2ERC721GatewayCaller.contract.UnpackLog(event, "UpdateTokenMapping", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateTokenMapping"
 }
 
 // RegisterWithdrawERC721, the WithdrawERC721 event ID is 0xe9e85cf0c862dd491ecda3c9a230e12ada8956472028ebde4fdc4f8e2d77bcda.
 func (o *L2ERC721Gateway) RegisterWithdrawERC721(handler func(vLog *types.Log, data *L2ERC721GatewayWithdrawERC721Event) error) {
-	o.parsers[o.ABI.Events["WithdrawERC721"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["WithdrawERC721"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ERC721GatewayWithdrawERC721Event)
 		if err := o.L2ERC721GatewayCaller.contract.UnpackLog(event, "WithdrawERC721", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "WithdrawERC721"
 }
 
 // L2ERC721GatewayCaller is an auto generated read-only Go binding around an Ethereum contract.

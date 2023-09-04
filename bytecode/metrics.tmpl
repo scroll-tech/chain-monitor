@@ -127,24 +127,26 @@ var (
     }
 
     // ParseLog parse the log if parse func is exist.
-    func (o *{{.Type}}) ParseLog(vLog *types.Log) error {
+    func (o *{{.Type}}) ParseLog(vLog *types.Log) (bool, error) {
     	_id := vLog.Topics[0]
     	if parse, exist := o.parsers[_id]; exist {
-    		return parse(vLog)
+    		return true, parse(vLog)
     	}
-    	return nil
+    	return false, nil
     }
 
     {{range .Events}}
         // Register{{.Original.Name}}, the {{.Original.Name}} event ID is 0x{{printf "%x" .Original.ID}}.
         func (o *{{$contract.Type}}) Register{{.Original.Name}}(handler func(vLog *types.Log, data *{{$contract.Type}}{{.Normalized.Name}}Event) error) {
-           o.parsers[o.ABI.Events["{{.Original.Name}}"].ID] = func(log *types.Log) error {
+           _id := o.ABI.Events["{{.Original.Name}}"].ID
+           o.parsers[_id] = func(log *types.Log) error {
              event := new({{$contract.Type}}{{.Normalized.Name}}Event)
              if err := o.{{$contract.Type}}Caller.contract.UnpackLog(event, "{{.Original.Name}}", *log); err != nil {
                  return err
              }
              return handler(log, event)
            }
+           o.topics[_id] = "{{.Original.Name}}"
         }
     {{end}}
 

@@ -5,9 +5,9 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
-	"github.com/scroll-tech/go-ethereum/log"
 
 	"chain-monitor/bytecode/scroll/L2"
+	"chain-monitor/internal/utils"
 	"chain-monitor/orm"
 )
 
@@ -58,27 +58,57 @@ func (l2 *L2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 			latestProof = proofs[len(proofs)-1]
 			msgSentEvents = append(msgSentEvents, msgs[i])
 		}
-		expectRoot, err := l2.withdrawRoot(ctx, number)
-		if err != nil {
-			return err
-		}
-		actualRoot := l2.withdraw.MessageRoot()
-		if actualRoot != expectRoot {
-			log.Error("withdraw root is not right", "numbers", number, "count", len(msgs), "expect_root", expectRoot.String(), "actual_root", actualRoot.String())
-		}
 		chainMonitors = append(chainMonitors, &orm.ChainConfirm{
-			Number:         number,
-			WithdrawStatus: actualRoot == expectRoot,
+			Number:       number,
+			WithdrawRoot: l2.withdraw.MessageRoot(),
 		})
 	}
 
-	if err := l2.tx.Model(&orm.ChainConfirm{}).Save(chainMonitors).Error; err != nil {
+	// Check withdraw root and store confirm monitor.
+	if err := l2.storeWithdrawRoots(ctx, chainMonitors); err != nil {
 		return err
 	}
 
 	// Just store the latest proof.
 	msgSentEvents[len(msgSentEvents)-1].MsgProof = common.Bytes2Hex(latestProof)
+	// Store messenger events.
 	if err := l2.tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (l2 *L2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.ChainConfirm) error {
+	var (
+		numbers       []uint64
+		withdrawRoots []common.Hash
+		err           error
+	)
+	for _, monitor := range chainMonitors {
+		if !monitor.WithdrawStatus {
+			numbers = append(numbers, monitor.Number)
+		}
+	}
+
+	utils.TryTimes(3, func() bool {
+		// get withdraw root by batch.
+		withdrawRoots, err = utils.GetBatchWithdrawRoots(ctx, l2.rpcCli, l2.MessageQueue.Address, numbers)
+		return err == nil
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, monitor := range chainMonitors {
+		if len(withdrawRoots) == 0 {
+			break
+		}
+		if !monitor.WithdrawStatus {
+			monitor.WithdrawStatus = monitor.WithdrawRoot == withdrawRoots[0]
+			withdrawRoots = withdrawRoots[1:]
+		}
+	}
+	if err = l2.tx.Model(&orm.ChainConfirm{}).Save(chainMonitors).Error; err != nil {
 		return err
 	}
 	return nil

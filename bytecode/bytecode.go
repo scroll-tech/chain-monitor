@@ -23,7 +23,7 @@ type ContractAPI interface {
 	GetAddress() common.Address
 	GetEventName(sigHash common.Hash) string
 	GetSigHashes() []common.Hash
-	ParseLog(vLog *types.Log) error
+	ParseLog(vLog *types.Log) (bool, error)
 }
 
 type Contract struct {
@@ -36,12 +36,13 @@ type Contract struct {
 
 // ContractsFilter contracts filter struct.
 type ContractsFilter struct {
+	name         string
 	query        *geth.FilterQuery
 	contractAPIs map[common.Address]ContractAPI
 }
 
 // NewContractsFilter return a contracts filter instance.
-func NewContractsFilter(cAPIs ...ContractAPI) *ContractsFilter {
+func NewContractsFilter(name string, cAPIs ...ContractAPI) *ContractsFilter {
 	contractAPIs := make(map[common.Address]ContractAPI)
 	for _, cABI := range cAPIs {
 		addr := cABI.GetAddress()
@@ -56,6 +57,7 @@ func NewContractsFilter(cAPIs ...ContractAPI) *ContractsFilter {
 		addrList = append(addrList, addr)
 	}
 	return &ContractsFilter{
+		name: name,
 		query: &geth.FilterQuery{
 			FromBlock: big.NewInt(0),
 			ToBlock:   big.NewInt(0),
@@ -75,9 +77,12 @@ func (c *ContractsFilter) ParseLogs(ctx context.Context, client *ethclient.Clien
 	}
 	for _, vLog := range logs {
 		cAPI := c.contractAPIs[vLog.Address]
-		err = cAPI.ParseLog(&vLog)
+		exist, err := cAPI.ParseLog(&vLog)
 		if err != nil {
 			return 0, err
+		}
+		if !exist {
+			log.Debug("unsupported event", "tx_hash", vLog.TxHash.String(), "event_name", cAPI.GetEventName(vLog.Topics[0]))
 		}
 	}
 	return len(logs), nil

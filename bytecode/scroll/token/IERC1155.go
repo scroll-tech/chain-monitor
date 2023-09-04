@@ -76,56 +76,66 @@ func (o *IERC1155) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *IERC1155) ParseLog(vLog *types.Log) error {
+func (o *IERC1155) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterApprovalForAll, the ApprovalForAll event ID is 0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31.
 func (o *IERC1155) RegisterApprovalForAll(handler func(vLog *types.Log, data *IERC1155ApprovalForAllEvent) error) {
-	o.parsers[o.ABI.Events["ApprovalForAll"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["ApprovalForAll"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(IERC1155ApprovalForAllEvent)
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "ApprovalForAll", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "ApprovalForAll"
 }
 
 // RegisterTransferBatch, the TransferBatch event ID is 0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb.
 func (o *IERC1155) RegisterTransferBatch(handler func(vLog *types.Log, data *IERC1155TransferBatchEvent) error) {
-	o.parsers[o.ABI.Events["TransferBatch"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["TransferBatch"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(IERC1155TransferBatchEvent)
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "TransferBatch", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "TransferBatch"
 }
 
 // RegisterTransferSingle, the TransferSingle event ID is 0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62.
 func (o *IERC1155) RegisterTransferSingle(handler func(vLog *types.Log, data *IERC1155TransferSingleEvent) error) {
-	o.parsers[o.ABI.Events["TransferSingle"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["TransferSingle"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(IERC1155TransferSingleEvent)
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "TransferSingle", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "TransferSingle"
 }
 
 // RegisterURI, the URI event ID is 0x6bb7ff708619ba0610cba295a58592e0451dee2622938c8755667688daf3529b.
 func (o *IERC1155) RegisterURI(handler func(vLog *types.Log, data *IERC1155URIEvent) error) {
-	o.parsers[o.ABI.Events["URI"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["URI"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(IERC1155URIEvent)
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "URI", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "URI"
 }
 
 // IERC1155Caller is an auto generated read-only Go binding around an Ethereum contract.

@@ -1,8 +1,10 @@
 package logic
 
 import (
+	"chain-monitor/bytecode/scroll/L2/predeploys"
 	"context"
 	"fmt"
+	"github.com/scroll-tech/go-ethereum/rpc"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -12,7 +14,6 @@ import (
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L2"
 	"chain-monitor/bytecode/scroll/L2/gateway"
-	"chain-monitor/bytecode/scroll/L2/predeploys"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/utils/msgproof"
 	"chain-monitor/orm"
@@ -21,6 +22,7 @@ import (
 type L2Contracts struct {
 	tx     *gorm.DB
 	cfg    *config.Gateway
+	rpcCli *rpc.Client
 	client *ethclient.Client
 
 	withdraw *msgproof.WithdrawTrie
@@ -46,15 +48,21 @@ type L2Contracts struct {
 	filter *bytecode.ContractsFilter
 }
 
-func NewL2Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.Gateway) (*L2Contracts, error) {
+func NewL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*L2Contracts, error) {
+	rpcCli, err := rpc.Dial(l2chainURL)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
-		cts = &L2Contracts{
+		client = ethclient.NewClient(rpcCli)
+		cts    = &L2Contracts{
+			rpcCli:        rpcCli,
 			client:        client,
 			cfg:           cfg,
 			withdraw:      msgproof.NewWithdrawTrie(),
 			txHashMsgHash: map[string]common.Hash{},
 		}
-		err error
 	)
 	cts.ETHGateway, err = gateway.NewL2ETHGateway(cfg.ETHGateway, client)
 	if err != nil {
@@ -94,9 +102,9 @@ func NewL2Contracts(client *ethclient.Client, db *gorm.DB, cfg *config.Gateway) 
 		return nil, err
 	}
 
-	cts.filter = bytecode.NewContractsFilter([]bytecode.ContractAPI{
+	cts.filter = bytecode.NewContractsFilter("l2Watcher", []bytecode.ContractAPI{
 		cts.ScrollMessenger,
-		cts.MessageQueue,
+		//cts.MessageQueue,
 
 		cts.ETHGateway,
 		cts.WETHGateway,
@@ -151,25 +159,25 @@ func (l2 *L2Contracts) clean() {
 	l2.erc1155Events = l2.erc1155Events[:0]
 }
 
-func (l2 *L2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, end uint64) error {
+func (l2 *L2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
 	l2.clean()
 	l2.tx = db.Begin().WithContext(ctx)
 	count, err := l2.filter.ParseLogs(ctx, l2.client, start, end)
 	if err != nil {
 		l2.tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	// store l2Messenger sentMessenger events.
 	if err = l2.storeMessengerEvents(ctx, start, end); err != nil {
 		l2.tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	// store l2chain gateway events.
 	if err = l2.storeGatewayEvents(); err != nil {
 		l2.tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	err = l2.tx.Save(&orm.L2Block{
@@ -178,14 +186,14 @@ func (l2 *L2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	}).Error
 	if err != nil {
 		l2.tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	if err = l2.tx.Commit().Error; err != nil {
 		l2.tx.Rollback()
-		return err
+		return 0, err
 	}
-	return nil
+	return count, nil
 }
 
 func (l2 *L2Contracts) withdrawRoot(ctx context.Context, number uint64) (common.Hash, error) {

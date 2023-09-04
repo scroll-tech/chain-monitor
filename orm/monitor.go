@@ -6,10 +6,11 @@ import (
 )
 
 type ChainConfirm struct {
-	Number         uint64 `gorm:"primaryKey"`
-	Confirm        bool
+	Number         uint64      `gorm:"primaryKey"`
+	WithdrawRoot   common.Hash `gorm:"-"`
 	DepositStatus  bool
 	WithdrawStatus bool
+	Confirm        bool
 }
 
 func GetLatestConfirmedNumber(db *gorm.DB) (uint64, error) {

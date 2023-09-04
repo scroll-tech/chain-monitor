@@ -76,67 +76,79 @@ func (o *L1GasPriceOracle) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L1GasPriceOracle) ParseLog(vLog *types.Log) error {
+func (o *L1GasPriceOracle) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterL1BaseFeeUpdated, the L1BaseFeeUpdated event ID is 0x351fb23757bb5ea0546c85b7996ddd7155f96b939ebaa5ff7bc49c75f27f2c44.
 func (o *L1GasPriceOracle) RegisterL1BaseFeeUpdated(handler func(vLog *types.Log, data *L1GasPriceOracleL1BaseFeeUpdatedEvent) error) {
-	o.parsers[o.ABI.Events["L1BaseFeeUpdated"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["L1BaseFeeUpdated"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1GasPriceOracleL1BaseFeeUpdatedEvent)
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "L1BaseFeeUpdated", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "L1BaseFeeUpdated"
 }
 
 // RegisterOverheadUpdated, the OverheadUpdated event ID is 0x32740b35c0ea213650f60d44366b4fb211c9033b50714e4a1d34e65d5beb9bb4.
 func (o *L1GasPriceOracle) RegisterOverheadUpdated(handler func(vLog *types.Log, data *L1GasPriceOracleOverheadUpdatedEvent) error) {
-	o.parsers[o.ABI.Events["OverheadUpdated"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OverheadUpdated"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1GasPriceOracleOverheadUpdatedEvent)
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "OverheadUpdated", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OverheadUpdated"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L1GasPriceOracle) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L1GasPriceOracleOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1GasPriceOracleOwnershipTransferredEvent)
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterScalarUpdated, the ScalarUpdated event ID is 0x3336cd9708eaf2769a0f0dc0679f30e80f15dcd88d1921b5a16858e8b85c591a.
 func (o *L1GasPriceOracle) RegisterScalarUpdated(handler func(vLog *types.Log, data *L1GasPriceOracleScalarUpdatedEvent) error) {
-	o.parsers[o.ABI.Events["ScalarUpdated"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["ScalarUpdated"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1GasPriceOracleScalarUpdatedEvent)
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "ScalarUpdated", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "ScalarUpdated"
 }
 
 // RegisterUpdateWhitelist, the UpdateWhitelist event ID is 0x22d1c35fe072d2e42c3c8f9bd4a0d34aa84a0101d020a62517b33fdb3174e5f7.
 func (o *L1GasPriceOracle) RegisterUpdateWhitelist(handler func(vLog *types.Log, data *L1GasPriceOracleUpdateWhitelistEvent) error) {
-	o.parsers[o.ABI.Events["UpdateWhitelist"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateWhitelist"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1GasPriceOracleUpdateWhitelistEvent)
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "UpdateWhitelist", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateWhitelist"
 }
 
 // L1GasPriceOracleCaller is an auto generated read-only Go binding around an Ethereum contract.

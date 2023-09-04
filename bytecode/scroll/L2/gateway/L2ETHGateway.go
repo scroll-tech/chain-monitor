@@ -76,56 +76,66 @@ func (o *L2ETHGateway) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L2ETHGateway) ParseLog(vLog *types.Log) error {
+func (o *L2ETHGateway) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterFinalizeDepositETH, the FinalizeDepositETH event ID is 0x9e86c356e14e24e26e3ce769bf8b87de38e0faa0ed0ca946fa09659aa606bd2d.
 func (o *L2ETHGateway) RegisterFinalizeDepositETH(handler func(vLog *types.Log, data *L2ETHGatewayFinalizeDepositETHEvent) error) {
-	o.parsers[o.ABI.Events["FinalizeDepositETH"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["FinalizeDepositETH"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ETHGatewayFinalizeDepositETHEvent)
 		if err := o.L2ETHGatewayCaller.contract.UnpackLog(event, "FinalizeDepositETH", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "FinalizeDepositETH"
 }
 
 // RegisterInitialized, the Initialized event ID is 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 func (o *L2ETHGateway) RegisterInitialized(handler func(vLog *types.Log, data *L2ETHGatewayInitializedEvent) error) {
-	o.parsers[o.ABI.Events["Initialized"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Initialized"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ETHGatewayInitializedEvent)
 		if err := o.L2ETHGatewayCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Initialized"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L2ETHGateway) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L2ETHGatewayOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ETHGatewayOwnershipTransferredEvent)
 		if err := o.L2ETHGatewayCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterWithdrawETH, the WithdrawETH event ID is 0xd8ed6eaa9a7a8980d7901e911fde6686810b989d3082182d1d3a3df6306ce20e.
 func (o *L2ETHGateway) RegisterWithdrawETH(handler func(vLog *types.Log, data *L2ETHGatewayWithdrawETHEvent) error) {
-	o.parsers[o.ABI.Events["WithdrawETH"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["WithdrawETH"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2ETHGatewayWithdrawETHEvent)
 		if err := o.L2ETHGatewayCaller.contract.UnpackLog(event, "WithdrawETH", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "WithdrawETH"
 }
 
 // L2ETHGatewayCaller is an auto generated read-only Go binding around an Ethereum contract.

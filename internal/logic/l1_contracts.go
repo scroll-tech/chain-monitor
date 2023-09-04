@@ -35,7 +35,7 @@ type L1Contracts struct {
 
 	ScrollChain     *rollup.ScrollChain
 	ScrollMessenger *L1.L1ScrollMessenger
-	MessageQueue    *rollup.L1MessageQueue
+	//MessageQueue    *rollup.L1MessageQueue
 
 	filter *bytecode.ContractsFilter
 }
@@ -56,10 +56,10 @@ func NewL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*L1Contr
 	if err != nil {
 		return nil, err
 	}
-	cts.MessageQueue, err = rollup.NewL1MessageQueue(cfg.MessageQueue, client)
-	if err != nil {
-		return nil, err
-	}
+	//cts.MessageQueue, err = rollup.NewL1MessageQueue(cfg.MessageQueue, client)
+	//if err != nil {
+	//	return nil, err
+	//}
 	cts.ETHGateway, err = gateway.NewL1ETHGateway(cfg.ETHGateway, client)
 	if err != nil {
 		return nil, err
@@ -93,9 +93,9 @@ func NewL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*L1Contr
 		return nil, err
 	}
 
-	cts.filter = bytecode.NewContractsFilter([]bytecode.ContractAPI{
+	cts.filter = bytecode.NewContractsFilter("l1Watcher", []bytecode.ContractAPI{
 		cts.ScrollMessenger,
-		cts.MessageQueue,
+		//cts.MessageQueue,
 		cts.ETHGateway,
 		cts.DAIGateway,
 		cts.WETHGateway,
@@ -121,19 +121,19 @@ func (l1 *L1Contracts) clean() {
 	l1.erc1155Events = l1.erc1155Events[:0]
 }
 
-func (l1 *L1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) error {
+func (l1 *L1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
 	l1.clean()
 	l1.tx = db.Begin().WithContext(ctx)
 	count, err := l1.filter.ParseLogs(ctx, l1.client, start, end)
 	if err != nil {
 		l1.tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	// store l1chain gateway events.
 	if err = l1.storeGatewayEvents(); err != nil {
 		l1.tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	// store the latest l1 block numbers
@@ -143,12 +143,12 @@ func (l1 *L1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	}).Error
 	if err != nil {
 		l1.tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	if err = l1.tx.Commit().Error; err != nil {
 		l1.tx.Rollback()
-		return err
+		return 0, err
 	}
-	return nil
+	return count, nil
 }

@@ -76,45 +76,53 @@ func (o *IERC721) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *IERC721) ParseLog(vLog *types.Log) error {
+func (o *IERC721) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterApproval, the Approval event ID is 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925.
 func (o *IERC721) RegisterApproval(handler func(vLog *types.Log, data *IERC721ApprovalEvent) error) {
-	o.parsers[o.ABI.Events["Approval"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Approval"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(IERC721ApprovalEvent)
 		if err := o.IERC721Caller.contract.UnpackLog(event, "Approval", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Approval"
 }
 
 // RegisterApprovalForAll, the ApprovalForAll event ID is 0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31.
 func (o *IERC721) RegisterApprovalForAll(handler func(vLog *types.Log, data *IERC721ApprovalForAllEvent) error) {
-	o.parsers[o.ABI.Events["ApprovalForAll"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["ApprovalForAll"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(IERC721ApprovalForAllEvent)
 		if err := o.IERC721Caller.contract.UnpackLog(event, "ApprovalForAll", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "ApprovalForAll"
 }
 
 // RegisterTransfer, the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 func (o *IERC721) RegisterTransfer(handler func(vLog *types.Log, data *IERC721TransferEvent) error) {
-	o.parsers[o.ABI.Events["Transfer"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Transfer"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(IERC721TransferEvent)
 		if err := o.IERC721Caller.contract.UnpackLog(event, "Transfer", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Transfer"
 }
 
 // IERC721Caller is an auto generated read-only Go binding around an Ethereum contract.

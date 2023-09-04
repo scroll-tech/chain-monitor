@@ -76,34 +76,40 @@ func (o *L2MessageQueue) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L2MessageQueue) ParseLog(vLog *types.Log) error {
+func (o *L2MessageQueue) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterAppendMessage, the AppendMessage event ID is 0xfaa617c2d8ce12c62637dbce76efcc18dae60574aa95709bdcedce7e76071693.
 func (o *L2MessageQueue) RegisterAppendMessage(handler func(vLog *types.Log, data *L2MessageQueueAppendMessageEvent) error) {
-	o.parsers[o.ABI.Events["AppendMessage"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["AppendMessage"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2MessageQueueAppendMessageEvent)
 		if err := o.L2MessageQueueCaller.contract.UnpackLog(event, "AppendMessage", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "AppendMessage"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L2MessageQueue) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L2MessageQueueOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L2MessageQueueOwnershipTransferredEvent)
 		if err := o.L2MessageQueueCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // L2MessageQueueCaller is an auto generated read-only Go binding around an Ethereum contract.

@@ -76,67 +76,79 @@ func (o *L1WETHGateway) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L1WETHGateway) ParseLog(vLog *types.Log) error {
+func (o *L1WETHGateway) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterDepositERC20, the DepositERC20 event ID is 0x31cd3b976e4d654022bf95c68a2ce53f1d5d94afabe0454d2832208eeb40af25.
 func (o *L1WETHGateway) RegisterDepositERC20(handler func(vLog *types.Log, data *L1WETHGatewayDepositERC20Event) error) {
-	o.parsers[o.ABI.Events["DepositERC20"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["DepositERC20"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1WETHGatewayDepositERC20Event)
 		if err := o.L1WETHGatewayCaller.contract.UnpackLog(event, "DepositERC20", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "DepositERC20"
 }
 
 // RegisterFinalizeWithdrawERC20, the FinalizeWithdrawERC20 event ID is 0xc6f985873b37805705f6bce756dce3d1ff4b603e298d506288cce499926846a7.
 func (o *L1WETHGateway) RegisterFinalizeWithdrawERC20(handler func(vLog *types.Log, data *L1WETHGatewayFinalizeWithdrawERC20Event) error) {
-	o.parsers[o.ABI.Events["FinalizeWithdrawERC20"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["FinalizeWithdrawERC20"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1WETHGatewayFinalizeWithdrawERC20Event)
 		if err := o.L1WETHGatewayCaller.contract.UnpackLog(event, "FinalizeWithdrawERC20", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "FinalizeWithdrawERC20"
 }
 
 // RegisterInitialized, the Initialized event ID is 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 func (o *L1WETHGateway) RegisterInitialized(handler func(vLog *types.Log, data *L1WETHGatewayInitializedEvent) error) {
-	o.parsers[o.ABI.Events["Initialized"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Initialized"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1WETHGatewayInitializedEvent)
 		if err := o.L1WETHGatewayCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Initialized"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L1WETHGateway) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L1WETHGatewayOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1WETHGatewayOwnershipTransferredEvent)
 		if err := o.L1WETHGatewayCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterRefundERC20, the RefundERC20 event ID is 0xdbdf8eb487847e4c0f22847f5dac07f2d3690f96f581a6ae4b102769917645a8.
 func (o *L1WETHGateway) RegisterRefundERC20(handler func(vLog *types.Log, data *L1WETHGatewayRefundERC20Event) error) {
-	o.parsers[o.ABI.Events["RefundERC20"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["RefundERC20"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1WETHGatewayRefundERC20Event)
 		if err := o.L1WETHGatewayCaller.contract.UnpackLog(event, "RefundERC20", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "RefundERC20"
 }
 
 // L1WETHGatewayCaller is an auto generated read-only Go binding around an Ethereum contract.

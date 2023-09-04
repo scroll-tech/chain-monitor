@@ -76,133 +76,157 @@ func (o *ScrollChain) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *ScrollChain) ParseLog(vLog *types.Log) error {
+func (o *ScrollChain) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterCommitBatch, the CommitBatch event ID is 0x2c32d4ae151744d0bf0b9464a3e897a1d17ed2f1af71f7c9a75f12ce0d28238f.
 func (o *ScrollChain) RegisterCommitBatch(handler func(vLog *types.Log, data *ScrollChainCommitBatchEvent) error) {
-	o.parsers[o.ABI.Events["CommitBatch"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["CommitBatch"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainCommitBatchEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "CommitBatch", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "CommitBatch"
 }
 
 // RegisterFinalizeBatch, the FinalizeBatch event ID is 0x26ba82f907317eedc97d0cbef23de76a43dd6edb563bdb6e9407645b950a7a2d.
 func (o *ScrollChain) RegisterFinalizeBatch(handler func(vLog *types.Log, data *ScrollChainFinalizeBatchEvent) error) {
-	o.parsers[o.ABI.Events["FinalizeBatch"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["FinalizeBatch"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainFinalizeBatchEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "FinalizeBatch", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "FinalizeBatch"
 }
 
 // RegisterInitialized, the Initialized event ID is 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 func (o *ScrollChain) RegisterInitialized(handler func(vLog *types.Log, data *ScrollChainInitializedEvent) error) {
-	o.parsers[o.ABI.Events["Initialized"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Initialized"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainInitializedEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Initialized"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *ScrollChain) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *ScrollChainOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainOwnershipTransferredEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterPaused, the Paused event ID is 0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258.
 func (o *ScrollChain) RegisterPaused(handler func(vLog *types.Log, data *ScrollChainPausedEvent) error) {
-	o.parsers[o.ABI.Events["Paused"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Paused"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainPausedEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "Paused", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Paused"
 }
 
 // RegisterRevertBatch, the RevertBatch event ID is 0x00cae2739091badfd91c373f0a16cede691e0cd25bb80cff77dd5caeb4710146.
 func (o *ScrollChain) RegisterRevertBatch(handler func(vLog *types.Log, data *ScrollChainRevertBatchEvent) error) {
-	o.parsers[o.ABI.Events["RevertBatch"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["RevertBatch"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainRevertBatchEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "RevertBatch", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "RevertBatch"
 }
 
 // RegisterUnpaused, the Unpaused event ID is 0x5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa.
 func (o *ScrollChain) RegisterUnpaused(handler func(vLog *types.Log, data *ScrollChainUnpausedEvent) error) {
-	o.parsers[o.ABI.Events["Unpaused"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Unpaused"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainUnpausedEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "Unpaused", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Unpaused"
 }
 
 // RegisterUpdateMaxNumL2TxInChunk, the UpdateMaxNumL2TxInChunk event ID is 0xcc8534af91b38a0c22ca140ec3dd8ae7eca9ff2dd638f9969628b50a85e3c652.
 func (o *ScrollChain) RegisterUpdateMaxNumL2TxInChunk(handler func(vLog *types.Log, data *ScrollChainUpdateMaxNumL2TxInChunkEvent) error) {
-	o.parsers[o.ABI.Events["UpdateMaxNumL2TxInChunk"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateMaxNumL2TxInChunk"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainUpdateMaxNumL2TxInChunkEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateMaxNumL2TxInChunk", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateMaxNumL2TxInChunk"
 }
 
 // RegisterUpdateProver, the UpdateProver event ID is 0x967f99d5d403870e4356ff46556df3a6b6ba1f50146639aaedfb9f248eb8661e.
 func (o *ScrollChain) RegisterUpdateProver(handler func(vLog *types.Log, data *ScrollChainUpdateProverEvent) error) {
-	o.parsers[o.ABI.Events["UpdateProver"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateProver"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainUpdateProverEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateProver", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateProver"
 }
 
 // RegisterUpdateSequencer, the UpdateSequencer event ID is 0x631cb110fbe6a87fba5414d6b2cff02264480535cd1f5abdbc4fa638bc0b5692.
 func (o *ScrollChain) RegisterUpdateSequencer(handler func(vLog *types.Log, data *ScrollChainUpdateSequencerEvent) error) {
-	o.parsers[o.ABI.Events["UpdateSequencer"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateSequencer"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainUpdateSequencerEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateSequencer", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateSequencer"
 }
 
 // RegisterUpdateVerifier, the UpdateVerifier event ID is 0x728af3d16a5760405e27a082c98ab272e9f0a1d02f0085d41532a26093aedd96.
 func (o *ScrollChain) RegisterUpdateVerifier(handler func(vLog *types.Log, data *ScrollChainUpdateVerifierEvent) error) {
-	o.parsers[o.ABI.Events["UpdateVerifier"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateVerifier"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(ScrollChainUpdateVerifierEvent)
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateVerifier", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateVerifier"
 }
 
 // ScrollChainCaller is an auto generated read-only Go binding around an Ethereum contract.

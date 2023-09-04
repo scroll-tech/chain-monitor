@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	BatchSize uint64 = 300
+	l1BatchSize uint64 = 100
 )
 
 // L1Watcher return a new instance of L1Watcher.
@@ -79,6 +79,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		return
 	}
 
+	var count int
 	// If we sync events one by one.
 	if start == end {
 		header, err := l1.checkReorg(ctx)
@@ -89,7 +90,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		// get events by number
 		start = header.Number.Uint64()
 		end = start
-		err = l1.contracts.ParseL1Events(ctx, l1.db, start, end)
+		count, err = l1.contracts.ParseL1Events(ctx, l1.db, start, end)
 		if err != nil {
 			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
 			return
@@ -100,7 +101,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		}
 		l1.headerCache = append(l1.headerCache, header)
 	} else {
-		err = l1.contracts.ParseL1Events(ctx, l1.db, start, end)
+		count, err = l1.contracts.ParseL1Events(ctx, l1.db, start, end)
 		if err != nil {
 			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
 			return
@@ -108,14 +109,14 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 	}
 	l1.setStartNumber(end)
 
-	log.Info("scan l1chain successful", "start", start, "end", end)
+	log.Info("scan l1chain successful", "start", start, "end", end, "event_count", count)
 	return
 }
 
 func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
 		start = l1.StartNumber() + 1
-		end   = start + BatchSize - 1
+		end   = start + l1BatchSize - 1
 	)
 	safeNumber := l1.SafeNumber() - uint64(l1.cacheLen/2)
 	if end <= safeNumber {
@@ -127,7 +128,7 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 
 	// update latest number
 	curTime := time.Now()
-	if int(curTime.Sub(l1.curTime).Seconds()) >= 3 {
+	if int(curTime.Sub(l1.curTime).Seconds()) >= 5 {
 		latestNumber, err := l1.client.BlockNumber(ctx)
 		if err != nil {
 			return 0, 0, err

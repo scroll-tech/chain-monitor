@@ -15,6 +15,10 @@ import (
 	"chain-monitor/orm"
 )
 
+var (
+	l2BatchSize uint64 = 500
+)
+
 // L2Watcher return a new instance of L2Watcher.
 type L2Watcher struct {
 	cfg    *config.L2Config
@@ -45,7 +49,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	}
 
 	// Create a event filter instance.
-	l1Contracts, err := logic.NewL2Contracts(client, db, cfg.L2gateways)
+	l1Contracts, err := logic.NewL2Contracts(cfg.L2ChainURL, db, cfg.L2gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -86,21 +90,21 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 	}
 
 	cts := l2.contracts
-	err = cts.ParseL2Events(ctx, l2.db, start, end)
+	count, err := cts.ParseL2Events(ctx, l2.db, start, end)
 	if err != nil {
 		log.Error("failed to parse l2chain events", "start", start, "end", end, "err", err)
 		return
 	}
 
 	l2.setStartNumber(end)
-	log.Info("scan l2chain successful", "start", start, "end", end)
+	log.Info("scan l2chain successful", "start", start, "end", end, "event_count", count)
 	return
 }
 
 func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
 		start = l2.StartNumber() + 1
-		end   = start + BatchSize - 1
+		end   = start + l2BatchSize - 1
 	)
 
 	if end <= l2.SafeNumber() {

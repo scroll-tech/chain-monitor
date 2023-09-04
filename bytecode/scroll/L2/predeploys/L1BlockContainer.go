@@ -76,45 +76,53 @@ func (o *L1BlockContainer) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L1BlockContainer) ParseLog(vLog *types.Log) error {
+func (o *L1BlockContainer) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterImportBlock, the ImportBlock event ID is 0xa7823f45e1ee21f9530b77959b57507ad515a14fa9fa24d262ee80e79b2b5745.
 func (o *L1BlockContainer) RegisterImportBlock(handler func(vLog *types.Log, data *L1BlockContainerImportBlockEvent) error) {
-	o.parsers[o.ABI.Events["ImportBlock"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["ImportBlock"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1BlockContainerImportBlockEvent)
 		if err := o.L1BlockContainerCaller.contract.UnpackLog(event, "ImportBlock", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "ImportBlock"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L1BlockContainer) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L1BlockContainerOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1BlockContainerOwnershipTransferredEvent)
 		if err := o.L1BlockContainerCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterUpdateWhitelist, the UpdateWhitelist event ID is 0x22d1c35fe072d2e42c3c8f9bd4a0d34aa84a0101d020a62517b33fdb3174e5f7.
 func (o *L1BlockContainer) RegisterUpdateWhitelist(handler func(vLog *types.Log, data *L1BlockContainerUpdateWhitelistEvent) error) {
-	o.parsers[o.ABI.Events["UpdateWhitelist"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateWhitelist"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1BlockContainerUpdateWhitelistEvent)
 		if err := o.L1BlockContainerCaller.contract.UnpackLog(event, "UpdateWhitelist", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateWhitelist"
 }
 
 // L1BlockContainerCaller is an auto generated read-only Go binding around an Ethereum contract.

@@ -76,100 +76,118 @@ func (o *L1MessageQueue) GetSigHashes() []common.Hash {
 }
 
 // ParseLog parse the log if parse func is exist.
-func (o *L1MessageQueue) ParseLog(vLog *types.Log) error {
+func (o *L1MessageQueue) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
-		return parse(vLog)
+		return true, parse(vLog)
+	} else {
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 // RegisterDequeueTransaction, the DequeueTransaction event ID is 0xc77f792f838ae38399ac31acc3348389aeb110ce7bedf3cfdbdd5e6679267970.
 func (o *L1MessageQueue) RegisterDequeueTransaction(handler func(vLog *types.Log, data *L1MessageQueueDequeueTransactionEvent) error) {
-	o.parsers[o.ABI.Events["DequeueTransaction"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["DequeueTransaction"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1MessageQueueDequeueTransactionEvent)
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "DequeueTransaction", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "DequeueTransaction"
 }
 
 // RegisterDropTransaction, the DropTransaction event ID is 0x43a375005206d20a83abc71722cba68c24434a8dc1f583775be7c3fde0396cbf.
 func (o *L1MessageQueue) RegisterDropTransaction(handler func(vLog *types.Log, data *L1MessageQueueDropTransactionEvent) error) {
-	o.parsers[o.ABI.Events["DropTransaction"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["DropTransaction"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1MessageQueueDropTransactionEvent)
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "DropTransaction", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "DropTransaction"
 }
 
 // RegisterInitialized, the Initialized event ID is 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 func (o *L1MessageQueue) RegisterInitialized(handler func(vLog *types.Log, data *L1MessageQueueInitializedEvent) error) {
-	o.parsers[o.ABI.Events["Initialized"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["Initialized"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1MessageQueueInitializedEvent)
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "Initialized"
 }
 
 // RegisterOwnershipTransferred, the OwnershipTransferred event ID is 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 func (o *L1MessageQueue) RegisterOwnershipTransferred(handler func(vLog *types.Log, data *L1MessageQueueOwnershipTransferredEvent) error) {
-	o.parsers[o.ABI.Events["OwnershipTransferred"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["OwnershipTransferred"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1MessageQueueOwnershipTransferredEvent)
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "OwnershipTransferred"
 }
 
 // RegisterQueueTransaction, the QueueTransaction event ID is 0x69cfcb8e6d4192b8aba9902243912587f37e550d75c1fa801491fce26717f37e.
 func (o *L1MessageQueue) RegisterQueueTransaction(handler func(vLog *types.Log, data *L1MessageQueueQueueTransactionEvent) error) {
-	o.parsers[o.ABI.Events["QueueTransaction"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["QueueTransaction"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1MessageQueueQueueTransactionEvent)
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "QueueTransaction", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "QueueTransaction"
 }
 
 // RegisterUpdateEnforcedTxGateway, the UpdateEnforcedTxGateway event ID is 0x5fd1d27c789fb50eafa108fba89345986a66d9d0aba85d48adee09f5e3307bbd.
 func (o *L1MessageQueue) RegisterUpdateEnforcedTxGateway(handler func(vLog *types.Log, data *L1MessageQueueUpdateEnforcedTxGatewayEvent) error) {
-	o.parsers[o.ABI.Events["UpdateEnforcedTxGateway"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateEnforcedTxGateway"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1MessageQueueUpdateEnforcedTxGatewayEvent)
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "UpdateEnforcedTxGateway", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateEnforcedTxGateway"
 }
 
 // RegisterUpdateGasOracle, the UpdateGasOracle event ID is 0x9ed5ec28f252b3e7f62f1ace8e54c5ebabf4c61cc2a7c33a806365b2ff7ecc5e.
 func (o *L1MessageQueue) RegisterUpdateGasOracle(handler func(vLog *types.Log, data *L1MessageQueueUpdateGasOracleEvent) error) {
-	o.parsers[o.ABI.Events["UpdateGasOracle"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateGasOracle"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1MessageQueueUpdateGasOracleEvent)
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "UpdateGasOracle", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateGasOracle"
 }
 
 // RegisterUpdateMaxGasLimit, the UpdateMaxGasLimit event ID is 0xa030881e03ff723954dd0d35500564afab9603555d09d4456a32436f2b2373c5.
 func (o *L1MessageQueue) RegisterUpdateMaxGasLimit(handler func(vLog *types.Log, data *L1MessageQueueUpdateMaxGasLimitEvent) error) {
-	o.parsers[o.ABI.Events["UpdateMaxGasLimit"].ID] = func(log *types.Log) error {
+	_id := o.ABI.Events["UpdateMaxGasLimit"].ID
+	o.parsers[_id] = func(log *types.Log) error {
 		event := new(L1MessageQueueUpdateMaxGasLimitEvent)
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "UpdateMaxGasLimit", *log); err != nil {
 			return err
 		}
 		return handler(log, event)
 	}
+	o.topics[_id] = "UpdateMaxGasLimit"
 }
 
 // L1MessageQueueCaller is an auto generated read-only Go binding around an Ethereum contract.

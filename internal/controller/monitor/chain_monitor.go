@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	batchSize uint64 = 100
+	batchSize uint64 = 500
 )
 
 type WatcherAPI interface {
@@ -65,16 +65,28 @@ func (ch *ChainMonitor) ChainMonitor(ctx context.Context) {
 		return
 	}
 
-	err := ch.db.Transaction(func(tx *gorm.DB) error {
+	err := ch.db.Transaction(func(db *gorm.DB) error {
 		// confirm deposit events.
-		isOk, err := ch.confirmDepositEvents(ctx, tx, start, end)
+		failedNumbers, err := ch.confirmDepositEvents(ctx, db, start, end)
 		if err != nil {
 			return err
 		}
-		tx = tx.Model(&orm.ChainConfirm{}).Select("deposit_status").Where("number BETWEEN ? AND ?", start, end)
-		tx = tx.Update("deposit_status", isOk)
-		tx = tx.Update("confirm", true)
-		return tx.Error
+		// store
+		sTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "confirm").Where("number BETWEEN ? AND ?", start, end)
+		sTx = sTx.Update("deposit_status", true).Update("confirm", true)
+		if sTx.Error != nil {
+			return sTx.Error
+		}
+
+		if len(failedNumbers) > 0 {
+			fTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "confirm").Where("number in ?", failedNumbers)
+			fTx = fTx.Update("deposit_status", false).Update("confirm", true)
+			if fTx.Error != nil {
+				return fTx.Error
+			}
+		}
+
+		return nil
 	})
 	if err != nil {
 		log.Error("failed to check deposit events", "start", start, "end", end, "err", err)
@@ -82,6 +94,8 @@ func (ch *ChainMonitor) ChainMonitor(ctx context.Context) {
 		return
 	}
 	ch.startNumber = end
+
+	log.Info("confirm l2 blocks", "start", start, "end", end)
 }
 
 func (ch *ChainMonitor) getStartAndEndNumber() (uint64, uint64) {
