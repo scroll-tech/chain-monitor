@@ -26,7 +26,7 @@ type L2Contracts struct {
 	withdraw *msgproof.WithdrawTrie
 
 	txHashMsgHash map[string]common.Hash
-	msgSentEvents []*orm.L2MessengerEvent
+	msgSentEvents map[uint64][]*orm.L2MessengerEvent
 	ethEvents     []*orm.L2ETHEvent
 	erc20Events   []*orm.L2ERC20Event
 	erc721Events  []*orm.L2ERC721Event
@@ -137,14 +137,14 @@ func (l2 *L2Contracts) initWithdraw(db *gorm.DB) error {
 	}
 	actualRoot := l2.withdraw.MessageRoot()
 	if expectRoot != actualRoot {
-		return fmt.Errorf("withdraw root is not right, withdraw init failed, number: %d, expect_root: %s, actual_root: %s", msg.Number, expectRoot.String(), actualRoot.String())
+		return fmt.Errorf("withdraw root is not right, withdraw init failed, numbers: %d, expect_root: %s, actual_root: %s", msg.Number, expectRoot.String(), actualRoot.String())
 	}
 	return nil
 }
 
 func (l2 *L2Contracts) clean() {
 	l2.txHashMsgHash = map[string]common.Hash{}
-	l2.msgSentEvents = l2.msgSentEvents[:0]
+	l2.msgSentEvents = map[uint64][]*orm.L2MessengerEvent{}
 	l2.ethEvents = l2.ethEvents[:0]
 	l2.erc20Events = l2.erc20Events[:0]
 	l2.erc721Events = l2.erc721Events[:0]
@@ -161,7 +161,7 @@ func (l2 *L2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	}
 
 	// store l2Messenger sentMessenger events.
-	if err = l2.storeMessengerEvents(ctx); err != nil {
+	if err = l2.storeMessengerEvents(ctx, start, end); err != nil {
 		l2.tx.Rollback()
 		return err
 	}

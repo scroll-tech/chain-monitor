@@ -7,7 +7,6 @@ import (
 
 type ChainConfirm struct {
 	Number         uint64 `gorm:"primaryKey"`
-	WithdrawRoot   string
 	Confirm        bool
 	DepositStatus  bool
 	WithdrawStatus bool
@@ -22,9 +21,9 @@ func GetLatestConfirmedNumber(db *gorm.DB) (uint64, error) {
 	return monitor.Number, nil
 }
 
-func GetConfirmBatchByIndex(db *gorm.DB, batchIndex uint64) (*ChainConfirm, error) {
+func GetConfirmMsgByNumber(db *gorm.DB, number uint64) (*ChainConfirm, error) {
 	var confirmBatch ChainConfirm
-	res := db.Where("batch_index = ?", batchIndex).First(&confirmBatch)
+	res := db.Where("number = ?", number).First(&confirmBatch)
 	return &confirmBatch, res.Error
 }
 

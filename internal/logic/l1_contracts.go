@@ -136,7 +136,7 @@ func (l1 *L1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return err
 	}
 
-	// store the latest l1 block number
+	// store the latest l1 block numbers
 	err = l1.tx.Save(&orm.L1Block{
 		Number:     end,
 		EventCount: count,

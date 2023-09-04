@@ -30,7 +30,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, s
     l2ee.tx_hash as l2_tx_hash, l2ee.msg_hash as l2_msg_hash, l2ee.amount as l2_amount 
 from l2_eth_events as l2ee full join l1_eth_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
-where l2ee.start BETWEEN ? AND ? and l2ee.type = ?;`
+where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 	db = db.Raw(sql, start, end, orm.L2FinalizeDepositETH)
 	if err := db.Scan(&ethEvents).Error; err != nil {
 		return false, err
@@ -50,7 +50,7 @@ where l2ee.start BETWEEN ? AND ? and l2ee.type = ?;`
     l2ee.tx_hash as l2_tx_hash, l2ee.msg_hash as l2_msg_hash, l2ee.amount as l2_amount 
 from l2_erc20_events as l2ee full join l1_erc20_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
-where l2ee.start BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
+where l2ee.number BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
 	db = db.Raw(sql,
 		start, end,
 		orm.L2FinalizeDepositDAI,
@@ -75,7 +75,7 @@ where l2ee.start BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
     l2ee.tx_hash as l2_tx_hash, l2ee.msg_hash as l2_msg_hash, l2ee.token_id as l2_token_id
 from l2_erc721_events as l2ee full join l1_erc721_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
-where l2ee.start BETWEEN ? AND ? and l2ee.type = ?;`
+where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 	db = db.Raw(sql, start, end, orm.L2FinalizeDepositERC721)
 	if err := db.Scan(&erc721Events).Error; err != nil {
 		return false, err
@@ -95,7 +95,7 @@ where l2ee.start BETWEEN ? AND ? and l2ee.type = ?;`
     l2ee.tx_hash as l2_tx_hash, l2ee.msg_hash as l2_msg_hash, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id
 from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
-where l2ee.start BETWEEN ? AND ? and l2ee.type = ?;`
+where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 	db = db.Raw(sql, start, end, orm.L2FinalizeDepositERC1155)
 	if err := db.Scan(&erc1155Events).Error; err != nil {
 		return false, err

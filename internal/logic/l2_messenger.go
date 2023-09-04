@@ -2,8 +2,6 @@ package logic
 
 import (
 	"context"
-	"fmt"
-	"sort"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
@@ -16,9 +14,8 @@ import (
 func (l2 *L2Contracts) registerMessengerHandlers() {
 	l2.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerSentMessageEvent) error {
 		msgHash := computeMessageHash(l2.ScrollMessenger.ABI, data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
-		log.Info("ScrollMessenger message sent hash", "tx_hash", vLog.TxHash.String(), "msg_hash", msgHash.String())
 		l2.txHashMsgHash[vLog.TxHash.String()] = msgHash
-		l2.msgSentEvents = append(l2.msgSentEvents, &orm.L2MessengerEvent{
+		l2.msgSentEvents[vLog.BlockNumber] = append(l2.msgSentEvents[vLog.BlockNumber], &orm.L2MessengerEvent{
 			Number:   vLog.BlockNumber,
 			MsgHash:  msgHash.String(),
 			Type:     orm.L2SentMessage,
@@ -36,49 +33,52 @@ func (l2 *L2Contracts) registerMessengerHandlers() {
 	})
 }
 
-func (l2 *L2Contracts) storeMessengerEvents(ctx context.Context) error {
+func (l2 *L2Contracts) storeMessengerEvents(ctx context.Context, start, end uint64) error {
 	if len(l2.msgSentEvents) == 0 {
 		return nil
 	}
-	// Store sentMessage events.
-	sort.Slice(l2.msgSentEvents, func(i, j int) bool {
-		return l2.msgSentEvents[i].MsgNonce < l2.msgSentEvents[j].MsgNonce
-	})
-	// Check
-	if l2.withdraw.NextMessageNonce != l2.msgSentEvents[0].MsgNonce {
-		return fmt.Errorf("msg nonce doesn't match, expect_nonce: %d, actual_nonce: %d", l2.withdraw.NextMessageNonce, l2.msgSentEvents[0].MsgNonce)
+
+	// Calculate withdraw root.
+	var (
+		chainMonitors = make([]*orm.ChainConfirm, 0, end-start+1)
+		msgSentEvents []*orm.L2MessengerEvent
+		latestProof   []byte
+	)
+	for number := start; number <= end; number++ {
+		if l2.msgSentEvents[number] == nil {
+			chainMonitors = append(chainMonitors, &orm.ChainConfirm{
+				Number:         number,
+				WithdrawStatus: true,
+			})
+			continue
+		}
+		msgs := l2.msgSentEvents[number]
+		for i, msg := range msgs {
+			proofs := l2.withdraw.AppendMessages([]common.Hash{common.HexToHash(msg.MsgHash)})
+			latestProof = proofs[len(proofs)-1]
+			msgSentEvents = append(msgSentEvents, msgs[i])
+		}
+		expectRoot, err := l2.withdrawRoot(ctx, number)
+		if err != nil {
+			return err
+		}
+		actualRoot := l2.withdraw.MessageRoot()
+		if actualRoot != expectRoot {
+			log.Error("withdraw root is not right", "numbers", number, "count", len(msgs), "expect_root", expectRoot.String(), "actual_root", actualRoot.String())
+		}
+		chainMonitors = append(chainMonitors, &orm.ChainConfirm{
+			Number:         number,
+			WithdrawStatus: actualRoot == expectRoot,
+		})
 	}
 
-	var (
-		chainMonitors = make([]orm.ChainConfirm, len(l2.msgSentEvents))
-		numbers       = make(map[uint64]bool, len(l2.msgSentEvents))
-	)
-	for i, msg := range l2.msgSentEvents {
-		proofs := l2.withdraw.AppendMessages([]common.Hash{common.HexToHash(msg.MsgHash)})
-		if len(proofs) > 0 && len(proofs[0]) > 0 {
-			msg.MsgProof = common.Bytes2Hex(proofs[0])
-		}
-		if !numbers[msg.Number] {
-			numbers[msg.Number] = true
-			expectRoot, err := l2.withdrawRoot(ctx, msg.Number)
-			if err != nil {
-				return err
-			}
-			actualRoot := l2.withdraw.MessageRoot()
-			if actualRoot != expectRoot {
-				log.Error("withdraw root is not right", "number", msg.Number, "nonce", msg.MsgNonce, "msg_hash", msg.MsgHash)
-			}
-			chainMonitors[i] = orm.ChainConfirm{
-				Number:         msg.Number,
-				WithdrawRoot:   expectRoot.String(),
-				WithdrawStatus: expectRoot == actualRoot,
-			}
-		}
-	}
-	if err := l2.tx.Save(chainMonitors).Error; err != nil {
+	if err := l2.tx.Model(&orm.ChainConfirm{}).Save(chainMonitors).Error; err != nil {
 		return err
 	}
-	if err := l2.tx.Save(l2.msgSentEvents).Error; err != nil {
+
+	// Just store the latest proof.
+	msgSentEvents[len(msgSentEvents)-1].MsgProof = common.Bytes2Hex(latestProof)
+	if err := l2.tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
 		return err
 	}
 	return nil

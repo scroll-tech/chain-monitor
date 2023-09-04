@@ -78,6 +78,7 @@ func (ch *ChainMonitor) ChainMonitor(ctx context.Context) {
 	})
 	if err != nil {
 		log.Error("failed to check deposit events", "start", start, "end", end, "err", err)
+		time.Sleep(time.Second * 10)
 		return
 	}
 	ch.startNumber = end

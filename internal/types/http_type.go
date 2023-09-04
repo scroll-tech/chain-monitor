@@ -12,8 +12,8 @@ const (
 	Success = 0
 	// ErrParameterInvalidNo is invalid params
 	ErrParameterInvalidNo = 40001
-	// ErrConfirmWithdrawRootByBatchIndex failed to get confirm batch
-	ErrConfirmWithdrawRootByBatchIndex = 40005
+	// ErrConfirmWithdrawRootByNumber failed to get confirm batch
+	ErrConfirmWithdrawRootByNumber = 40005
 	// ErrConfirmWithdrawRootByBatchHash failed to get confirm batch
 	ErrConfirmWithdrawRootByBatchHash = 40006
 )
@@ -23,6 +23,12 @@ type QueryByBatchIndexOrHashRequest struct {
 	// BatchIndex can not be 0, because we dont decode the genesis block
 	BatchIndex uint64      `form:"batch_index" binding:"required"`
 	BatchHash  common.Hash `json:"batch_hash" binding:"required"`
+}
+
+// QueryByNumber request withdraw root by block number.
+type QueryByNumber struct {
+	// block number
+	Number uint64
 }
 
 // Response the response schema
