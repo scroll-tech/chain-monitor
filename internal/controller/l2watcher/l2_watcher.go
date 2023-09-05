@@ -14,9 +14,7 @@ import (
 	"chain-monitor/orm"
 )
 
-var (
-	l2BatchSize uint64 = 500
-)
+var l2BatchSize uint64 = 500
 
 // L2Watcher return a new instance of L2Watcher.
 type L2Watcher struct {

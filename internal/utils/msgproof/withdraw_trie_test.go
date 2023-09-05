@@ -1,9 +1,10 @@
 package msgproof
 
 import (
-	"github.com/scroll-tech/go-ethereum/common"
 	"math/big"
 	"testing"
+
+	"github.com/scroll-tech/go-ethereum/common"
 
 	"github.com/stretchr/testify/assert"
 )

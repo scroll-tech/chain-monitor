@@ -103,7 +103,6 @@ func (l1 *l1Contracts) storeGatewayEvents() error {
 		event := l1.erc721Events[i]
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
-
 		}
 	}
 	if len(l1.erc721Events) > 0 {
