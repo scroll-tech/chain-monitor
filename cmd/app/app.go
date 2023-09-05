@@ -1,7 +1,7 @@
 package app
 
 import (
-	"chain-monitor/internal/orm"
+	"chain-monitor/internal/orm/migrate"
 	"fmt"
 	"os"
 	"os/signal"
@@ -19,12 +19,7 @@ import (
 )
 
 var (
-	app      *cli.App
-	initFlag = &cli.BoolFlag{
-		Name:  "init",
-		Usage: "Clean and rebuild chain-monitor database",
-		Value: false,
-	}
+	app *cli.App
 )
 
 func init() {
@@ -35,7 +30,6 @@ func init() {
 	app.Usage = "The Scroll chain monitor"
 	app.Version = utils.Version
 	app.Flags = append(app.Flags, utils.CommonFlags...)
-	app.Flags = append(app.Flags, initFlag)
 	app.Commands = []*cli.Command{}
 	app.Before = utils.BeforeAction
 }
@@ -54,21 +48,23 @@ func action(ctx *cli.Context) error {
 		log.Error("failed to init db", "err", err)
 		return err
 	}
-	defer utils.CloseDB(db)
+	defer func() {
+		if err = utils.CloseDB(db); err != nil {
+			log.Error("failed to close db.")
+		}
+	}()
 
-	// Clean and rebuild db tables.
-	if ctx.Bool(initFlag.Name) {
-		// Clean tables.
-		if err = orm.DropTables(db); err != nil {
-			log.Error("failed to drop tables", "err", err)
-			return err
+	// db operation.
+	if ctx.Bool(utils.DBFlag.Name) {
+		if ctx.Bool(utils.DBMigrateFlag.Name) {
+			return migrate.Migrate(db)
 		}
-		// Create db tables.
-		if err = orm.CreateTables(db); err != nil {
-			log.Error("failed to migrate tables", "err", err)
-			return err
+		if ctx.Bool(utils.DBResetFlag.Name) {
+			return migrate.Rollback(db, 0)
 		}
-		return nil
+		if ctx.IsSet(utils.DBRollBackFlag.Name) {
+			return migrate.Rollback(db, ctx.Int64(utils.DBRollBackFlag.Name))
+		}
 	}
 
 	// Start onchain_metrics server.
