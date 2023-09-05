@@ -41,8 +41,3 @@ func Rollback(db *gorm.DB, version int64) error {
 	}
 	return goose.DownTo(tx, MigrationsDir, version)
 }
-
-// ResetDB clean and migrate db.
-func ResetDB(db *gorm.DB) error {
-	return Rollback(db, 0)
-}
