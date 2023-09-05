@@ -1,9 +1,12 @@
-.PHONY: abi update docker update
+.PHONY: abi update docker update format lint chain-monitor
 
 IMAGE_NAME=chain-monitor
 IMAGE_VERSION=latest
 
 L2GETH_TAG=scroll-v4.3.63
+
+# scroll path is used when update abi.
+SCROLL_PATH=-1
 
 format:
 	go mod tidy
@@ -14,9 +17,6 @@ update:
 
 lint:
 	GOBIN=$(PWD)/build/bin go run ./build/lint.go
-
-# scroll path is used when update abi.
-SCROLL_PATH=-1
 
 chain-monitor:
 	go build -o build/bin/chain-monitor ./cmd/main.go
