@@ -1,7 +1,8 @@
-package logic
+package l2watcher
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
@@ -11,12 +12,13 @@ import (
 	"chain-monitor/orm"
 )
 
-func (l2 *L2Contracts) registerMessengerHandlers() {
+func (l2 *l2Contracts) registerMessengerHandlers() {
 	l2.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerSentMessageEvent) error {
-		msgHash := computeMessageHash(l2.ScrollMessenger.ABI, data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
+		msgHash := utils.ComputeMessageHash(l2.ScrollMessenger.ABI, data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
+		number := vLog.BlockNumber
 		l2.txHashMsgHash[vLog.TxHash.String()] = msgHash
-		l2.msgSentEvents[vLog.BlockNumber] = append(l2.msgSentEvents[vLog.BlockNumber], &orm.L2MessengerEvent{
-			Number:   vLog.BlockNumber,
+		l2.msgSentEvents[number] = append(l2.msgSentEvents[number], &orm.L2MessengerEvent{
+			Number:   number,
 			MsgHash:  msgHash.String(),
 			Type:     orm.L2SentMessage,
 			MsgNonce: data.MessageNonce.Uint64(),
@@ -33,7 +35,7 @@ func (l2 *L2Contracts) registerMessengerHandlers() {
 	})
 }
 
-func (l2 *L2Contracts) storeMessengerEvents(ctx context.Context, start, end uint64) error {
+func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint64) error {
 	if len(l2.msgSentEvents) == 0 {
 		return nil
 	}
@@ -78,7 +80,7 @@ func (l2 *L2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	return nil
 }
 
-func (l2 *L2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.ChainConfirm) error {
+func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.ChainConfirm) error {
 	var (
 		numbers       []uint64
 		withdrawRoots []common.Hash
@@ -103,9 +105,21 @@ func (l2 *L2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*
 		if len(withdrawRoots) == 0 {
 			break
 		}
+		if monitor.WithdrawStatus {
+			continue
+		}
+		expectRoot := withdrawRoots[0]
+		withdrawRoots = withdrawRoots[1:]
+		monitor.WithdrawStatus = monitor.WithdrawRoot == expectRoot
+		// If the withdraw root doesn't match, alert it.
 		if !monitor.WithdrawStatus {
-			monitor.WithdrawStatus = monitor.WithdrawRoot == withdrawRoots[0]
-			withdrawRoots = withdrawRoots[1:]
+			msg := fmt.Sprintf(
+				"withdraw root doestn't match, l2_number: %d, expect_withdraw_root: %s, actual_withdraw_root: %s",
+				monitor.Number,
+				expectRoot.String(),
+				monitor.WithdrawRoot.String(),
+			)
+			go l2.monitorAPI.SlackNotify(msg)
 		}
 	}
 	if err = l2.tx.Model(&orm.ChainConfirm{}).Save(chainMonitors).Error; err != nil {

@@ -2,16 +2,18 @@ package utils
 
 import (
 	"context"
-	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/common/hexutil"
-	"github.com/scroll-tech/go-ethereum/ethclient"
-	"github.com/scroll-tech/go-ethereum/rpc"
-	"golang.org/x/sync/errgroup"
 	"math/big"
-	"modernc.org/mathutil"
 	"time"
 
 	"github.com/modern-go/reflect2"
+	"github.com/scroll-tech/go-ethereum/accounts/abi"
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/common/hexutil"
+	"github.com/scroll-tech/go-ethereum/crypto"
+	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/scroll-tech/go-ethereum/rpc"
+	"golang.org/x/sync/errgroup"
+	"modernc.org/mathutil"
 )
 
 // TryTimes try run several times until the function return true.
@@ -42,6 +44,17 @@ func LoopWithContext(ctx context.Context, period time.Duration, f func(ctx conte
 // IsNil Check if the interface is empty.
 func IsNil(i interface{}) bool {
 	return i == nil || reflect2.IsNil(i)
+}
+
+func ComputeMessageHash(ABI *abi.ABI,
+	sender common.Address,
+	target common.Address,
+	value *big.Int,
+	messageNonce *big.Int,
+	message []byte,
+) common.Hash {
+	data, _ := ABI.Pack("relayMessage", sender, target, value, messageNonce, message)
+	return common.BytesToHash(crypto.Keccak256(data))
 }
 
 func toBlockNumArg(number *big.Int) string {

@@ -1,4 +1,4 @@
-package controller
+package l1watcher
 
 import (
 	"context"
@@ -13,7 +13,6 @@ import (
 	"modernc.org/mathutil"
 
 	"chain-monitor/internal/config"
-	"chain-monitor/internal/logic"
 	"chain-monitor/orm"
 )
 
@@ -26,7 +25,7 @@ type L1Watcher struct {
 	cfg    *config.L1Config
 	client *ethclient.Client
 
-	contracts *logic.L1Contracts
+	filter *l1Contracts
 
 	cacheLen    int
 	headerCache []*types.Header
@@ -40,7 +39,7 @@ type L1Watcher struct {
 
 func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 	client, err := ethclient.Dial(cfg.L1ChainURL)
-	contracts, err := logic.NewL1Contracts(client, cfg.L1Gateways)
+	contracts, err := newL1Contracts(client, cfg.L1Gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 		cfg:         cfg,
 		db:          db,
 		client:      client,
-		contracts:   contracts,
+		filter:      contracts,
 		cacheLen:    32,
 		headerCache: make([]*types.Header, 0, 32),
 		curTime:     time.Now(),
@@ -90,7 +89,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		// get events by number
 		start = header.Number.Uint64()
 		end = start
-		count, err = l1.contracts.ParseL1Events(ctx, l1.db, start, end)
+		count, err = l1.filter.ParseL1Events(ctx, l1.db, start, end)
 		if err != nil {
 			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
 			return
@@ -101,7 +100,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		}
 		l1.headerCache = append(l1.headerCache, header)
 	} else {
-		count, err = l1.contracts.ParseL1Events(ctx, l1.db, start, end)
+		count, err = l1.filter.ParseL1Events(ctx, l1.db, start, end)
 		if err != nil {
 			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
 			return

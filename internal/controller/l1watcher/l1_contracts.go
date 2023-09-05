@@ -1,4 +1,4 @@
-package logic
+package l1watcher
 
 import (
 	"context"
@@ -12,12 +12,15 @@ import (
 	"chain-monitor/bytecode/scroll/L1/gateway"
 	"chain-monitor/bytecode/scroll/L1/rollup"
 	"chain-monitor/internal/config"
+	"chain-monitor/internal/controller"
 	"chain-monitor/orm"
 )
 
-type L1Contracts struct {
+type l1Contracts struct {
 	tx     *gorm.DB
 	client *ethclient.Client
+
+	monitorAPI controller.MonitorAPI
 
 	txHashMsgHash map[string]common.Hash
 	ethEvents     []*orm.L1ETHEvent
@@ -40,9 +43,9 @@ type L1Contracts struct {
 	filter *bytecode.ContractsFilter
 }
 
-func NewL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*L1Contracts, error) {
+func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contracts, error) {
 	var (
-		cts = &L1Contracts{
+		cts = &l1Contracts{
 			client:        client,
 			txHashMsgHash: map[string]common.Hash{},
 			ethEvents:     []*orm.L1ETHEvent{},
@@ -113,7 +116,7 @@ func NewL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*L1Contr
 	return cts, nil
 }
 
-func (l1 *L1Contracts) clean() {
+func (l1 *l1Contracts) clean() {
 	l1.txHashMsgHash = map[string]common.Hash{}
 	l1.ethEvents = l1.ethEvents[:0]
 	l1.erc20Events = l1.erc20Events[:0]
@@ -121,7 +124,7 @@ func (l1 *L1Contracts) clean() {
 	l1.erc1155Events = l1.erc1155Events[:0]
 }
 
-func (l1 *L1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
+func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
 	l1.clean()
 	l1.tx = db.Begin().WithContext(ctx)
 	count, err := l1.filter.ParseLogs(ctx, l1.client, start, end)
@@ -151,4 +154,8 @@ func (l1 *L1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 	return count, nil
+}
+
+func (l1 *l1Contracts) setMonitorAPI(monitor controller.MonitorAPI) {
+	l1.monitorAPI = monitor
 }

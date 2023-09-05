@@ -1,29 +1,32 @@
-package logic
+package l2watcher
 
 import (
-	"chain-monitor/bytecode/scroll/L2/predeploys"
+	"chain-monitor/internal/controller"
 	"context"
 	"fmt"
-	"github.com/scroll-tech/go-ethereum/rpc"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/scroll-tech/go-ethereum/rpc"
 	"gorm.io/gorm"
 
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L2"
 	"chain-monitor/bytecode/scroll/L2/gateway"
+	"chain-monitor/bytecode/scroll/L2/predeploys"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/utils/msgproof"
 	"chain-monitor/orm"
 )
 
-type L2Contracts struct {
+type l2Contracts struct {
 	tx     *gorm.DB
 	cfg    *config.Gateway
 	rpcCli *rpc.Client
 	client *ethclient.Client
+
+	monitorAPI controller.MonitorAPI
 
 	withdraw *msgproof.WithdrawTrie
 
@@ -48,7 +51,7 @@ type L2Contracts struct {
 	filter *bytecode.ContractsFilter
 }
 
-func NewL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*L2Contracts, error) {
+func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*l2Contracts, error) {
 	rpcCli, err := rpc.Dial(l2chainURL)
 	if err != nil {
 		return nil, err
@@ -56,7 +59,7 @@ func NewL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*L2Con
 
 	var (
 		client = ethclient.NewClient(rpcCli)
-		cts    = &L2Contracts{
+		cts    = &l2Contracts{
 			rpcCli:        rpcCli,
 			client:        client,
 			cfg:           cfg,
@@ -126,7 +129,7 @@ func NewL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*L2Con
 	return cts, nil
 }
 
-func (l2 *L2Contracts) initWithdraw(db *gorm.DB) error {
+func (l2 *l2Contracts) initWithdraw(db *gorm.DB) error {
 	tx := db.Where("type = ?", orm.L2SentMessage)
 	var msg orm.L2MessengerEvent
 	err := tx.Last(&msg).Error
@@ -150,7 +153,7 @@ func (l2 *L2Contracts) initWithdraw(db *gorm.DB) error {
 	return nil
 }
 
-func (l2 *L2Contracts) clean() {
+func (l2 *l2Contracts) clean() {
 	l2.txHashMsgHash = map[string]common.Hash{}
 	l2.msgSentEvents = map[uint64][]*orm.L2MessengerEvent{}
 	l2.ethEvents = l2.ethEvents[:0]
@@ -159,7 +162,7 @@ func (l2 *L2Contracts) clean() {
 	l2.erc1155Events = l2.erc1155Events[:0]
 }
 
-func (l2 *L2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
+func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
 	l2.clean()
 	l2.tx = db.Begin().WithContext(ctx)
 	count, err := l2.filter.ParseLogs(ctx, l2.client, start, end)
@@ -196,7 +199,7 @@ func (l2 *L2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	return count, nil
 }
 
-func (l2 *L2Contracts) withdrawRoot(ctx context.Context, number uint64) (common.Hash, error) {
+func (l2 *l2Contracts) withdrawRoot(ctx context.Context, number uint64) (common.Hash, error) {
 	data, err := l2.client.StorageAt(
 		ctx,
 		l2.cfg.MessageQueue,
@@ -206,4 +209,8 @@ func (l2 *L2Contracts) withdrawRoot(ctx context.Context, number uint64) (common.
 		return [32]byte{}, err
 	}
 	return common.BytesToHash(data), nil
+}
+
+func (l2 *l2Contracts) setMonitorAPI(monitor controller.MonitorAPI) {
+	l2.monitorAPI = monitor
 }

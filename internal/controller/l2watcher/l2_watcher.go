@@ -1,4 +1,4 @@
-package controller
+package l2watcher
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"gorm.io/gorm"
 
 	"chain-monitor/internal/config"
-	"chain-monitor/internal/logic"
 	"chain-monitor/orm"
 )
 
@@ -24,7 +23,7 @@ type L2Watcher struct {
 	cfg    *config.L2Config
 	client *ethclient.Client
 
-	contracts *logic.L2Contracts
+	filter *l2Contracts
 
 	curTime     time.Time
 	startNumber uint64
@@ -49,7 +48,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	}
 
 	// Create a event filter instance.
-	l1Contracts, err := logic.NewL2Contracts(cfg.L2ChainURL, db, cfg.L2gateways)
+	l1Contracts, err := newL2Contracts(cfg.L2ChainURL, db, cfg.L2gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 		cfg:         cfg,
 		db:          db,
 		client:      client,
-		contracts:   l1Contracts,
+		filter:      l1Contracts,
 		curTime:     time.Now(),
 		startNumber: l2Block.Number,
 		safeNumber:  latestNumber - cfg.Confirm,
@@ -89,7 +88,7 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 		return
 	}
 
-	cts := l2.contracts
+	cts := l2.filter
 	count, err := cts.ParseL2Events(ctx, l2.db, start, end)
 	if err != nil {
 		log.Error("failed to parse l2chain events", "start", start, "end", end, "err", err)

@@ -1,6 +1,9 @@
-package controller
+package l2watcher
 
-import "sync/atomic"
+import (
+	"chain-monitor/internal/controller"
+	"sync/atomic"
+)
 
 func (l2 *L2Watcher) StartNumber() uint64 {
 	return atomic.LoadUint64(&l2.startNumber)
@@ -20,4 +23,8 @@ func (l2 *L2Watcher) setSafeNumber(number uint64) {
 
 func (l2 *L2Watcher) IsReady() bool {
 	return l2.StartNumber() == l2.SafeNumber()
+}
+
+func (l2 *L2Watcher) SetMonitor(monitor controller.MonitorAPI) {
+	l2.filter.setMonitorAPI(monitor)
 }

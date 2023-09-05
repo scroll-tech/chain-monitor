@@ -8,8 +8,8 @@ import (
 type ChainConfirm struct {
 	Number         uint64      `gorm:"primaryKey"`
 	WithdrawRoot   common.Hash `gorm:"-"`
-	DepositStatus  bool
 	WithdrawStatus bool
+	DepositStatus  bool
 	Confirm        bool
 }
 

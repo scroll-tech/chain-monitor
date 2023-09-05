@@ -1,19 +1,21 @@
-package logic
+package l1watcher
 
 import (
 	"context"
 
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/core/types"
+
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L1/rollup"
+	"chain-monitor/internal/utils"
 	"chain-monitor/orm"
-	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/core/types"
 )
 
-func (l1 *L1Contracts) registerMessengerHandlers() {
+func (l1 *l1Contracts) registerMessengerHandlers() {
 	l1.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerSentMessageEvent) error {
-		msgHash := computeMessageHash(l1.ScrollMessenger.ABI, data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
+		msgHash := utils.ComputeMessageHash(l1.ScrollMessenger.ABI, data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
 		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
 		return orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
 	})
@@ -29,7 +31,7 @@ func (l1 *L1Contracts) registerMessengerHandlers() {
 	})
 }
 
-func (l1 *L1Contracts) registerScrollHandlers() {
+func (l1 *l1Contracts) registerScrollHandlers() {
 	l1.ScrollChain.RegisterCommitBatch(func(vLog *types.Log, data *rollup.ScrollChainCommitBatchEvent) error {
 		l1Tx, _, err := l1.client.TransactionByHash(context.Background(), vLog.TxHash)
 		if err != nil {

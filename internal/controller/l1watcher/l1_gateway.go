@@ -1,4 +1,4 @@
-package logic
+package l1watcher
 
 import (
 	"math/big"
@@ -10,7 +10,7 @@ import (
 	"chain-monitor/orm"
 )
 
-func (l1 *L1Contracts) registerGatewayHandlers() {
+func (l1 *l1Contracts) registerGatewayHandlers() {
 	l1.ETHGateway.RegisterDepositETH(func(vLog *types.Log, data *gateway.L1ETHGatewayDepositETHEvent) error {
 		l1.ethEvents = append(l1.ethEvents, newL1ETHEvent(orm.L1DepositETH, vLog, data.From, data.To, data.Amount))
 		return nil
@@ -71,7 +71,7 @@ func (l1 *L1Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l1 *L1Contracts) storeGatewayEvents() error {
+func (l1 *l1Contracts) storeGatewayEvents() error {
 	// store l1 eth events.
 	for i := 0; i < len(l1.ethEvents); i++ {
 		event := l1.ethEvents[i]

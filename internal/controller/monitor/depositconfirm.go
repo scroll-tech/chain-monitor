@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
@@ -10,14 +11,18 @@ import (
 )
 
 type msgEvents struct {
-	L2Number  uint64 `gorm:"l2_number"`
-	L2MsgHash string `gorm:"l2_msg_hash"`
+	L2Number uint64 `gorm:"l2_number"`
 
+	L1TxHash string `gorm:"l1_tx_hash"`
+	L2TxHash string `gorm:"l2_tx_hash"`
+
+	// asset fields
 	L1Amount  string `gorm:"l1_amount"`
 	L2Amount  string `gorm:"l2_amount"`
 	L1TokenId string `gorm:"l1_token_id"`
 	L2TokenId string `gorm:"l2_token_id"`
-	status    bool
+
+	status bool
 }
 
 func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, start, end uint64) ([]uint64, error) {
@@ -31,8 +36,8 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, s
 	// check eth events.
 	var ethEvents []msgEvents
 	sql := `select 
-    l1ee.amount as l1_amount, 
-    l2ee.number as l2_number, l2ee.msg_hash as l2_msg_hash, l2ee.amount as l2_amount 
+    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
 from l2_eth_events as l2ee full join l1_eth_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
 where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
@@ -47,15 +52,17 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
-			log.Error("the eth deposit hash or amount don't match", "msg_hash", msg.L2MsgHash)
+			// If eth msg don't match, alert it.
+			go ch.SlackNotify(fmt.Sprintf("deposit eth don't match, message: %v", msg))
+			log.Error("the eth deposit hash or amount don't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
 	var erc20Events []msgEvents
 	// check erc20 events.
 	sql = `select 
-    l1ee.amount as l1_amount, 
-    l2ee.number as l2_number, l2ee.msg_hash as l2_msg_hash, l2ee.amount as l2_amount 
+    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
 from l2_erc20_events as l2ee full join l1_erc20_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
 where l2ee.number BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
@@ -75,15 +82,17 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
-			log.Error("the erc20 deposit hash or amount doesn't match", "msg_hash", msg.L2MsgHash)
+			// If erc20 msg don't match, alert it.
+			go ch.SlackNotify(fmt.Sprintf("erc20 deposit don't match, message: %v", msg))
+			log.Error("the erc20 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
 	// check erc721 events.
 	var erc721Events []msgEvents
 	sql = `select 
-    l1ee.token_id as l1_token_id, 
-    l2ee.number as l2_number, l2ee.msg_hash as l2_msg_hash, l2ee.token_id as l2_token_id
+    l1ee.tx_hash as l1_tx_hash, l1ee.token_id as l1_token_id, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.token_id as l2_token_id
 from l2_erc721_events as l2ee full join l1_erc721_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
@@ -98,15 +107,17 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
-			log.Error("the erc721 deposit hash or amount doesn't match", "msg_hash", msg.L2MsgHash)
+			// If erc721 event don't match, alert it.
+			go ch.SlackNotify(fmt.Sprintf("erc721 event don't match, message: %v", msg))
+			log.Error("the erc721 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
 	// check erc1155 events.
 	var erc1155Events []msgEvents
 	sql = `select 
-    l1ee.amount as l1_amount, l1ee.token_id as l1_token_id, 
-    l2ee.number as l2_number, l2ee.msg_hash as l2_msg_hash, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id
+    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, l1ee.token_id as l1_token_id, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id
 from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
@@ -121,7 +132,9 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
-			log.Error("the erc1155 deposit hash or amount doesn't match", "msg_hash", msg.L2MsgHash)
+			// If erc1155 event don't match, alert it.
+			go ch.SlackNotify(fmt.Sprintf("erc1155 event don't match, message: %v", msg))
+			log.Error("the erc1155 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 

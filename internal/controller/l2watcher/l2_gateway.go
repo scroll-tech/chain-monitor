@@ -1,4 +1,4 @@
-package logic
+package l2watcher
 
 import (
 	"math/big"
@@ -10,7 +10,7 @@ import (
 	"chain-monitor/orm"
 )
 
-func (l2 *L2Contracts) registerGatewayHandlers() {
+func (l2 *l2Contracts) registerGatewayHandlers() {
 	l2.ETHGateway.RegisterWithdrawETH(func(vLog *types.Log, data *gateway.L2ETHGatewayWithdrawETHEvent) error {
 		l2.ethEvents = append(l2.ethEvents, newL2ETHEvent(orm.L2WithdrawETH, vLog, data.From, data.To, data.Amount))
 		return nil
@@ -72,7 +72,7 @@ func (l2 *L2Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l2 *L2Contracts) storeGatewayEvents() error {
+func (l2 *l2Contracts) storeGatewayEvents() error {
 	// store l2 eth events.
 	for i := 0; i < len(l2.ethEvents); i++ {
 		event := l2.ethEvents[i]

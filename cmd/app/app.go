@@ -2,7 +2,8 @@ package app
 
 import (
 	"chain-monitor/internal/config"
-	"chain-monitor/internal/controller"
+	"chain-monitor/internal/controller/l1watcher"
+	"chain-monitor/internal/controller/l2watcher"
 	"chain-monitor/internal/controller/monitor"
 	"chain-monitor/internal/route"
 	"chain-monitor/internal/utils"
@@ -71,26 +72,30 @@ func action(ctx *cli.Context) error {
 	// Start onchain_metrics server.
 	utils.StartServer(ctx, route.Route(db.WithContext(subCtx)))
 
-	l1Watcher, err := controller.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
+	l1Watcher, err := l1watcher.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
 	if err != nil {
 		log.Error("failed to create l1 watcher instance", "err", err)
 		return err
 	}
 	_ = l1Watcher
 
-	l2Watcher, err := controller.NewL2Watcher(cfg.L2Config, db.WithContext(subCtx))
+	l2Watcher, err := l2watcher.NewL2Watcher(cfg.L2Config, db.WithContext(subCtx))
 	if err != nil {
 		log.Error("failed to create l2 watcher instance", "err", err)
 		return err
 	}
 	_ = l2Watcher
 
-	chainMonitor, err := monitor.NewChainMonitor(db.WithContext(subCtx), l1Watcher, l2Watcher)
+	chainMonitor, err := monitor.NewChainMonitor(cfg.ChainMonitor, db.WithContext(subCtx), l1Watcher, l2Watcher)
 	if err != nil {
 		log.Error("failed to create chain chainMonitor instance", "err", err)
 		return err
 	}
 	_ = chainMonitor
+
+	// Let l1watcher and l2watcher can use monitor api.
+	l1Watcher.SetMonitor(chainMonitor)
+	l2Watcher.SetMonitor(chainMonitor)
 
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
