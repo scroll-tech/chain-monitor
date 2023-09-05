@@ -17,8 +17,6 @@ import (
 	"chain-monitor/internal/utils"
 )
 
-type EventHandler func(vLog *types.Log, value interface{}) error
-
 // ContractAPI it's common for contract.
 type ContractAPI interface {
 	GetName() string
@@ -26,12 +24,6 @@ type ContractAPI interface {
 	GetEventName(sigHash common.Hash) string
 	GetSigHashes() []common.Hash
 	ParseLog(vLog *types.Log) (bool, error)
-}
-
-type Contract struct {
-	Name    string
-	Address common.Address
-	ABI     *abi.ABI
 }
 
 // ContractsFilter contracts filter struct.
@@ -96,6 +88,7 @@ type commitBatchArgs struct {
 	SkippedL1MessageBitmap []byte
 }
 
+// ScrollBatch returns scrollBatch instance.
 type ScrollBatch struct {
 	BatchIndex    uint64
 	L2StartNumber uint64

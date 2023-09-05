@@ -35,6 +35,7 @@ type L1Watcher struct {
 	db *gorm.DB
 }
 
+// NewL1Watcher create a l1watcher instance.
 func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 	client, err := ethclient.Dial(cfg.L1ChainURL)
 	if err != nil {
@@ -70,6 +71,7 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 	return watcherClient, nil
 }
 
+// ScanL1Chain scan l1chain entrypoint function.
 func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 	start, end, err := l1.getStartAndEndNumber(ctx)
 	if err != nil {

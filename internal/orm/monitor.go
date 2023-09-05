@@ -27,9 +27,3 @@ func GetConfirmMsgByNumber(db *gorm.DB, number uint64) (*ChainConfirm, error) {
 	res := db.Where("number = ?", number).First(&confirmBatch)
 	return &confirmBatch, res.Error
 }
-
-func GetConfirmBatchByHash(db *gorm.DB, batchHash common.Hash) (*ChainConfirm, error) {
-	var confirmBatch ChainConfirm
-	res := db.Where("batch_hash = ?", batchHash.String()).First(&confirmBatch)
-	return &confirmBatch, res.Error
-}

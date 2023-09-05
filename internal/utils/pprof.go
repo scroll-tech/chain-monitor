@@ -11,8 +11,10 @@ import (
 	"github.com/scroll-tech/go-ethereum/metrics/exp"
 )
 
+// Memsize memory handler.
 var Memsize memsizeui.Handler
 
+// StartPProf start pprof server.
 func StartPProf(address string, withMetrics bool) {
 	// Hook go-metrics into expvar on any /debug/metrics request, load all vars
 	// from the registry into expvar, and execute regular expvar handler.

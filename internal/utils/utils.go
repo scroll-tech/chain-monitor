@@ -46,6 +46,7 @@ func IsNil(i interface{}) bool {
 	return i == nil || reflect2.IsNil(i)
 }
 
+// ComputeMessageHash compute message event fields to get message hash.
 func ComputeMessageHash(ABI *abi.ABI,
 	sender common.Address,
 	target common.Address,
