@@ -12,9 +12,6 @@ format:
 	go mod tidy
 	goimports -local . -w .
 
-update:
-	go get -u github.com/scroll-tech/go-ethereum@${L2GETH_TAG} && go mod tidy
-
 lint:
 	GOBIN=$(PWD)/build/bin go run ./build/lint.go
 
@@ -29,6 +26,5 @@ docker:
 	docker build --platform linux/amd64 -t scrolltech/${IMAGE_NAME}:${IMAGE_VERSION} ./
 
 update: ## Let's keep it and docker version in consistent.
-	#git submodule update --init --recursive
-	go get -u github.com/scroll-tech/go-ethereum@scroll-v4.3.52
+	go get -u github.com/scroll-tech/go-ethereum@${L2GETH_TAG} && go mod tidy
 	go mod tidy
