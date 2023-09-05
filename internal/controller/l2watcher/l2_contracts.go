@@ -16,8 +16,8 @@ import (
 	"chain-monitor/bytecode/scroll/L2/predeploys"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
+	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils/msgproof"
-	"chain-monitor/orm"
 )
 
 type l2Contracts struct {

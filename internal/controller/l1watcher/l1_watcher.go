@@ -13,7 +13,7 @@ import (
 	"modernc.org/mathutil"
 
 	"chain-monitor/internal/config"
-	"chain-monitor/orm"
+	"chain-monitor/internal/orm"
 )
 
 var l1BatchSize uint64 = 100

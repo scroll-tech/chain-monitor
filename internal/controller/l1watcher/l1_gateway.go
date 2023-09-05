@@ -7,7 +7,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/core/types"
 
 	"chain-monitor/bytecode/scroll/L1/gateway"
-	"chain-monitor/orm"
+	"chain-monitor/internal/orm"
 )
 
 func (l1 *l1Contracts) registerGatewayHandlers() {

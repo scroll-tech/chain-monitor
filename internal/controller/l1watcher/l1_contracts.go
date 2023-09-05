@@ -13,7 +13,7 @@ import (
 	"chain-monitor/bytecode/scroll/L1/rollup"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
-	"chain-monitor/orm"
+	"chain-monitor/internal/orm"
 )
 
 type l1Contracts struct {

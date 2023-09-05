@@ -7,7 +7,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
 
-	"chain-monitor/orm"
+	"chain-monitor/internal/orm"
 )
 
 type msgEvents struct {

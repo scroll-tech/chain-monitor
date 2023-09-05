@@ -9,8 +9,8 @@ import (
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L1/rollup"
+	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils"
-	"chain-monitor/orm"
 )
 
 func (l1 *l1Contracts) registerMessengerHandlers() {

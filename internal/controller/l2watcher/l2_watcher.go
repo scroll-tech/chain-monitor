@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"chain-monitor/internal/config"
-	"chain-monitor/orm"
+	"chain-monitor/internal/orm"
 )
 
 var l2BatchSize uint64 = 500
