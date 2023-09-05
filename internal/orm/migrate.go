@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	// L1Tables tables for L1 events.
 	L1Tables = []interface{}{
 		&L1Block{},
 		&L1ETHEvent{},
@@ -16,6 +17,7 @@ var (
 		&L1MessengerEvent{},
 		&L1ScrollChainEvent{},
 	}
+	// L2Tables tables for L2 events.
 	L2Tables = []interface{}{
 		&L2Block{},
 		&L2ETHEvent{},
@@ -37,6 +39,7 @@ func init() {
 	})
 }
 
+// CreateTables auto migrates the given tables in the database.
 func CreateTables(db *gorm.DB) error {
 	if err := db.AutoMigrate(tables...); err != nil {
 		return err
@@ -44,6 +47,7 @@ func CreateTables(db *gorm.DB) error {
 	return nil
 }
 
+// DropTables drops the given tables from the database if they exist.
 func DropTables(db *gorm.DB) error {
 	migrator := db.Migrator()
 	for _, tb := range tables {
