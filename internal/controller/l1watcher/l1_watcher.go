@@ -149,7 +149,7 @@ func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	} else {
 		number = l1.headerCache[len(l1.headerCache)-1].Number.Uint64()
 	}
-	number += 1
+	number++
 
 	// get the next block header.
 	header, err := l1.client.HeaderByNumber(ctx, big.NewInt(0).SetUint64(number))

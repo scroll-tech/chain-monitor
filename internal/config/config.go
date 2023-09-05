@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 
 	"github.com/scroll-tech/go-ethereum/common"
 )
@@ -65,7 +66,7 @@ type Config struct {
 }
 
 func NewConfig(file string) (*Config, error) {
-	data, err := os.ReadFile(file)
+	data, err := os.ReadFile(filepath.Clean(file))
 	if err != nil {
 		return nil, err
 	}

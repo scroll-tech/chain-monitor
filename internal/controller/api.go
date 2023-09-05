@@ -8,15 +8,17 @@ import (
 	"chain-monitor/internal/types"
 )
 
+// ChainConfirm controller is responsible for handling confirmation operations on the chain.
 type ChainConfirm struct {
 	db *gorm.DB
 }
 
+// NewMetricsController creates and returns a new instance of the ChainConfirm controller.
 func NewMetricsController(db *gorm.DB) *ChainConfirm {
 	return &ChainConfirm{db: db}
 }
 
-// ConfirmWithdrawRoot return batch status
+// ConfirmWithdrawRoot returns the batch status based on the requested block number.
 func (m *ChainConfirm) ConfirmWithdrawRoot(ctx *gin.Context) {
 	var req types.QueryByNumber
 	err := ctx.ShouldBind(&req)
