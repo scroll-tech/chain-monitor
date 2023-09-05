@@ -31,9 +31,6 @@ comment on column l1_scroll_chain_events.l2_start_number is ' l2chain block star
 
 comment on column l1_scroll_chain_events.l2_end_number is ' l2chain block end number contained in this batch';
 
-alter table l1_scroll_chain_events
-    owner to maskpp;
-
 create index idx_l1_scroll_chain_events_status
     on l1_scroll_chain_events (status);
 
@@ -55,5 +52,5 @@ create index idx_l1_scroll_chain_events_number
 
 -- +goose Down
 -- +goose L1ScrollChainBegin
-drop table if exists l1_scroll_chain_events
+drop table if exists l1_scroll_chain_events;
 -- +goose L1ScrollChainEnd

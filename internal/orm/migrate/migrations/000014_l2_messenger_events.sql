@@ -15,9 +15,6 @@ comment on column l2_messenger_events.number is ' block number';
 
 comment on column l2_messenger_events.type is ' tx type';
 
-alter table l2_messenger_events
-    owner to maskpp;
-
 create index idx_l2_messenger_events_number
     on l2_messenger_events (number);
 
@@ -33,5 +30,5 @@ create index idx_l2_messenger_events_type
 
 -- +goose Down
 -- +goose L2MessengerBegin
-drop table if exists l2_messenger_events
+drop table if exists l2_messenger_events;
 -- +goose L2MessengerEnd

@@ -22,9 +22,6 @@ comment on column l2_erc20_events.l1_token is ' input token contract address';
 
 comment on column l2_erc20_events.l2_token is ' output token contract address';
 
-alter table l2_erc20_events
-    owner to maskpp;
-
 create index idx_l2_erc20_events_type
     on l2_erc20_events (type);
 
@@ -37,5 +34,5 @@ create index idx_l2_erc20_events_number
 
 -- +goose Down
 -- +goose L2ERC20Begin
-drop table if exists l2_erc20_events
+drop table if exists l2_erc20_events;
 -- +goose L2ERC20End

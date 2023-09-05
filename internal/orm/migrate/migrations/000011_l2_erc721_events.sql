@@ -18,9 +18,6 @@ comment on column l2_erc721_events.tx_hash is ' tx hash';
 
 comment on column l2_erc721_events.type is ' tx type';
 
-alter table l2_erc721_events
-    owner to maskpp;
-
 create index idx_l2_erc721_events_msg_hash
     on l2_erc721_events (msg_hash);
 
@@ -33,5 +30,5 @@ create index idx_l2_erc721_events_type
 
 -- +goose Down
 -- +goose L2ERC721Begin
-drop table if exists l2_erc721_events
+drop table if exists l2_erc721_events;
 -- +goose L2ERC721End

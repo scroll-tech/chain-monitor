@@ -16,9 +16,6 @@ comment on column l1_eth_events.tx_hash is ' tx hash';
 
 comment on column l1_eth_events.type is ' tx type';
 
-alter table l1_eth_events
-    owner to maskpp;
-
 create index idx_l1_eth_events_type
     on l1_eth_events (type);
 
@@ -31,5 +28,5 @@ create index idx_l1_eth_events_number
 
 -- +goose Down
 -- +goose L1ETHBegin
-drop table if exists l1_eth_events
+drop table if exists l1_eth_events;
 -- +goose L1ETHEnd
