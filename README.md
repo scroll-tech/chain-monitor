@@ -25,11 +25,8 @@ curl -L https://foundry.paradigm.xyz | bash
 * Update dependence
 
 ```
-# update scroll sub module
-make submodule
-
 # compile contracts with foundry and translate abi to go source files 
-make abi
+make abi SCROLL_PATH=xxx
 
 # updaye golang depedence
 make update
