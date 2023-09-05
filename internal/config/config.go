@@ -51,15 +51,17 @@ type DBConfig struct {
 	LogLevel   int `json:"logLevel,omitempty"`
 }
 
-type MonitorConfig struct {
-	SlackNotify string `json:"slack_notify,omitempty"`
+type SlackWebhookConfig struct {
+	Channel    string `json:"channel"`
+	UserName   string `json:"user_name"`
+	WebhookURL string `json:"webhook_url,omitempty"`
 }
 
 type Config struct {
-	L1Config     *L1Config      `json:"l1_config"`
-	L2Config     *L2Config      `json:"l2_config"`
-	ChainMonitor *MonitorConfig `json:"chain_monitor"`
-	DBConfig     *DBConfig      `json:"db_config"`
+	L1Config     *L1Config           `json:"l1_config"`
+	L2Config     *L2Config           `json:"l2_config"`
+	ChainMonitor *SlackWebhookConfig `json:"slack_webhook_config"`
+	DBConfig     *DBConfig           `json:"db_config"`
 }
 
 func NewConfig(file string) (*Config, error) {

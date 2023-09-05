@@ -8,8 +8,8 @@ import (
 	"github.com/scroll-tech/go-ethereum/core/types"
 
 	"chain-monitor/bytecode/scroll/L2"
+	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils"
-	"chain-monitor/orm"
 )
 
 func (l2 *l2Contracts) registerMessengerHandlers() {

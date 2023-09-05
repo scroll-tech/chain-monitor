@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"chain-monitor/internal/orm"
 	"chain-monitor/internal/types"
-	"chain-monitor/orm"
 )
 
 type ChainConfirm struct {

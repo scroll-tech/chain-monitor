@@ -80,15 +80,13 @@ func toBlockNumArg(number *big.Int) string {
 	return hexutil.EncodeBig(number)
 }
 
-var (
-	emptyHash = common.BigToHash(big.NewInt(0))
-)
+var emptyHash = common.BigToHash(big.NewInt(0))
 
 // GetBatchWithdrawRoots get batch withdraw roots.
 func GetBatchWithdrawRoots(ctx context.Context, cli *rpc.Client, queueAddr common.Address, numbers []uint64) ([]common.Hash, error) {
 	// If the numbers count is too less, just get them.
 	if len(numbers) == 1 {
-		var client = ethclient.NewClient(cli)
+		client := ethclient.NewClient(cli)
 		root, err := client.StorageAt(ctx, queueAddr, emptyHash, big.NewInt(0).SetUint64(numbers[0]))
 		if err != nil {
 			return nil, err

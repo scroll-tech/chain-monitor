@@ -3,10 +3,11 @@ package scroll
 import (
 	"context"
 	"encoding/json"
-	"github.com/scroll-tech/go-ethereum/ethclient"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+
+	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPP(t *testing.T) {

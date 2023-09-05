@@ -1,8 +1,9 @@
 package l2watcher
 
 import (
-	"chain-monitor/internal/controller"
 	"sync/atomic"
+
+	"chain-monitor/internal/controller"
 )
 
 func (l2 *L2Watcher) StartNumber() uint64 {

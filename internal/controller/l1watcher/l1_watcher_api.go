@@ -1,8 +1,9 @@
 package l1watcher
 
 import (
-	"chain-monitor/internal/controller"
 	"sync/atomic"
+
+	"chain-monitor/internal/controller"
 )
 
 func (l1 *L1Watcher) StartNumber() uint64 {
