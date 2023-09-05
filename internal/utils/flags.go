@@ -116,11 +116,11 @@ var (
 	}
 )
 
+// BeforeAction is an initialization function to be executed before the main action.
+// It sets up logging based on the provided context flags and, if enabled, starts the pprof server.
 func BeforeAction(ctx *cli.Context) error {
-	var err error
-
 	// Init logger.
-	err = LogSetup(ctx)
+	err := LogSetup(ctx)
 	if err != nil {
 		return err
 	}

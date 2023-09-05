@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 
 	"github.com/scroll-tech/go-ethereum/common"
 )
@@ -20,6 +21,7 @@ type Gateway struct {
 	ERC1155Gateway       common.Address `json:"erc1155_gateway"`
 }
 
+// L1Contracts l1chain config.
 type L1Contracts struct {
 	*Gateway
 	L1ScrollChain common.Address `json:"scroll_chain"`
@@ -51,12 +53,14 @@ type DBConfig struct {
 	LogLevel   int `json:"logLevel,omitempty"`
 }
 
+// SlackWebhookConfig slack webhook config.
 type SlackWebhookConfig struct {
 	Channel    string `json:"channel"`
 	UserName   string `json:"user_name"`
 	WebhookURL string `json:"webhook_url,omitempty"`
 }
 
+// Config chain-monitor main config.
 type Config struct {
 	L1Config     *L1Config           `json:"l1_config"`
 	L2Config     *L2Config           `json:"l2_config"`
@@ -64,8 +68,9 @@ type Config struct {
 	DBConfig     *DBConfig           `json:"db_config"`
 }
 
+// NewConfig return a unmarshalled config instance.
 func NewConfig(file string) (*Config, error) {
-	data, err := os.ReadFile(file)
+	data, err := os.ReadFile(filepath.Clean(file))
 	if err != nil {
 		return nil, err
 	}

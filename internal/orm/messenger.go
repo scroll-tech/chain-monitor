@@ -7,27 +7,36 @@ import (
 )
 
 var (
-	L1SentMessage          EventType = 1
-	L1RelayedMessage       EventType = 2
+	// L1SentMessage l1 sent message.
+	L1SentMessage EventType = 1
+	// L1RelayedMessage l1 relayed message.
+	L1RelayedMessage EventType = 2
+	// L1FailedRelayedMessage l1 failed relayed message.
 	L1FailedRelayedMessage EventType = 3
 
-	L2SentMessage          EventType = 1
-	L2RelayedMessage       EventType = 2
+	// L2SentMessage l2 sent message.
+	L2SentMessage EventType = 1
+	// L2RelayedMessage l2 relayed message.
+	L2RelayedMessage EventType = 2
+	// L2FailedRelayedMessage l2 failed relayed message.
 	L2FailedRelayedMessage EventType = 3
 )
 
+// L1MessengerEvent represents an event related to L1 messenger activities.
 type L1MessengerEvent struct {
 	*TxHead
 	// Make sure cross deposit or withdraw tx successfully confirmed.
 	Confirm bool `gorm:"index"`
 }
 
+// SaveL1Messenger saves an L1 messenger event into the database.
 func SaveL1Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash common.Hash) error {
 	return db.Save(&L1MessengerEvent{
 		TxHead: NewTxHead(vLog, eventType),
 	}).Error
 }
 
+// L2MessengerEvent represents an event related to L2 messenger activities.
 type L2MessengerEvent struct {
 	Number   uint64    `gorm:"index; comment: block number"`
 	Type     EventType `gorm:"index; comment: tx type"`
@@ -37,6 +46,7 @@ type L2MessengerEvent struct {
 	Confirm  bool `gorm:"index"`
 }
 
+// SaveL2Messenger saves an L2 messenger event into the database.
 func SaveL2Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash common.Hash) error {
 	return db.Save(&L2MessengerEvent{
 		Number:  vLog.BlockNumber,
@@ -45,6 +55,7 @@ func SaveL2Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash 
 	}).Error
 }
 
+// GetMessengerCount retrieves the count of L1 and L2 messenger events between given block numbers.
 func GetMessengerCount(db *gorm.DB, start, end uint64) (uint64, uint64, error) {
 	type Result struct {
 		L1Count uint64

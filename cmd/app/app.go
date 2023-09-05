@@ -1,7 +1,6 @@
 package app
 
 import (
-	"chain-monitor/internal/orm"
 	"fmt"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 	"chain-monitor/internal/controller/l1watcher"
 	"chain-monitor/internal/controller/l2watcher"
 	"chain-monitor/internal/controller/monitor"
+	"chain-monitor/internal/orm"
 	"chain-monitor/internal/route"
 	"chain-monitor/internal/utils"
 )
@@ -54,7 +54,11 @@ func action(ctx *cli.Context) error {
 		log.Error("failed to init db", "err", err)
 		return err
 	}
-	defer utils.CloseDB(db)
+	defer func() {
+		if err = utils.CloseDB(db); err != nil {
+			log.Error("failed to close database", "err", err)
+		}
+	}()
 
 	// Clean and rebuild db tables.
 	if ctx.Bool(initFlag.Name) {

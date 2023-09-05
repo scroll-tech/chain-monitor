@@ -19,10 +19,8 @@ type msgEvents struct {
 	// asset fields
 	L1Amount  string `gorm:"l1_amount"`
 	L2Amount  string `gorm:"l2_amount"`
-	L1TokenId string `gorm:"l1_token_id"`
-	L2TokenId string `gorm:"l2_token_id"`
-
-	status bool
+	L1TokenID string `gorm:"l1_token_id"`
+	L2TokenID string `gorm:"l2_token_id"`
 }
 
 func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, start, end uint64) ([]uint64, error) {
@@ -102,7 +100,7 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 	}
 	for i := 0; i < len(erc721Events); i++ {
 		msg := erc721Events[i]
-		if msg.L1TokenId != msg.L2TokenId {
+		if msg.L1TokenID != msg.L2TokenID {
 			if !flagNumbers[msg.L2Number] {
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
@@ -127,7 +125,7 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 	}
 	for i := 0; i < len(erc1155Events); i++ {
 		msg := erc1155Events[i]
-		if msg.L1TokenId != msg.L2TokenId || msg.L1Amount != msg.L2Amount {
+		if msg.L1TokenID != msg.L2TokenID || msg.L1Amount != msg.L2Amount {
 			if !flagNumbers[msg.L2Number] {
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)

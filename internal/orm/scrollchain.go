@@ -1,11 +1,15 @@
 package orm
 
+// BatchType batch event types.
 type BatchType uint8
 
 var (
-	BatchCommit   BatchType = 0x01
+	// BatchCommit batch commit event.
+	BatchCommit BatchType = 0x01
+	// BatchFinalize batch finalize event.
 	BatchFinalize BatchType = 0x02
-	BatchRevert   BatchType = 0x03
+	// BatchRevert batch revert event.
+	BatchRevert BatchType = 0x03
 )
 
 // L1ScrollChainEvent records l1 chain batches.

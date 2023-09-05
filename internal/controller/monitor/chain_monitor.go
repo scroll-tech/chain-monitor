@@ -16,6 +16,7 @@ import (
 
 var batchSize uint64 = 500
 
+// ChainMonitor struct represents a monitoring structure for blockchain operations.
 type ChainMonitor struct {
 	cfg *config.SlackWebhookConfig
 	db  *gorm.DB
@@ -29,7 +30,7 @@ type ChainMonitor struct {
 	safeNumber  uint64
 }
 
-// SlackNotify is used to send alert message.
+// SlackNotify sends an alert message to a Slack channel.
 func (ch *ChainMonitor) SlackNotify(msg string) {
 	if ch.cfg.WebhookURL == "" {
 		return
@@ -53,6 +54,7 @@ func (ch *ChainMonitor) SlackNotify(msg string) {
 	}
 }
 
+// NewChainMonitor initializes a new instance of the ChainMonitor.
 func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
 	startNumber, err := orm.GetLatestConfirmedNumber(db)
 	if err != nil {
@@ -75,6 +77,7 @@ func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2W
 	return monitor, nil
 }
 
+// ChainMonitor monitors the blockchain and confirms the deposit events.
 func (ch *ChainMonitor) ChainMonitor(ctx context.Context) {
 	// Make sure the l1Watcher is ready to use.
 	if !ch.l1watcher.IsReady() {
