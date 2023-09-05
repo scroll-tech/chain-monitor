@@ -10,7 +10,7 @@ SCROLL_PATH=-1
 
 format:
 	go mod tidy
-	goimports -local . -w .
+	goimports -w .
 
 lint:
 	GOBIN=$(PWD)/build/bin go run ./build/lint.go
