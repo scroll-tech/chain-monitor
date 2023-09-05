@@ -2,11 +2,11 @@ package migrate
 
 import (
 	"embed"
-	"gorm.io/gorm"
 	"os"
 	"strconv"
 
 	"github.com/pressly/goose/v3"
+	"gorm.io/gorm"
 )
 
 //go:embed migrations/*.sql
