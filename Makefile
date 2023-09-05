@@ -26,5 +26,5 @@ docker:
 	docker build --platform linux/amd64 -t scrolltech/${IMAGE_NAME}:${IMAGE_VERSION} ./
 
 update: ## Let's keep it and docker version in consistent.
-	go get -u github.com/scroll-tech/go-ethereum@${L2GETH_TAG} && go mod tidy
+	go get -u github.com/scroll-tech/go-ethereum@${L2GETH_TAG}
 	go mod tidy
