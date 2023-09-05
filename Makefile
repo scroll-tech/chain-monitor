@@ -1,11 +1,16 @@
-.PHONY: submodule abi update docker
+.PHONY: abi update docker update
 
 IMAGE_NAME=chain-monitor
 IMAGE_VERSION=latest
 
+L2GETH_TAG=scroll-v4.3.63
+
 format:
 	go mod tidy
 	goimports -local . -w .
+
+update:
+	go get -u github.com/scroll-tech/go-ethereum@${L2GETH_TAG} && go mod tidy
 
 lint:
 	GOBIN=$(PWD)/build/bin go run ./build/lint.go
