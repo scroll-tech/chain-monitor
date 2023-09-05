@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/fjl/memsize/memsizeui"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -20,8 +21,14 @@ func StartPProf(address string, withMetrics bool) {
 	}
 	http.Handle("/memsize/", http.StripPrefix("/memsize", &Memsize))
 	log.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", address))
+
+	server := &http.Server{
+		Addr:         address,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
 	go func() {
-		if err := http.ListenAndServe(address, nil); err != nil {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Error("Failure in running pprof server", "err", err)
 		}
 	}()

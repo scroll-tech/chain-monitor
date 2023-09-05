@@ -95,7 +95,6 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 
 	l2.setStartNumber(end)
 	log.Info("scan l2chain successful", "start", start, "end", end, "event_count", count)
-	return
 }
 
 func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {

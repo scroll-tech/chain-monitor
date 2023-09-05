@@ -484,7 +484,7 @@ type L1ERC1155GatewayDepositERC1155Event struct {
 	L2Token common.Address
 	From    common.Address
 	To      common.Address
-	TokenId *big.Int
+	TokenID *big.Int
 	Amount  *big.Int
 }
 
@@ -504,7 +504,7 @@ type L1ERC1155GatewayFinalizeWithdrawERC1155Event struct {
 	L2Token common.Address
 	From    common.Address
 	To      common.Address
-	TokenId *big.Int
+	TokenID *big.Int
 	Amount  *big.Int
 }
 
@@ -523,7 +523,7 @@ type L1ERC1155GatewayOwnershipTransferredEvent struct {
 type L1ERC1155GatewayRefundERC1155Event struct {
 	Token     common.Address
 	Recipient common.Address
-	TokenId   *big.Int
+	TokenID   *big.Int
 	Amount    *big.Int
 }
 

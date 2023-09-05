@@ -31,7 +31,7 @@ func TryTimes(times int, run func() bool) bool {
 func LoopWithContext(ctx context.Context, period time.Duration, f func(ctx context.Context)) {
 	tick := time.NewTicker(period)
 	defer tick.Stop()
-	for true {
+	for {
 		select {
 		case <-ctx.Done():
 			return

@@ -89,21 +89,21 @@ type L1ERC721Event struct {
 	*TxHead
 	L1Token string
 	L2Token string
-	TokenId *big.Int `gorm:"type:serial"`
+	TokenID *big.Int `gorm:"type:serial"`
 }
 
 type L2ERC721Event struct {
 	*TxHead
 	L1Token string
 	L2Token string
-	TokenId *big.Int `gorm:"type:serial"`
+	TokenID *big.Int `gorm:"type:serial"`
 }
 
 type L1ERC1155Event struct {
 	*TxHead
 	L1Token string
 	L2Token string
-	TokenId *big.Int `gorm:"type:serial"`
+	TokenID *big.Int `gorm:"type:serial"`
 	Amount  *big.Int `gorm:"type:numeric(32,0)"`
 }
 
@@ -111,6 +111,6 @@ type L2ERC1155Event struct {
 	*TxHead
 	L1Token string
 	L2Token string
-	TokenId *big.Int `gorm:"type:serial"`
+	TokenID *big.Int `gorm:"type:serial"`
 	Amount  *big.Int `gorm:"type:numeric(32,0)"`
 }

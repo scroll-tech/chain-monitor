@@ -313,7 +313,7 @@ func (_IERC721 *IERC721Transactor) TransferFrom(opts *bind.TransactOpts, from co
 type IERC721ApprovalEvent struct {
 	Owner    common.Address
 	Approved common.Address
-	TokenId  *big.Int
+	TokenID  *big.Int
 }
 
 // IERC721ApprovalForAll represents a ApprovalForAll event raised by the IERC721 contract.
@@ -327,5 +327,5 @@ type IERC721ApprovalForAllEvent struct {
 type IERC721TransferEvent struct {
 	From    common.Address
 	To      common.Address
-	TokenId *big.Int
+	TokenID *big.Int
 }

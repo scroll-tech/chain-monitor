@@ -29,11 +29,9 @@ type ContractAPI interface {
 }
 
 type Contract struct {
-	Name     string
-	Address  common.Address
-	ABI      *abi.ABI
-	parsers  map[common.Hash]func(log *types.Log) (interface{}, error)
-	handlers map[common.Hash]EventHandler
+	Name    string
+	Address common.Address
+	ABI     *abi.ABI
 }
 
 // ContractsFilter contracts filter struct.
@@ -77,9 +75,10 @@ func (c *ContractsFilter) ParseLogs(ctx context.Context, client *ethclient.Clien
 	if err != nil {
 		return 0, err
 	}
-	for _, vLog := range logs {
+	for i := range logs {
+		vLog := &logs[i]
 		cAPI := c.contractAPIs[vLog.Address]
-		exist, err := cAPI.ParseLog(&vLog)
+		exist, err := cAPI.ParseLog(vLog)
 		if err != nil {
 			return 0, err
 		}
