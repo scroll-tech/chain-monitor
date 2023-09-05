@@ -51,7 +51,7 @@ type DBConfig struct {
 	LogLevel   int `json:"logLevel,omitempty"`
 }
 
-type ChainConfig struct {
+type SlackWebhookConfig struct {
 	Channel    string `json:"channel"`
 	UserName   string `json:"user_name"`
 	WebhookURL string `json:"webhook_url,omitempty"`
