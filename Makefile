@@ -3,6 +3,9 @@
 IMAGE_NAME=chain-monitor
 IMAGE_VERSION=latest
 
+lint:
+	GOBIN=$(PWD)/build/bin go run ./build/lint.go
+
 submodule:
 	git submodule update --init --recursive
 
