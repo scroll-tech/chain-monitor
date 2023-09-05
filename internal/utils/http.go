@@ -9,6 +9,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// StartServer initializes and starts an HTTP server based on provided CLI context settings.
+// If the HTTP-RPC server is enabled via CLI context, it sets up the server using the provided
+// handler and other context flags such as listen address and port.
+// The server will listen and serve until the context is done, after which it will gracefully shut down.
 func StartServer(ctx *cli.Context, handler http.Handler) {
 	if !ctx.Bool(httpEnabledFlag.Name) {
 		return

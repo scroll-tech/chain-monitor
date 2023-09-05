@@ -1,7 +1,6 @@
 package app
 
 import (
-	"chain-monitor/internal/orm/migrate"
 	"fmt"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 	"chain-monitor/internal/controller/l1watcher"
 	"chain-monitor/internal/controller/l2watcher"
 	"chain-monitor/internal/controller/monitor"
+	"chain-monitor/internal/orm/migrate"
 	"chain-monitor/internal/route"
 	"chain-monitor/internal/utils"
 )
@@ -50,7 +50,7 @@ func action(ctx *cli.Context) error {
 	}
 	defer func() {
 		if err = utils.CloseDB(db); err != nil {
-			log.Error("failed to close db.")
+			log.Error("failed to close database", "err", err)
 		}
 	}()
 

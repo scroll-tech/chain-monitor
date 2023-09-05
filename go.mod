@@ -11,7 +11,7 @@ require (
 	github.com/mattn/go-isatty v0.0.19
 	github.com/modern-go/reflect2 v1.0.2
 	github.com/pressly/goose/v3 v3.15.0
-	github.com/scroll-tech/go-ethereum v1.10.14-0.20230825053339-637cb3777fac
+	github.com/scroll-tech/go-ethereum v1.10.14-0.20230905030315-0b6c3be40d3c
 	github.com/stretchr/testify v1.8.3
 	github.com/urfave/cli/v2 v2.25.7
 	golang.org/x/sync v0.1.0

@@ -16,7 +16,7 @@ import (
 
 var l2BatchSize uint64 = 500
 
-// L2Watcher return a new instance of L2Watcher.
+// L2Watcher is a watcher for the Layer 2 chain. It observes and tracks events on the L2 chain.
 type L2Watcher struct {
 	cfg    *config.L2Config
 	client *ethclient.Client
@@ -30,6 +30,7 @@ type L2Watcher struct {
 	db *gorm.DB
 }
 
+// NewL2Watcher initializes a new L2Watcher with the given L2 configuration and database connection.
 func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	client, err := ethclient.Dial(cfg.L2ChainURL)
 	if err != nil {
@@ -64,6 +65,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	return watcher, nil
 }
 
+// WithdrawRoot fetches the root hash of withdrawal data from the storage of the MessageQueue contract.
 func (l2 *L2Watcher) WithdrawRoot(ctx context.Context, number uint64) (common.Hash, error) {
 	data, err := l2.client.StorageAt(
 		ctx,
@@ -71,11 +73,12 @@ func (l2 *L2Watcher) WithdrawRoot(ctx context.Context, number uint64) (common.Ha
 		common.BigToHash(big.NewInt(0)), big.NewInt(0).SetUint64(number),
 	)
 	if err != nil {
-		return [32]byte{}, err
+		return common.Hash{}, err
 	}
 	return common.BytesToHash(data), nil
 }
 
+// ScanL2Chain scans a range of blocks on the L2 chain for events.
 func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 	start, end, err := l2.getStartAndEndNumber(ctx)
 	if err != nil {
@@ -95,7 +98,6 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 
 	l2.setStartNumber(end)
 	log.Info("scan l2chain successful", "start", start, "end", end, "event_count", count)
-	return
 }
 
 func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {

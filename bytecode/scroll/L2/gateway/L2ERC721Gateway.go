@@ -427,7 +427,7 @@ type L2ERC721GatewayFinalizeDepositERC721Event struct {
 	L2Token common.Address
 	From    common.Address
 	To      common.Address
-	TokenId *big.Int
+	TokenID *big.Int
 }
 
 // L2ERC721GatewayInitialized represents a Initialized event raised by the L2ERC721Gateway contract.
@@ -454,5 +454,5 @@ type L2ERC721GatewayWithdrawERC721Event struct {
 	L2Token common.Address
 	From    common.Address
 	To      common.Address
-	TokenId *big.Int
+	TokenID *big.Int
 }

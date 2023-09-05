@@ -6,17 +6,16 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/scroll-tech/go-ethereum/log"
+
 	geth "github.com/scroll-tech/go-ethereum"
 	"github.com/scroll-tech/go-ethereum/accounts/abi"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/ethclient"
-	"github.com/scroll-tech/go-ethereum/log"
 
 	"chain-monitor/internal/utils"
 )
-
-type EventHandler func(vLog *types.Log, value interface{}) error
 
 // ContractAPI it's common for contract.
 type ContractAPI interface {
@@ -25,14 +24,6 @@ type ContractAPI interface {
 	GetEventName(sigHash common.Hash) string
 	GetSigHashes() []common.Hash
 	ParseLog(vLog *types.Log) (bool, error)
-}
-
-type Contract struct {
-	Name     string
-	Address  common.Address
-	ABI      *abi.ABI
-	parsers  map[common.Hash]func(log *types.Log) (interface{}, error)
-	handlers map[common.Hash]EventHandler
 }
 
 // ContractsFilter contracts filter struct.
@@ -76,9 +67,10 @@ func (c *ContractsFilter) ParseLogs(ctx context.Context, client *ethclient.Clien
 	if err != nil {
 		return 0, err
 	}
-	for _, vLog := range logs {
+	for i := range logs {
+		vLog := &logs[i]
 		cAPI := c.contractAPIs[vLog.Address]
-		exist, err := cAPI.ParseLog(&vLog)
+		exist, err := cAPI.ParseLog(vLog)
 		if err != nil {
 			return 0, err
 		}
@@ -96,6 +88,7 @@ type commitBatchArgs struct {
 	SkippedL1MessageBitmap []byte
 }
 
+// ScrollBatch returns scrollBatch instance.
 type ScrollBatch struct {
 	BatchIndex    uint64
 	L2StartNumber uint64

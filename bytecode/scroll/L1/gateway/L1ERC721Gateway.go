@@ -458,7 +458,7 @@ type L1ERC721GatewayDepositERC721Event struct {
 	L2Token common.Address
 	From    common.Address
 	To      common.Address
-	TokenId *big.Int
+	TokenID *big.Int
 }
 
 // L1ERC721GatewayFinalizeBatchWithdrawERC721 represents a FinalizeBatchWithdrawERC721 event raised by the L1ERC721Gateway contract.
@@ -476,7 +476,7 @@ type L1ERC721GatewayFinalizeWithdrawERC721Event struct {
 	L2Token common.Address
 	From    common.Address
 	To      common.Address
-	TokenId *big.Int
+	TokenID *big.Int
 }
 
 // L1ERC721GatewayInitialized represents a Initialized event raised by the L1ERC721Gateway contract.
@@ -494,7 +494,7 @@ type L1ERC721GatewayOwnershipTransferredEvent struct {
 type L1ERC721GatewayRefundERC721Event struct {
 	Token     common.Address
 	Recipient common.Address
-	TokenId   *big.Int
+	TokenID   *big.Int
 }
 
 // L1ERC721GatewayUpdateTokenMapping represents a UpdateTokenMapping event raised by the L1ERC721Gateway contract.
