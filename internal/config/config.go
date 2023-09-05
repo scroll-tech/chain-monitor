@@ -58,10 +58,10 @@ type SlackWebhookConfig struct {
 }
 
 type Config struct {
-	L1Config     *L1Config    `json:"l1_config"`
-	L2Config     *L2Config    `json:"l2_config"`
-	ChainMonitor *ChainConfig `json:"chain_monitor"`
-	DBConfig     *DBConfig    `json:"db_config"`
+	L1Config     *L1Config           `json:"l1_config"`
+	L2Config     *L2Config           `json:"l2_config"`
+	ChainMonitor *SlackWebhookConfig `json:"slack_webhook_config"`
+	DBConfig     *DBConfig           `json:"db_config"`
 }
 
 func NewConfig(file string) (*Config, error) {
