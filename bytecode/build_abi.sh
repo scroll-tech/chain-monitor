@@ -25,12 +25,15 @@ l2_predeploys=("L1BlockContainer" "L1GasPriceOracle" "L2MessageQueue")
 # token list
 token_list=("IERC20" "IERC721" "IERC721" "IERC1155")
 
+# The first parameter is scroll path(github.com:scroll-tech/scroll).
+scroll_path=$1
+
 extract_abi() {
   local services=("$@")
   for i in "${!services[@]}"; do
     abi="${tmp_file}"/${services[$i]}.json
     # jq '[ .metadata.output.abi | .[] | select(.name != "OwnershipTransferred" and .name != "UpdateWhitelist") ]'
-    cat ../scroll/contracts/artifacts/src/"${services[$i]}".sol/"${services[$i]}".json | jq '.metadata.output.abi' >"${abi}"
+    cat "${scroll_path}"/contracts/artifacts/src/"${services[$i]}".sol/"${services[$i]}".json | jq '.metadata.output.abi' >"${abi}"
     # shellcheck disable=SC2001
     contract=$(echo "${abi}" | sed 's#.*/##; s/\..*//')
     # shellcheck disable=SC2001
@@ -39,7 +42,7 @@ extract_abi() {
   done
 }
 
-dest=$1
+dest=$2
 # shellcheck disable=SC2006
 while [ -n "$dest" ]; do
   case "$dest" in
