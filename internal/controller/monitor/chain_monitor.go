@@ -77,7 +77,7 @@ func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2W
 	return monitor, nil
 }
 
-// NewChainMonitor initializes a new instance of the ChainMonitor.
+// ChainMonitor monitors the blockchain and confirms the deposit events.
 func (ch *ChainMonitor) ChainMonitor(ctx context.Context) {
 	// Make sure the l1Watcher is ready to use.
 	if !ch.l1watcher.IsReady() {
