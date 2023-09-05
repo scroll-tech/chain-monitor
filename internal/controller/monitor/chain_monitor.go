@@ -11,12 +11,10 @@ import (
 
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
-	"chain-monitor/orm"
+	"chain-monitor/internal/orm"
 )
 
-var (
-	batchSize uint64 = 500
-)
+var batchSize uint64 = 500
 
 type ChainMonitor struct {
 	cfg *config.SlackWebhookConfig

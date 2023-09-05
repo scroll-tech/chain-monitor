@@ -16,7 +16,7 @@ import (
 func LogSetup(ctx *cli.Context) error {
 	var ostream log.Handler
 	if logFile := ctx.String(logFileFlag.Name); len(logFile) > 0 {
-		fp, err := os.OpenFile(filepath.Clean(logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+		fp, err := os.OpenFile(filepath.Clean(logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			utils.Fatalf("Failed to open log file", "err", err)
 		}

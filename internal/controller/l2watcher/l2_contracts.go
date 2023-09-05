@@ -1,7 +1,6 @@
 package l2watcher
 
 import (
-	"chain-monitor/internal/controller"
 	"context"
 	"fmt"
 	"math/big"
@@ -16,8 +15,9 @@ import (
 	"chain-monitor/bytecode/scroll/L2/gateway"
 	"chain-monitor/bytecode/scroll/L2/predeploys"
 	"chain-monitor/internal/config"
+	"chain-monitor/internal/controller"
+	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils/msgproof"
-	"chain-monitor/orm"
 )
 
 type l2Contracts struct {
@@ -107,7 +107,7 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*l2Con
 
 	cts.filter = bytecode.NewContractsFilter("l2Watcher", []bytecode.ContractAPI{
 		cts.ScrollMessenger,
-		//cts.MessageQueue,
+		// cts.MessageQueue,
 
 		cts.ETHGateway,
 		cts.WETHGateway,

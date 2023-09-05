@@ -13,7 +13,7 @@ import (
 	"chain-monitor/bytecode/scroll/L1/rollup"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
-	"chain-monitor/orm"
+	"chain-monitor/internal/orm"
 )
 
 type l1Contracts struct {
@@ -38,7 +38,7 @@ type l1Contracts struct {
 
 	ScrollChain     *rollup.ScrollChain
 	ScrollMessenger *L1.L1ScrollMessenger
-	//MessageQueue    *rollup.L1MessageQueue
+	// MessageQueue    *rollup.L1MessageQueue
 
 	filter *bytecode.ContractsFilter
 }
@@ -98,7 +98,7 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 
 	cts.filter = bytecode.NewContractsFilter("l1Watcher", []bytecode.ContractAPI{
 		cts.ScrollMessenger,
-		//cts.MessageQueue,
+		// cts.MessageQueue,
 		cts.ETHGateway,
 		cts.DAIGateway,
 		cts.WETHGateway,

@@ -1,11 +1,9 @@
 package bytecode
 
 import (
-	"chain-monitor/internal/utils"
 	"context"
 	"encoding/binary"
 	"errors"
-	"github.com/scroll-tech/go-ethereum/log"
 	"math/big"
 
 	geth "github.com/scroll-tech/go-ethereum"
@@ -13,6 +11,9 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/scroll-tech/go-ethereum/log"
+
+	"chain-monitor/internal/utils"
 )
 
 type EventHandler func(vLog *types.Log, value interface{}) error

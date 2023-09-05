@@ -1,8 +1,9 @@
 package orm
 
 import (
-	"gorm.io/gorm"
 	"sync"
+
+	"gorm.io/gorm"
 )
 
 var (

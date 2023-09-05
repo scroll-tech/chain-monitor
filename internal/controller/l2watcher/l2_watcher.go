@@ -11,12 +11,10 @@ import (
 	"gorm.io/gorm"
 
 	"chain-monitor/internal/config"
-	"chain-monitor/orm"
+	"chain-monitor/internal/orm"
 )
 
-var (
-	l2BatchSize uint64 = 500
-)
+var l2BatchSize uint64 = 500
 
 // L2Watcher return a new instance of L2Watcher.
 type L2Watcher struct {
