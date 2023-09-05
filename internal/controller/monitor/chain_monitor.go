@@ -19,7 +19,7 @@ var (
 )
 
 type ChainMonitor struct {
-	cfg *config.ChainConfig
+	cfg *config.SlackWebhookConfig
 	db  *gorm.DB
 
 	notifyCli *resty.Client
@@ -55,7 +55,7 @@ func (ch *ChainMonitor) SlackNotify(msg string) {
 	}
 }
 
-func NewChainMonitor(cfg *config.ChainConfig, db *gorm.DB, l1Watcher, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
+func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
 	startNumber, err := orm.GetLatestConfirmedNumber(db)
 	if err != nil {
 		return nil, err
