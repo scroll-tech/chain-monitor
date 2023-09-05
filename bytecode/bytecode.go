@@ -6,12 +6,13 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/scroll-tech/go-ethereum/log"
+
 	geth "github.com/scroll-tech/go-ethereum"
 	"github.com/scroll-tech/go-ethereum/accounts/abi"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/ethclient"
-	"github.com/scroll-tech/go-ethereum/log"
 
 	"chain-monitor/internal/utils"
 )

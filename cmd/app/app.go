@@ -1,7 +1,6 @@
 package app
 
 import (
-	"chain-monitor/internal/orm"
 	"fmt"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 	"chain-monitor/internal/controller/l1watcher"
 	"chain-monitor/internal/controller/l2watcher"
 	"chain-monitor/internal/controller/monitor"
+	"chain-monitor/internal/orm"
 	"chain-monitor/internal/route"
 	"chain-monitor/internal/utils"
 )

@@ -3,6 +3,10 @@
 IMAGE_NAME=chain-monitor
 IMAGE_VERSION=latest
 
+format:
+	go mod tidy
+	goimports -local . -w .
+
 lint:
 	GOBIN=$(PWD)/build/bin go run ./build/lint.go
 
