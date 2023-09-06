@@ -17,7 +17,7 @@ import (
 	"chain-monitor/internal/utils"
 )
 
-var l1BatchSize uint64 = 100
+var l1BatchSize uint64 = 200
 
 // L1Watcher return a new instance of L1Watcher.
 type L1Watcher struct {
