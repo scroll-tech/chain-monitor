@@ -34,30 +34,6 @@ type ChainMonitor struct {
 	withdrawSafeNumber  uint64
 }
 
-// SlackNotify sends an alert message to a Slack channel.
-func (ch *ChainMonitor) SlackNotify(msg string) {
-	if ch.cfg.WebhookURL == "" {
-		return
-	}
-	hookContent := map[string]string{
-		"channel":  ch.cfg.Channel,
-		"username": ch.cfg.UserName,
-		"text":     msg,
-	}
-	data, err := json.Marshal(hookContent)
-	if err != nil {
-		log.Error("failed to marshal hook content", "err", err)
-		return
-	}
-
-	request := ch.notifyCli.R().SetHeader("Content-Type", "application/x-www-form-urlencoded")
-	request = request.SetFormData(map[string]string{"payload": string(data)})
-	_, err = request.Post(ch.cfg.WebhookURL)
-	if err != nil {
-		log.Error("appear error when send slack message", "err", err)
-	}
-}
-
 // NewChainMonitor initializes a new instance of the ChainMonitor.
 func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
 	startNumber, err := orm.GetLatestDepositConfirmedNumber(db)
@@ -81,17 +57,26 @@ func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2W
 	return monitor, nil
 }
 
-func (ch *ChainMonitor) getStartAndEndNumber() (uint64, uint64) {
-	var (
-		start = ch.depositStartNumber + 1
-		end   = start + batchSize - 1
-	)
-	ch.depositSafeNumber = ch.l2watcher.StartNumber()
-	if end < ch.depositSafeNumber {
-		return start, end
+// SlackNotify sends an alert message to a Slack channel.
+func (ch *ChainMonitor) SlackNotify(msg string) {
+	if ch.cfg.WebhookURL == "" {
+		return
 	}
-	if start < ch.depositSafeNumber {
-		return start, ch.depositSafeNumber - 1
+	hookContent := map[string]string{
+		"channel":  ch.cfg.Channel,
+		"username": ch.cfg.UserName,
+		"text":     msg,
 	}
-	return start, start
+	data, err := json.Marshal(hookContent)
+	if err != nil {
+		log.Error("failed to marshal hook content", "err", err)
+		return
+	}
+
+	request := ch.notifyCli.R().SetHeader("Content-Type", "application/x-www-form-urlencoded")
+	request = request.SetFormData(map[string]string{"payload": string(data)})
+	_, err = request.Post(ch.cfg.WebhookURL)
+	if err != nil {
+		log.Error("appear error when send slack message", "err", err)
+	}
 }

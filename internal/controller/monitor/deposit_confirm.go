@@ -11,38 +11,17 @@ import (
 	"chain-monitor/internal/orm"
 )
 
-type msgEvents struct {
-	L2Number uint64 `gorm:"l2_number"`
-
-	L1TxHash string `gorm:"l1_tx_hash"`
-	L2TxHash string `gorm:"l2_tx_hash"`
-
-	// asset fields
-	L1Amount  string `gorm:"l1_amount"`
-	L2Amount  string `gorm:"l2_amount"`
-	L1TokenID string `gorm:"l1_token_id"`
-	L2TokenID string `gorm:"l2_token_id"`
-}
-
 // DepositConfirm monitors the blockchain and confirms the deposit events.
 func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 	// Make sure the l1Watcher is ready to use.
 	if !ch.l1watcher.IsReady() {
-		log.Debug("l1watcher is not ready, sleep 3 seconds")
-		time.Sleep(time.Second * 5)
+		log.Debug("l1watcher is not ready, sleep 10 seconds")
+		time.Sleep(time.Second * 10)
 		return
 	}
-	start, end := ch.getStartAndEndNumber()
+	start, end := ch.getDepositStartAndEndNumber()
 	if end > ch.depositSafeNumber {
 		log.Debug("l2watcher is not ready", "l2_start_number", ch.depositSafeNumber)
-		time.Sleep(time.Second * 3)
-		return
-	}
-
-	// Make sure scan number is ready.
-	l2Number := ch.l2watcher.StartNumber()
-	if l2Number <= ch.depositStartNumber {
-		log.Debug("l2watcher is not ready", "l2_start_number", l2Number)
 		time.Sleep(time.Second * 3)
 		return
 	}
@@ -53,16 +32,18 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 		if err != nil {
 			return err
 		}
-		// store
-		sTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").Where("number BETWEEN ? AND ?", start, end)
+		// Update deposit records.
+		sTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").
+			Where("number BETWEEN ? AND ?", start, end)
 		sTx = sTx.Update("deposit_status", true).Update("deposit_confirm", true)
 		if sTx.Error != nil {
 			return sTx.Error
 		}
 
 		if len(failedNumbers) > 0 {
-			fTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").Where("number in ?", failedNumbers)
-			fTx = fTx.Update("deposit_status", false).Update("deposit_confirm", true)
+			fTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").
+				Where("number in ?", failedNumbers)
+			fTx = fTx.Update("deposit_status", false)
 			if fTx.Error != nil {
 				return fTx.Error
 			}
@@ -72,12 +53,12 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 	})
 	if err != nil {
 		log.Error("failed to check deposit events", "start", start, "end", end, "err", err)
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 5)
 		return
 	}
 	ch.depositStartNumber = end
 
-	log.Info("confirm l2 blocks deposit transactions", "start", start, "end", end)
+	log.Info("confirm layer2 deposit transactions", "start", start, "end", end)
 }
 
 func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, start, end uint64) ([]uint64, error) {
@@ -89,13 +70,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, s
 
 	// check eth events.
 	var ethEvents []msgEvents
-	sql := `select 
-    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
-from l2_eth_events as l2ee full join l1_eth_events as l1ee 
-    on l1ee.msg_hash = l2ee.msg_hash  
-where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
-	db = db.Raw(sql, start, end, orm.L2FinalizeDepositETH)
+	db = db.Raw(ethSQL, start, end, orm.L2FinalizeDepositETH)
 	if err := db.Scan(&ethEvents).Error; err != nil {
 		return nil, err
 	}
@@ -114,13 +89,7 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 
 	var erc20Events []msgEvents
 	// check erc20 events.
-	sql = `select 
-    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
-from l2_erc20_events as l2ee full join l1_erc20_events as l1ee 
-    on l1ee.msg_hash = l2ee.msg_hash  
-where l2ee.number BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
-	db = db.Raw(sql,
+	db = db.Raw(erc20SQL,
 		start, end,
 		orm.L2FinalizeDepositDAI,
 		orm.L2FinalizeDepositWETH,
@@ -144,13 +113,7 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
 
 	// check erc721 events.
 	var erc721Events []msgEvents
-	sql = `select 
-    l1ee.tx_hash as l1_tx_hash, l1ee.token_id as l1_token_id, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.token_id as l2_token_id
-from l2_erc721_events as l2ee full join l1_erc721_events as l1ee 
-    on l1ee.msg_hash = l2ee.msg_hash 
-where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
-	db = db.Raw(sql, start, end, orm.L2FinalizeDepositERC721)
+	db = db.Raw(erc721SQL, start, end, orm.L2FinalizeDepositERC721)
 	if err := db.Scan(&erc721Events).Error; err != nil {
 		return nil, err
 	}
@@ -169,13 +132,7 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 
 	// check erc1155 events.
 	var erc1155Events []msgEvents
-	sql = `select 
-    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, l1ee.token_id as l1_token_id, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id
-from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
-    on l1ee.msg_hash = l2ee.msg_hash 
-where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
-	db = db.Raw(sql, start, end, orm.L2FinalizeDepositERC1155)
+	db = db.Raw(erc1155SQL, start, end, orm.L2FinalizeDepositERC1155)
 	if err := db.Scan(&erc1155Events).Error; err != nil {
 		return nil, err
 	}
@@ -193,4 +150,19 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 	}
 
 	return failedNumbers, nil
+}
+
+func (ch *ChainMonitor) getDepositStartAndEndNumber() (uint64, uint64) {
+	var (
+		start = ch.depositStartNumber + 1
+		end   = start + batchSize - 1
+	)
+	ch.depositSafeNumber = ch.l2watcher.StartNumber()
+	if end < ch.depositSafeNumber {
+		return start, end
+	}
+	if start < ch.depositSafeNumber {
+		return start, ch.depositSafeNumber - 1
+	}
+	return start, start
 }

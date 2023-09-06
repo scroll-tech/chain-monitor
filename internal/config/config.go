@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/scroll-tech/go-ethereum/rpc"
 	"os"
 	"path/filepath"
 
@@ -31,7 +32,7 @@ type L1Contracts struct {
 type L1Config struct {
 	L1Gateways  *L1Contracts `json:"l1_gateways"`
 	L1ChainURL  string       `json:"l1chain_url"`
-	Confirm     uint64
+	Confirm     rpc.BlockNumber
 	StartNumber uint64 `json:"start_number"`
 }
 
@@ -39,7 +40,7 @@ type L1Config struct {
 type L2Config struct {
 	L2gateways *Gateway `json:"l2_gateways"`
 	L2ChainURL string   `json:"l2chain_url"`
-	Confirm    uint64
+	Confirm    rpc.BlockNumber
 }
 
 // DBConfig db config
