@@ -44,7 +44,6 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	var (
 		chainMonitors = make([]*orm.ChainConfirm, 0, end-start+1)
 		msgSentEvents []*orm.L2MessengerEvent
-		latestProof   []byte
 	)
 	for number := start; number <= end; number++ {
 		if l2.msgSentEvents[number] == nil {
@@ -57,7 +56,10 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 		msgs := l2.msgSentEvents[number]
 		for i, msg := range msgs {
 			proofs := l2.withdraw.AppendMessages([]common.Hash{common.HexToHash(msg.MsgHash)})
-			latestProof = proofs[len(proofs)-1]
+			// Store the latest one for every block.
+			if i == len(msgs)-1 {
+				msg.MsgProof = common.Bytes2Hex(proofs[0])
+			}
 			msgSentEvents = append(msgSentEvents, msgs[i])
 		}
 		chainMonitors = append(chainMonitors, &orm.ChainConfirm{
@@ -71,8 +73,6 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 		return err
 	}
 
-	// Just store the latest proof.
-	msgSentEvents[len(msgSentEvents)-1].MsgProof = common.Bytes2Hex(latestProof)
 	// Store messenger events.
 	if err := l2.tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
 		return err

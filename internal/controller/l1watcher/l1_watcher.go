@@ -43,7 +43,7 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 		return nil, err
 	}
 
-	contracts, err := newL1Contracts(client, cfg.L1Gateways)
+	l2Filter, err := newL1Contracts(client, cfg.L1Gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 		cfg:         cfg,
 		db:          db,
 		client:      client,
-		filter:      contracts,
+		filter:      l2Filter,
 		cacheLen:    32,
 		headerCache: make([]*types.Header, 0, 32),
 		curTime:     time.Now(),

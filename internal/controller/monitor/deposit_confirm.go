@@ -26,14 +26,14 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 		return
 	}
 
-	err := ch.db.Transaction(func(db *gorm.DB) error {
+	err := ch.db.Transaction(func(tx *gorm.DB) error {
 		// confirm deposit events.
-		failedNumbers, err := ch.confirmDepositEvents(ctx, db, start, end)
+		failedNumbers, err := ch.confirmDepositEvents(ctx, tx, start, end)
 		if err != nil {
 			return err
 		}
 		// Update deposit records.
-		sTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").
+		sTx := tx.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").
 			Where("number BETWEEN ? AND ?", start, end)
 		sTx = sTx.Update("deposit_status", true).Update("deposit_confirm", true)
 		if sTx.Error != nil {
@@ -41,7 +41,7 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 		}
 
 		if len(failedNumbers) > 0 {
-			fTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").
+			fTx := tx.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").
 				Where("number in ?", failedNumbers)
 			fTx = fTx.Update("deposit_status", false)
 			if fTx.Error != nil {

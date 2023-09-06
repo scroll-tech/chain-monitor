@@ -26,13 +26,13 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 		return
 	}
 
-	err := ch.db.Transaction(func(db *gorm.DB) error {
-		failedNumbers, err := ch.confirmWithdrawEvents(ctx, db, start, end)
+	err := ch.db.Transaction(func(tx *gorm.DB) error {
+		failedNumbers, err := ch.confirmWithdrawEvents(ctx, tx, start, end)
 		if err != nil {
 			return err
 		}
 		// Update withdraw records.
-		sTx := db.Model(&orm.ChainConfirm{}).Select("withdraw_status", "withdraw_confirm").
+		sTx := tx.Model(&orm.ChainConfirm{}).Select("withdraw_status", "withdraw_confirm").
 			Where("number BETWEEN ? AND ?", start, end)
 		sTx = sTx.Update("withdraw_status", true).Update("withdraw_confirm", true)
 		if sTx.Error != nil {
@@ -41,7 +41,7 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 
 		// Update failed withdraw records.
 		if len(failedNumbers) > 0 {
-			fTx := db.Model(&orm.ChainConfirm{}).Select("withdraw_status", "withdraw_confirm").
+			fTx := tx.Model(&orm.ChainConfirm{}).Select("withdraw_status", "withdraw_confirm").
 				Where("number in ?", failedNumbers)
 			fTx = fTx.Update("deposit_status", false)
 			if fTx.Error != nil {
@@ -83,7 +83,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, 
 			}
 			// If eth msg don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("eth withdraw doesn't match, message: %v", msg))
-			log.Error("the eth deposit hash or amount don't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			log.Error("the eth withdraw count or amount doesn't match", "start", start, "end", end, "event_type", orm.L1FinalizeWithdrawETH, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
@@ -107,7 +107,14 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, 
 			}
 			// If erc20 msg don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc20 withdraw doesn't match, message: %v", msg))
-			log.Error("the erc20 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			log.Error(
+				"the erc20 withdraw count or amount doesn't match",
+				"start", start,
+				"end", end,
+				"event_type", []orm.EventType{orm.L1FinalizeWithdrawDAI, orm.L1FinalizeWithdrawWETH, orm.L1FinalizeWithdrawStandardERC20, orm.L1FinalizeWithdrawCustomERC20},
+				"l1_tx_hash", msg.L1TxHash,
+				"l2_tx_hash", msg.L2TxHash,
+			)
 		}
 	}
 
@@ -126,7 +133,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, 
 			}
 			// If erc721 event don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc721 withdraw doesn't match, message: %v", msg))
-			log.Error("the erc721 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			log.Error("the erc721 withdraw count or amount doesn't match", "start", start, "end", end, "event_type", orm.L1FinalizeWithdrawERC721, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
@@ -145,7 +152,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, 
 			}
 			// If erc1155 event don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc1155 withdraw doesn't match, message: %v", msg))
-			log.Error("the erc1155 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			log.Error("the erc1155 withdraw count or amount doesn't match", "start", start, "end", end, "event_type", orm.L1FinalizeWithdrawERC1155, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
