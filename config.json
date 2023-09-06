@@ -34,7 +34,7 @@
   "slack_webhook_config": {
     "channel": "#chain_monitor",
     "user_name": "chain_monitor",
-    "webhook_url": "https://app.slack.com/huddle/T0232HPBN87/C05QUU3LSE9"
+    "webhook_url": ""
   },
   "db_config": {
     "driver_name": "postgres",

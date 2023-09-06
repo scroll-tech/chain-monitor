@@ -83,7 +83,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, s
 			}
 			// If eth msg don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("deposit eth don't match, message: %v", msg))
-			log.Error("the eth deposit hash or amount don't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			log.Error("the eth deposit count or amount don't match", "start", start, "end", end, "event_type", orm.L2FinalizeDepositETH, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
@@ -107,7 +107,14 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, s
 			}
 			// If erc20 msg don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc20 deposit don't match, message: %v", msg))
-			log.Error("the erc20 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			log.Error(
+				"the erc20 deposit count or amount doesn't match",
+				"start", start,
+				"end", end,
+				"event_type", []orm.EventType{orm.L2FinalizeDepositDAI, orm.L2FinalizeDepositWETH, orm.L2FinalizeDepositStandardERC20, orm.L2FinalizeDepositCustomERC20},
+				"l1_tx_hash", msg.L1TxHash,
+				"l2_tx_hash", msg.L2TxHash,
+			)
 		}
 	}
 
@@ -126,7 +133,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, s
 			}
 			// If erc721 event don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc721 event don't match, message: %v", msg))
-			log.Error("the erc721 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			log.Error("the erc721 deposit count or amount doesn't match", "start", start, "end", end, "event_type", orm.L2FinalizeDepositERC721, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
@@ -145,7 +152,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, s
 			}
 			// If erc1155 event don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc1155 event don't match, message: %v", msg))
-			log.Error("the erc1155 deposit hash or amount doesn't match", "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			log.Error("the erc1155 deposit count or amount doesn't match", "start", start, "end", end, "event_type", orm.L2FinalizeDepositERC1155, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
