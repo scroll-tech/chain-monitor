@@ -15,15 +15,16 @@ alter table chain_confirms
 
 -- +goose Down
 -- +goose UpgradeChainMonitorBegin
-alter table chain_confirms
-    rename column withdraw_root_status to withdraw_status;
-
-alter table chain_confirms
-    rename column deposit_confirm to confirm;
 
 alter table chain_confirms
 drop column withdraw_status;
 
 alter table chain_confirms
 drop column withdraw_confirm;
+
+alter table chain_confirms
+    rename column withdraw_root_status to withdraw_status;
+
+alter table chain_confirms
+    rename column deposit_confirm to confirm;
 -- +goose UpgradeChainMonitorEnd
