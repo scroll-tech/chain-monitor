@@ -10,6 +10,7 @@ require (
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mattn/go-isatty v0.0.19
 	github.com/modern-go/reflect2 v1.0.2
+	github.com/pressly/goose/v3 v3.15.0
 	github.com/scroll-tech/go-ethereum v1.10.14-0.20230905030315-0b6c3be40d3c
 	github.com/stretchr/testify v1.8.3
 	github.com/urfave/cli/v2 v2.25.7
@@ -41,7 +42,7 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/uuid v1.1.5 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/graph-gophers/graphql-go v0.0.0-20201113091052-beb923fada29 // indirect
 	github.com/hashicorp/go-bexpr v0.1.10 // indirect
@@ -55,7 +56,7 @@ require (
 	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgx/v5 v5.3.1 // indirect
+	github.com/jackc/pgx/v5 v5.4.3 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -63,7 +64,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
-	github.com/mitchellh/mapstructure v1.4.1 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
@@ -89,10 +90,10 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.12.0 // indirect
+	golang.org/x/crypto v0.13.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
