@@ -1,11 +1,15 @@
 package monitor
 
 import (
+	"context"
 	"encoding/json"
+	"math/big"
 	"testing"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/scroll-tech/go-ethereum/rpc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,4 +43,13 @@ func TestMonitor(t *testing.T) {
 	request = request.SetFormData(payload)
 	_, err = request.Post(slackWebhookURL)
 	assert.NoError(t, err)
+}
+
+func TestLatest(t *testing.T) {
+	client, err := ethclient.Dial("http://10.5.11.195:8545")
+	assert.NoError(t, err)
+	number := rpc.BlockNumber(rpc.PendingBlockNumber)
+	header, err := client.HeaderByNumber(context.Background(), big.NewInt(number.Int64()))
+	assert.NoError(t, err)
+	t.Log(header.Number.Int64())
 }
