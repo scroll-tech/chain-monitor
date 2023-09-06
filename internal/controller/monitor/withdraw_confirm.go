@@ -11,6 +11,7 @@ import (
 	"chain-monitor/internal/orm"
 )
 
+// WithdrawConfirm the loop in order to confirm withdraw events.
 func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 	// Make sure the l2Watcher is ready to use.
 	if !ch.l2watcher.IsReady() {

@@ -2,11 +2,11 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/scroll-tech/go-ethereum/rpc"
 	"os"
 	"path/filepath"
 
 	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/rpc"
 )
 
 // Gateway address list.
