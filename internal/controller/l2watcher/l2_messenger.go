@@ -49,8 +49,8 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	for number := start; number <= end; number++ {
 		if l2.msgSentEvents[number] == nil {
 			chainMonitors = append(chainMonitors, &orm.ChainConfirm{
-				Number:         number,
-				WithdrawStatus: true,
+				Number:             number,
+				WithdrawRootStatus: true,
 			})
 			continue
 		}
@@ -87,7 +87,7 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*
 		err           error
 	)
 	for _, monitor := range chainMonitors {
-		if !monitor.WithdrawStatus {
+		if !monitor.WithdrawRootStatus {
 			numbers = append(numbers, monitor.Number)
 		}
 	}
@@ -105,14 +105,14 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*
 		if len(withdrawRoots) == 0 {
 			break
 		}
-		if monitor.WithdrawStatus {
+		if monitor.WithdrawRootStatus {
 			continue
 		}
 		expectRoot := withdrawRoots[0]
 		withdrawRoots = withdrawRoots[1:]
-		monitor.WithdrawStatus = monitor.WithdrawRoot == expectRoot
+		monitor.WithdrawRootStatus = monitor.WithdrawRoot == expectRoot
 		// If the withdraw root doesn't match, alert it.
-		if !monitor.WithdrawStatus {
+		if !monitor.WithdrawRootStatus {
 			msg := fmt.Sprintf(
 				"withdraw root doestn't match, l2_number: %d, expect_withdraw_root: %s, actual_withdraw_root: %s",
 				monitor.Number,

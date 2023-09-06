@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
@@ -23,9 +24,64 @@ type msgEvents struct {
 	L2TokenID string `gorm:"l2_token_id"`
 }
 
+// DepositConfirm monitors the blockchain and confirms the deposit events.
+func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
+	// Make sure the l1Watcher is ready to use.
+	if !ch.l1watcher.IsReady() {
+		log.Debug("l1watcher is not ready, sleep 3 seconds")
+		time.Sleep(time.Second * 5)
+		return
+	}
+	start, end := ch.getStartAndEndNumber()
+	if end > ch.depositSafeNumber {
+		log.Debug("l2watcher is not ready", "l2_start_number", ch.depositSafeNumber)
+		time.Sleep(time.Second * 3)
+		return
+	}
+
+	// Make sure scan number is ready.
+	l2Number := ch.l2watcher.StartNumber()
+	if l2Number <= ch.depositStartNumber {
+		log.Debug("l2watcher is not ready", "l2_start_number", l2Number)
+		time.Sleep(time.Second * 3)
+		return
+	}
+
+	err := ch.db.Transaction(func(db *gorm.DB) error {
+		// confirm deposit events.
+		failedNumbers, err := ch.confirmDepositEvents(ctx, db, start, end)
+		if err != nil {
+			return err
+		}
+		// store
+		sTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").Where("number BETWEEN ? AND ?", start, end)
+		sTx = sTx.Update("deposit_status", true).Update("deposit_confirm", true)
+		if sTx.Error != nil {
+			return sTx.Error
+		}
+
+		if len(failedNumbers) > 0 {
+			fTx := db.Model(&orm.ChainConfirm{}).Select("deposit_status", "deposit_confirm").Where("number in ?", failedNumbers)
+			fTx = fTx.Update("deposit_status", false).Update("deposit_confirm", true)
+			if fTx.Error != nil {
+				return fTx.Error
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Error("failed to check deposit events", "start", start, "end", end, "err", err)
+		time.Sleep(time.Second * 10)
+		return
+	}
+	ch.depositStartNumber = end
+
+	log.Info("confirm l2 blocks deposit transactions", "start", start, "end", end)
+}
+
 func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, start, end uint64) ([]uint64, error) {
 	db = db.WithContext(ctx)
-
 	var (
 		failedNumbers []uint64
 		flagNumbers   = map[uint64]bool{}
