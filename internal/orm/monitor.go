@@ -5,6 +5,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// L1ChainConfirm represents the confirmation status of various events in the blockchain.
+// It keeps track of the confirmation status for deposits, withdrawals, and overall confirmations for a given block number.
 type L1ChainConfirm struct {
 	Number         uint64 `gorm:"primaryKey"`
 	WithdrawStatus bool   `gorm:"type: withdraw_status"`
