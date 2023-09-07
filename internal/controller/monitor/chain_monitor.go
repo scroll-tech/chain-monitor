@@ -22,7 +22,7 @@ type ChainMonitor struct {
 
 	notifyCli *resty.Client
 
-	l1watcher controller.WatcherAPI
+	l1watcher controller.L1WatcherAPI
 	l2watcher controller.WatcherAPI
 
 	// Used for deposit confirm loop.
@@ -35,14 +35,17 @@ type ChainMonitor struct {
 }
 
 // NewChainMonitor initializes a new instance of the ChainMonitor.
-func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
-	depositStartNumber, err := orm.GetLatestDepositConfirmedNumber(db)
+func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher controller.L1WatcherAPI, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
+	depositStartNumber, err := orm.GetL2DepositNumber(db)
 	if err != nil {
 		return nil, err
 	}
-	withdrawStartNumber, err := orm.GetLatestWithdrawConfirmNumber(db)
+	withdrawStartNumber, err := orm.GetL1WithdrawNumber(db)
 	if err != nil {
 		return nil, err
+	}
+	if withdrawStartNumber == 0 {
+		withdrawStartNumber = l1Watcher.L1StartNumber()
 	}
 
 	// Use resty and init it.

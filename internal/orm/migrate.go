@@ -27,7 +27,7 @@ var (
 		&L2MessengerEvent{},
 	}
 	tables = []interface{}{
-		&ChainConfirm{},
+		&L2ChainConfirm{},
 	}
 	once sync.Once
 )

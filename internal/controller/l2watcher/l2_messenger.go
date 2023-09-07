@@ -3,6 +3,7 @@ package l2watcher
 import (
 	"context"
 	"fmt"
+	"github.com/scroll-tech/go-ethereum/log"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
@@ -42,12 +43,12 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 
 	// Calculate withdraw root.
 	var (
-		chainMonitors = make([]*orm.ChainConfirm, 0, end-start+1)
+		chainMonitors = make([]*orm.L2ChainConfirm, 0, end-start+1)
 		msgSentEvents []*orm.L2MessengerEvent
 	)
 	for number := start; number <= end; number++ {
 		if l2.msgSentEvents[number] == nil {
-			chainMonitors = append(chainMonitors, &orm.ChainConfirm{
+			chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
 				Number:             number,
 				WithdrawRootStatus: true,
 			})
@@ -62,7 +63,7 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 			}
 			msgSentEvents = append(msgSentEvents, msgs[i])
 		}
-		chainMonitors = append(chainMonitors, &orm.ChainConfirm{
+		chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
 			Number:       number,
 			WithdrawRoot: l2.withdraw.MessageRoot(),
 		})
@@ -80,7 +81,7 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	return nil
 }
 
-func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.ChainConfirm) error {
+func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.L2ChainConfirm) error {
 	var (
 		numbers       []uint64
 		withdrawRoots []common.Hash
@@ -119,10 +120,11 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*
 				expectRoot.String(),
 				monitor.WithdrawRoot.String(),
 			)
+			log.Error("withdraw root doesn't match", "number", monitor.Number, "expect_root", expectRoot.String(), "actual_root", monitor.WithdrawRoot.String())
 			go l2.monitorAPI.SlackNotify(msg)
 		}
 	}
-	if err = l2.tx.Model(&orm.ChainConfirm{}).Save(chainMonitors).Error; err != nil {
+	if err = l2.tx.Model(&orm.L2ChainConfirm{}).Save(chainMonitors).Error; err != nil {
 		return err
 	}
 	return nil

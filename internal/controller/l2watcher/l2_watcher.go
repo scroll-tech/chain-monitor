@@ -30,9 +30,9 @@ type L2Watcher struct {
 	cacheLen    int
 	headerCache []*types.Header
 
-	curTime     time.Time
-	startNumber uint64
-	safeNumber  uint64
+	curTime    time.Time
+	currNumber uint64
+	safeNumber uint64
 
 	db *gorm.DB
 }
@@ -69,7 +69,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 		cacheLen:    32,
 		headerCache: make([]*types.Header, 0, 32),
 		curTime:     time.Now(),
-		startNumber: l2Block.Number,
+		currNumber:  l2Block.Number,
 		safeNumber:  number,
 	}
 
@@ -115,14 +115,14 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 			return
 		}
 	}
-	l2.setStartNumber(end)
+	l2.setCurrentNumber(end)
 
 	log.Info("scan l2chain successful", "start", start, "end", end, "event_count", count)
 }
 
 func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
-		start = l2.StartNumber() + 1
+		start = l2.CurrentNumber() + 1
 		end   = start + l2BatchSize - 1
 	)
 
@@ -149,7 +149,7 @@ func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 func (l2 *L2Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	var number uint64
 	if len(l2.headerCache) == 0 {
-		number = l2.StartNumber()
+		number = l2.CurrentNumber()
 	} else {
 		number = l2.headerCache[len(l2.headerCache)-1].Number.Uint64()
 	}

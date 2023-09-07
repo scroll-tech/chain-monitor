@@ -30,9 +30,9 @@ type L1Watcher struct {
 	cacheLen    int
 	headerCache []*types.Header
 
-	curTime     time.Time
-	startNumber uint64
-	safeNumber  uint64
+	curTime    time.Time
+	currNumber uint64
+	safeNumber uint64
 
 	db *gorm.DB
 }
@@ -68,7 +68,7 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 		cacheLen:    32,
 		headerCache: make([]*types.Header, 0, 32),
 		curTime:     time.Now(),
-		startNumber: mathutil.MaxUint64(l1Block.Number, cfg.StartNumber),
+		currNumber:  mathutil.MaxUint64(l1Block.Number, cfg.StartNumber),
 		safeNumber:  number,
 	}
 
@@ -116,14 +116,14 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 			return
 		}
 	}
-	l1.setStartNumber(end)
+	l1.setCurrentNumber(end)
 
 	log.Info("scan l1chain successful", "start", start, "end", end, "event_count", count)
 }
 
 func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
-		start = l1.StartNumber() + 1
+		start = l1.CurrentNumber() + 1
 		end   = start + l1BatchSize - 1
 	)
 	safeNumber := l1.SafeNumber() - uint64(l1.cacheLen/2)
@@ -153,7 +153,7 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	var number uint64
 	if len(l1.headerCache) == 0 {
-		number = l1.StartNumber()
+		number = l1.CurrentNumber()
 	} else {
 		number = l1.headerCache[len(l1.headerCache)-1].Number.Uint64()
 	}

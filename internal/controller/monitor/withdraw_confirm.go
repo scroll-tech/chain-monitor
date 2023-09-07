@@ -11,6 +11,33 @@ import (
 	"chain-monitor/internal/orm"
 )
 
+var (
+	l1ethSQL = `select 
+    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
+from l2_eth_events as l2ee full join l1_eth_events as l1ee 
+    on l1ee.msg_hash = l2ee.msg_hash  
+where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
+	l1erc20SQL = `select 
+    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
+from l2_erc20_events as l2ee full join l1_erc20_events as l1ee 
+    on l1ee.msg_hash = l2ee.msg_hash  
+where l1ee.number BETWEEN ? AND ? and l1ee.type in (?, ?, ?, ?);`
+	l1erc721SQL = `select 
+    l1ee.tx_hash as l1_tx_hash, l1ee.token_id as l1_token_id, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.token_id as l2_token_id
+from l2_erc721_events as l2ee full join l1_erc721_events as l1ee 
+    on l1ee.msg_hash = l2ee.msg_hash 
+where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
+	l1erc1155SQL = `select 
+    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, l1ee.token_id as l1_token_id, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id
+from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
+    on l1ee.msg_hash = l2ee.msg_hash 
+where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
+)
+
 // WithdrawConfirm the loop in order to confirm withdraw events.
 func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 	// Make sure the l2Watcher is ready to use.
@@ -32,18 +59,18 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 			return err
 		}
 		// Update withdraw records.
-		sTx := tx.Model(&orm.ChainConfirm{}).Select("withdraw_status", "withdraw_confirm").
+		sTx := tx.Model(&orm.L1ChainConfirm{}).Select("withdraw_status", "confirm").
 			Where("number BETWEEN ? AND ?", start, end)
-		sTx = sTx.Update("withdraw_status", true).Update("withdraw_confirm", true)
+		sTx = sTx.Update("withdraw_status", true).Update("confirm", true)
 		if sTx.Error != nil {
 			return sTx.Error
 		}
 
 		// Update failed withdraw records.
 		if len(failedNumbers) > 0 {
-			fTx := tx.Model(&orm.ChainConfirm{}).Select("withdraw_status", "withdraw_confirm").
+			fTx := tx.Model(&orm.L1ChainConfirm{}).Select("withdraw_status").
 				Where("number in ?", failedNumbers)
-			fTx = fTx.Update("deposit_status", false)
+			fTx = fTx.Update("withdraw_status", false)
 			if fTx.Error != nil {
 				return fTx.Error
 			}
@@ -70,7 +97,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, 
 
 	// check eth events.
 	var ethEvents []msgEvents
-	db = db.Raw(ethSQL, start, end, orm.L1FinalizeWithdrawETH)
+	db = db.Raw(l1ethSQL, start, end, orm.L1FinalizeWithdrawETH)
 	if err := db.Scan(&ethEvents).Error; err != nil {
 		return nil, err
 	}
@@ -89,7 +116,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, 
 
 	var erc20Events []msgEvents
 	// check erc20 events.
-	db = db.Raw(erc20SQL,
+	db = db.Raw(l1erc20SQL,
 		start, end,
 		orm.L1FinalizeWithdrawDAI,
 		orm.L1FinalizeWithdrawWETH,
@@ -120,7 +147,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, 
 
 	// check erc721 events.
 	var erc721Events []msgEvents
-	db = db.Raw(erc721SQL, start, end, orm.L1FinalizeWithdrawERC721)
+	db = db.Raw(l1erc721SQL, start, end, orm.L1FinalizeWithdrawERC721)
 	if err := db.Scan(&erc721Events).Error; err != nil {
 		return nil, err
 	}
@@ -139,7 +166,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, 
 
 	// check erc1155 events.
 	var erc1155Events []msgEvents
-	db = db.Raw(erc1155SQL, start, end, orm.L1FinalizeWithdrawERC1155)
+	db = db.Raw(l1erc1155SQL, start, end, orm.L1FinalizeWithdrawERC1155)
 	if err := db.Scan(&erc1155Events).Error; err != nil {
 		return nil, err
 	}
@@ -164,7 +191,7 @@ func (ch *ChainMonitor) getWithdrawStartAndEndNumber() (uint64, uint64) {
 		start = ch.withdrawStartNumber + 1
 		end   = start + batchSize - 1
 	)
-	ch.withdrawSafeNumber = ch.l2watcher.StartNumber()
+	ch.withdrawSafeNumber = ch.l1watcher.CurrentNumber()
 	if end < ch.withdrawSafeNumber {
 		return start, end
 	}

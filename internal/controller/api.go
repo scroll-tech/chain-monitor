@@ -27,7 +27,7 @@ func (m *ChainConfirm) ConfirmWithdrawRoot(ctx *gin.Context) {
 		return
 	}
 
-	cfm, err := orm.GetConfirmMsgByNumber(m.db, req.Number)
+	l2Confirm, err := orm.GetL2ConfirmMsgByNumber(m.db, req.Number)
 	if err != nil {
 		types.RenderJSON(ctx, types.ErrConfirmWithdrawRootByNumber, err, nil)
 		return
@@ -37,6 +37,6 @@ func (m *ChainConfirm) ConfirmWithdrawRoot(ctx *gin.Context) {
 		ctx,
 		types.Success,
 		nil,
-		cfm.WithdrawRootStatus && cfm.DepositStatus && cfm.WithdrawStatus,
+		l2Confirm.WithdrawRootStatus && l2Confirm.DepositStatus,
 	)
 }
