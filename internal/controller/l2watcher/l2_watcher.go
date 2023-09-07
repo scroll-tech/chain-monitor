@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"modernc.org/mathutil"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
+	"modernc.org/mathutil"
 
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/orm"
