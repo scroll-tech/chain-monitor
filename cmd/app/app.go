@@ -45,7 +45,7 @@ func action(ctx *cli.Context) error {
 	// Create db instance.
 	db, err := utils.InitDB(cfg.DBConfig)
 	if err != nil {
-		log.Error("failed to init db", "err", err)
+		log.Error("failed to connect to db", "err", err)
 		return err
 	}
 	defer func() {
@@ -97,7 +97,8 @@ func action(ctx *cli.Context) error {
 
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
-	go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.ChainMonitor)
+	go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.DepositConfirm)
+	go utils.LoopWithContext(subCtx, time.Millisecond*500, chainMonitor.WithdrawConfirm)
 
 	// Catch CTRL-C to ensure a graceful shutdown.
 	interrupt := make(chan os.Signal, 1)

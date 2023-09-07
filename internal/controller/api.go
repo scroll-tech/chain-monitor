@@ -27,11 +27,16 @@ func (m *ChainConfirm) ConfirmWithdrawRoot(ctx *gin.Context) {
 		return
 	}
 
-	confirmBlock, err := orm.GetConfirmMsgByNumber(m.db, req.Number)
+	l2Confirm, err := orm.GetL2ConfirmMsgByNumber(m.db, req.Number)
 	if err != nil {
 		types.RenderJSON(ctx, types.ErrConfirmWithdrawRootByNumber, err, nil)
 		return
 	}
 
-	types.RenderJSON(ctx, types.Success, nil, confirmBlock.WithdrawStatus && confirmBlock.DepositStatus)
+	types.RenderJSON(
+		ctx,
+		types.Success,
+		nil,
+		l2Confirm.WithdrawRootStatus && l2Confirm.DepositStatus,
+	)
 }

@@ -6,13 +6,18 @@ import (
 	"chain-monitor/internal/controller"
 )
 
-// StartNumber return l1watcher start number.
-func (l1 *L1Watcher) StartNumber() uint64 {
-	return atomic.LoadUint64(&l1.startNumber)
+// L1StartNumber returns l1watcher start number.
+func (l1 *L1Watcher) L1StartNumber() uint64 {
+	return l1.cfg.StartNumber
 }
 
-func (l1 *L1Watcher) setStartNumber(number uint64) {
-	atomic.StoreUint64(&l1.startNumber, number)
+// CurrentNumber return l1watcher start number.
+func (l1 *L1Watcher) CurrentNumber() uint64 {
+	return atomic.LoadUint64(&l1.currNumber)
+}
+
+func (l1 *L1Watcher) setCurrentNumber(number uint64) {
+	atomic.StoreUint64(&l1.currNumber, number)
 }
 
 // SafeNumber return safe number.
@@ -26,7 +31,7 @@ func (l1 *L1Watcher) setSafeNumber(number uint64) {
 
 // IsReady if l1watcher is ready return true.
 func (l1 *L1Watcher) IsReady() bool {
-	return l1.StartNumber() == l1.SafeNumber()
+	return l1.CurrentNumber() == l1.SafeNumber()
 }
 
 // SetMonitor sets monitor api.

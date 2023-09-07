@@ -5,29 +5,48 @@ import (
 	"gorm.io/gorm"
 )
 
-// ChainConfirm represents the confirmation status of various events in the blockchain.
+// L1ChainConfirm represents the confirmation status of various events in the blockchain.
 // It keeps track of the confirmation status for deposits, withdrawals, and overall confirmations for a given block number.
-type ChainConfirm struct {
-	Number         uint64      `gorm:"primaryKey"`
-	WithdrawRoot   common.Hash `gorm:"-"`
-	WithdrawStatus bool
-	DepositStatus  bool
-	Confirm        bool
+type L1ChainConfirm struct {
+	Number         uint64 `gorm:"primaryKey"`
+	WithdrawStatus bool   `gorm:"type: withdraw_status"`
+	Confirm        bool   `gorm:"type: confirm"`
 }
 
-// GetLatestConfirmedNumber retrieves the latest block number with confirmation status set to true.
-func GetLatestConfirmedNumber(db *gorm.DB) (uint64, error) {
-	var monitor ChainConfirm
-	err := db.Where("confirm = true").Last(&monitor).Error
+// L2ChainConfirm represents the confirmation status of various events in the blockchain.
+// It keeps track of the confirmation status for deposits, withdrawals, and overall confirmations for a given block number.
+type L2ChainConfirm struct {
+	Number             uint64      `gorm:"primaryKey"`
+	WithdrawRoot       common.Hash `gorm:"-"`
+	WithdrawRootStatus bool        `gorm:"type: withdraw_status"`
+
+	DepositStatus bool `gorm:"type: deposit_status"`
+	Confirm       bool `gorm:"type: confirm"`
+}
+
+// GetL2DepositNumber retrieves the latest block number with confirmation status set to true.
+func GetL2DepositNumber(db *gorm.DB) (uint64, error) {
+	var monitor L2ChainConfirm
+	err := db.Model(&L2ChainConfirm{}).Where("confirm = true").Last(&monitor).Error
 	if err != nil && err.Error() != gorm.ErrRecordNotFound.Error() {
 		return 0, err
 	}
 	return monitor.Number, nil
 }
 
-// GetConfirmMsgByNumber fetches the ChainConfirm message for a given block number.
-func GetConfirmMsgByNumber(db *gorm.DB, number uint64) (*ChainConfirm, error) {
-	var confirmBatch ChainConfirm
+// GetL1WithdrawNumber retrieves the latest block number with confirmation status set to true.
+func GetL1WithdrawNumber(db *gorm.DB) (uint64, error) {
+	var monitor L1ChainConfirm
+	err := db.Model(&L1ChainConfirm{}).Where("confirm = true").Last(&monitor).Error
+	if err != nil && err.Error() != gorm.ErrRecordNotFound.Error() {
+		return 0, err
+	}
+	return monitor.Number, nil
+}
+
+// GetL2ConfirmMsgByNumber fetches the L2ChainConfirm message for a given block number.
+func GetL2ConfirmMsgByNumber(db *gorm.DB, number uint64) (*L2ChainConfirm, error) {
+	var confirmBatch L2ChainConfirm
 	res := db.Where("number = ?", number).First(&confirmBatch)
 	return &confirmBatch, res.Error
 }

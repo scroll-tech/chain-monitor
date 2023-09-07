@@ -6,6 +6,7 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
+	"github.com/scroll-tech/go-ethereum/log"
 
 	"chain-monitor/bytecode/scroll/L2"
 	"chain-monitor/internal/orm"
@@ -42,25 +43,27 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 
 	// Calculate withdraw root.
 	var (
-		chainMonitors = make([]*orm.ChainConfirm, 0, end-start+1)
+		chainMonitors = make([]*orm.L2ChainConfirm, 0, end-start+1)
 		msgSentEvents []*orm.L2MessengerEvent
-		latestProof   []byte
 	)
 	for number := start; number <= end; number++ {
 		if l2.msgSentEvents[number] == nil {
-			chainMonitors = append(chainMonitors, &orm.ChainConfirm{
-				Number:         number,
-				WithdrawStatus: true,
+			chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
+				Number:             number,
+				WithdrawRootStatus: true,
 			})
 			continue
 		}
 		msgs := l2.msgSentEvents[number]
 		for i, msg := range msgs {
 			proofs := l2.withdraw.AppendMessages([]common.Hash{common.HexToHash(msg.MsgHash)})
-			latestProof = proofs[len(proofs)-1]
+			// Store the latest one for every block.
+			if i == len(msgs)-1 {
+				msg.MsgProof = common.Bytes2Hex(proofs[0])
+			}
 			msgSentEvents = append(msgSentEvents, msgs[i])
 		}
-		chainMonitors = append(chainMonitors, &orm.ChainConfirm{
+		chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
 			Number:       number,
 			WithdrawRoot: l2.withdraw.MessageRoot(),
 		})
@@ -71,8 +74,6 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 		return err
 	}
 
-	// Just store the latest proof.
-	msgSentEvents[len(msgSentEvents)-1].MsgProof = common.Bytes2Hex(latestProof)
 	// Store messenger events.
 	if err := l2.tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
 		return err
@@ -80,14 +81,14 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	return nil
 }
 
-func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.ChainConfirm) error {
+func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.L2ChainConfirm) error {
 	var (
 		numbers       []uint64
 		withdrawRoots []common.Hash
 		err           error
 	)
 	for _, monitor := range chainMonitors {
-		if !monitor.WithdrawStatus {
+		if !monitor.WithdrawRootStatus {
 			numbers = append(numbers, monitor.Number)
 		}
 	}
@@ -105,24 +106,25 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*
 		if len(withdrawRoots) == 0 {
 			break
 		}
-		if monitor.WithdrawStatus {
+		if monitor.WithdrawRootStatus {
 			continue
 		}
 		expectRoot := withdrawRoots[0]
 		withdrawRoots = withdrawRoots[1:]
-		monitor.WithdrawStatus = monitor.WithdrawRoot == expectRoot
+		monitor.WithdrawRootStatus = monitor.WithdrawRoot == expectRoot
 		// If the withdraw root doesn't match, alert it.
-		if !monitor.WithdrawStatus {
+		if !monitor.WithdrawRootStatus {
 			msg := fmt.Sprintf(
 				"withdraw root doestn't match, l2_number: %d, expect_withdraw_root: %s, actual_withdraw_root: %s",
 				monitor.Number,
 				expectRoot.String(),
 				monitor.WithdrawRoot.String(),
 			)
+			log.Error("withdraw root doesn't match", "number", monitor.Number, "expect_root", expectRoot.String(), "actual_root", monitor.WithdrawRoot.String())
 			go l2.monitorAPI.SlackNotify(msg)
 		}
 	}
-	if err = l2.tx.Model(&orm.ChainConfirm{}).Save(chainMonitors).Error; err != nil {
+	if err = l2.tx.Model(&orm.L2ChainConfirm{}).Save(chainMonitors).Error; err != nil {
 		return err
 	}
 	return nil

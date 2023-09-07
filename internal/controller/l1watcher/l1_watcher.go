@@ -14,9 +14,10 @@ import (
 
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/orm"
+	"chain-monitor/internal/utils"
 )
 
-var l1BatchSize uint64 = 100
+var l1BatchSize uint64 = 200
 
 // L1Watcher return a new instance of L1Watcher.
 type L1Watcher struct {
@@ -25,24 +26,25 @@ type L1Watcher struct {
 
 	filter *l1Contracts
 
+	isOneByOne  bool
 	cacheLen    int
 	headerCache []*types.Header
 
-	curTime     time.Time
-	startNumber uint64
-	safeNumber  uint64
+	curTime    time.Time
+	currNumber uint64
+	safeNumber uint64
 
 	db *gorm.DB
 }
 
 // NewL1Watcher create a l1watcher instance.
 func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
-	client, err := ethclient.Dial(cfg.L1ChainURL)
+	client, err := ethclient.Dial(cfg.L1URL)
 	if err != nil {
 		return nil, err
 	}
 
-	contracts, err := newL1Contracts(client, cfg.L1Gateways)
+	l2Filter, err := newL1Contracts(client, cfg.L1Gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -51,24 +53,26 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 	if err != nil {
 		return nil, err
 	}
-	latestNumber, err := client.BlockNumber(context.Background())
+
+	// Get confirm number.
+	number, err := utils.GetLatestConfirmedBlockNumber(context.Background(), client, cfg.Confirm)
 	if err != nil {
 		return nil, err
 	}
 
-	watcherClient := &L1Watcher{
+	watcher := &L1Watcher{
 		cfg:         cfg,
 		db:          db,
 		client:      client,
-		filter:      contracts,
+		filter:      l2Filter,
 		cacheLen:    32,
 		headerCache: make([]*types.Header, 0, 32),
 		curTime:     time.Now(),
-		startNumber: mathutil.MaxUint64(l1Block.Number, cfg.StartNumber),
-		safeNumber:  latestNumber - cfg.Confirm,
+		currNumber:  mathutil.MaxUint64(l1Block.Number, cfg.StartNumber),
+		safeNumber:  number,
 	}
 
-	return watcherClient, nil
+	return watcher, nil
 }
 
 // ScanL1Chain scan l1chain entrypoint function.
@@ -84,7 +88,8 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 
 	var count int
 	// If we sync events one by one.
-	if start == end {
+	if l1.isOneByOne || start == end {
+		l1.isOneByOne = true
 		var header *types.Header
 		header, err = l1.checkReorg(ctx)
 		if err != nil {
@@ -111,32 +116,29 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 			return
 		}
 	}
-	l1.setStartNumber(end)
+	l1.setCurrentNumber(end)
 
 	log.Info("scan l1chain successful", "start", start, "end", end, "event_count", count)
 }
 
 func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
-		start = l1.StartNumber() + 1
-		end   = start + l1BatchSize - 1
+		start = l1.CurrentNumber() + 1
+		end   = mathutil.MinUint64(start+l1BatchSize-1, l1.SafeNumber())
 	)
-	safeNumber := l1.SafeNumber() - uint64(l1.cacheLen/2)
-	if end <= safeNumber {
+	if start <= end {
 		return start, end, nil
-	}
-	if start < safeNumber {
-		return start, safeNumber - 1, nil
 	}
 
 	// update latest number
 	curTime := time.Now()
 	if int(curTime.Sub(l1.curTime).Seconds()) >= 5 {
-		latestNumber, err := l1.client.BlockNumber(ctx)
+		number, err := utils.GetLatestConfirmedBlockNumber(ctx, l1.client, l1.cfg.Confirm)
 		if err != nil {
 			return 0, 0, err
 		}
-		l1.setSafeNumber(latestNumber - l1.cfg.Confirm)
+		number = mathutil.MaxUint64(number, l1.SafeNumber())
+		l1.setSafeNumber(number)
 		l1.curTime = curTime
 	}
 
@@ -147,7 +149,7 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	var number uint64
 	if len(l1.headerCache) == 0 {
-		number = l1.StartNumber()
+		number = l1.CurrentNumber()
 	} else {
 		number = l1.headerCache[len(l1.headerCache)-1].Number.Uint64()
 	}
@@ -169,16 +171,12 @@ func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 		if header.ParentHash == latestHeader.Hash() {
 			break
 		}
-		if header.ParentHash != latestHeader.Hash() {
-			reorgNumbers = append(reorgNumbers, latestHeader.Number.Uint64())
-			l1.headerCache = l1.headerCache[:len(l1.headerCache)-1]
-			var (
-				parentHash = header.ParentHash
-			)
-			header, err = l1.client.HeaderByHash(ctx, parentHash)
-			if err != nil {
-				return nil, err
-			}
+		// reorg appeared.
+		reorgNumbers = append(reorgNumbers, latestHeader.Number.Uint64())
+		l1.headerCache = l1.headerCache[:len(l1.headerCache)-1]
+		header, err = l1.client.HeaderByNumber(ctx, latestHeader.Number)
+		if err != nil {
+			return nil, err
 		}
 	}
 

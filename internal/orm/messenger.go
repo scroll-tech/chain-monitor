@@ -40,8 +40,8 @@ func SaveL1Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash 
 type L2MessengerEvent struct {
 	Number   uint64    `gorm:"index; comment: block number"`
 	Type     EventType `gorm:"index; comment: tx type"`
-	MsgNonce uint64    `gorm:"primaryKey"`
-	MsgHash  string    `gorm:"index"`
+	MsgNonce uint64    `gorm:"type: msg_nonce"`
+	MsgHash  string    `gorm:"primaryKey"`
 	MsgProof string
 	Confirm  bool `gorm:"index"`
 }
