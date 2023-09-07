@@ -130,7 +130,7 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*l2Con
 }
 
 func (l2 *l2Contracts) initWithdraw(db *gorm.DB) error {
-	tx := db.Where("type = ? AND msg_proof != ''", orm.L2SentMessage)
+	tx := db.Where("type = ? AND msg_proof != ''", orm.L2SentMessage).Order("number DESC")
 	var msg orm.L2MessengerEvent
 	err := tx.Last(&msg).Error
 	if err != nil && err.Error() != gorm.ErrRecordNotFound.Error() {
