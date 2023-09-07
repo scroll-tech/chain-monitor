@@ -20,6 +20,8 @@ type ChainMonitor struct {
 	cfg *config.SlackWebhookConfig
 	db  *gorm.DB
 
+	alertTime time.Time
+
 	notifyCli *resty.Client
 
 	l1watcher controller.L1WatcherAPI
@@ -56,6 +58,7 @@ func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher cont
 	monitor := &ChainMonitor{
 		cfg:                 cfg,
 		db:                  db,
+		alertTime:           time.Now(),
 		notifyCli:           cli,
 		depositStartNumber:  depositStartNumber,
 		withdrawStartNumber: withdrawStartNumber,
@@ -70,6 +73,12 @@ func (ch *ChainMonitor) SlackNotify(msg string) {
 	if ch.cfg.WebhookURL == "" {
 		return
 	}
+	curTime := time.Now()
+	if int(curTime.Sub(ch.alertTime).Seconds()) < 2 {
+		return
+	}
+	ch.alertTime = curTime
+
 	hookContent := map[string]string{
 		"channel":  ch.cfg.Channel,
 		"username": ch.cfg.UserName,

@@ -17,7 +17,7 @@ import (
 	"chain-monitor/internal/utils"
 )
 
-var l2BatchSize uint64 = 500
+var l2BatchSize uint64 = 200
 
 // L2Watcher is a watcher for the Layer 2 chain. It observes and tracks events on the L2 chain.
 type L2Watcher struct {
