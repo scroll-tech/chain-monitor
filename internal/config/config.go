@@ -38,7 +38,7 @@ type L1Config struct {
 
 // L2Config l1 chain config.
 type L2Config struct {
-	L2gateways *Gateway `json:"l2_gateways"`
+	L2Gateways *Gateway `json:"l2_gateways"`
 	L2ChainURL string   `json:"l2chain_url"`
 	Confirm    rpc.BlockNumber
 }
