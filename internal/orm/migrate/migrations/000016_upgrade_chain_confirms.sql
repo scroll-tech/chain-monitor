@@ -8,7 +8,7 @@ alter table l2_chain_confirms
 
 -- +goose Down
 -- +goose UpgradeChainMonitorBegin
-alter table L2_chain_confirms
+alter table l2_chain_confirms
     rename to chain_confirms;
 alter table chain_confirms
     rename column withdraw_root_status to withdraw_status;
