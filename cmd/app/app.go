@@ -45,7 +45,7 @@ func action(ctx *cli.Context) error {
 	// Create db instance.
 	db, err := utils.InitDB(cfg.DBConfig)
 	if err != nil {
-		log.Error("failed to init db", "err", err)
+		log.Error("failed to connect to db", "err", err)
 		return err
 	}
 	defer func() {
