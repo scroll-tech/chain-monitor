@@ -9,7 +9,5 @@ alter table l2_messenger_events
 -- +goose Down
 -- +goose L2ScrollMessengerBegin
 alter table l2_messenger_events
-drop constraint l2_messenger_events_pkey;
-alter table l2_messenger_events
-    add primary key (msg_nonce);
+drop constraint if exists l2_messenger_events_pkey;
 -- +goose L2ScrollMessengerEnd
