@@ -31,7 +31,7 @@ type L1Contracts struct {
 // L1Config l1 chain config.
 type L1Config struct {
 	L1Gateways  *L1Contracts `json:"l1_gateways"`
-	L1ChainURL  string       `json:"l1chain_url"`
+	L1URL       string       `json:"l1_url"`
 	Confirm     rpc.BlockNumber
 	StartNumber uint64 `json:"start_number"`
 }
@@ -39,7 +39,7 @@ type L1Config struct {
 // L2Config l1 chain config.
 type L2Config struct {
 	L2Gateways *Gateway `json:"l2_gateways"`
-	L2URL string   `json:"l2_url"`
+	L2URL      string   `json:"l2_url"`
 	Confirm    rpc.BlockNumber
 }
 

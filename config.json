@@ -1,6 +1,6 @@
 {
   "l1_config": {
-    "l1chain_url": "http://10.5.12.230:8545/l1",
+    "l1_url": "http://10.5.12.230:8545/l1",
     "confirm": "0x4",
     "start_number": 4041200,
     "l1_gateways": {
@@ -17,7 +17,7 @@
     }
   },
   "l2_config": {
-    "l2chain_url": "http://10.5.11.195:8545",
+    "l2_url": "http://10.5.11.195:8545",
     "confirm": "0x4",
     "l2_gateways": {
       "eth_gateway": "0x91e8ADDFe1358aCa5314c644312d38237fC1101C",

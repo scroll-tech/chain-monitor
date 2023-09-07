@@ -39,7 +39,7 @@ type L1Watcher struct {
 
 // NewL1Watcher create a l1watcher instance.
 func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
-	client, err := ethclient.Dial(cfg.L1ChainURL)
+	client, err := ethclient.Dial(cfg.L1URL)
 	if err != nil {
 		return nil, err
 	}
