@@ -39,7 +39,7 @@ type L2Watcher struct {
 
 // NewL2Watcher initializes a new L2Watcher with the given L2 configuration and database connection.
 func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
-	client, err := ethclient.Dial(cfg.L2ChainURL)
+	client, err := ethclient.Dial(cfg.L2URL)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	}
 
 	// Create a event filter instance.
-	l2Filter, err := newL2Contracts(cfg.L2ChainURL, db, cfg.L2gateways)
+	l2Filter, err := newL2Contracts(cfg.L2URL, db, cfg.L2Gateways)
 	if err != nil {
 		return nil, err
 	}
