@@ -7,6 +7,7 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
+	"modernc.org/mathutil"
 
 	"chain-monitor/internal/orm"
 )
@@ -189,16 +190,13 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 }
 
 func (ch *ChainMonitor) getWithdrawStartAndEndNumber() (uint64, uint64) {
+	ch.withdrawSafeNumber = ch.l1watcher.CurrentNumber()
 	var (
 		start = ch.withdrawStartNumber + 1
-		end   = start + batchSize - 1
+		end   = mathutil.MinUint64(start+batchSize-1, ch.withdrawSafeNumber)
 	)
-	ch.withdrawSafeNumber = ch.l1watcher.CurrentNumber()
-	if end < ch.withdrawSafeNumber {
+	if start <= end {
 		return start, end
-	}
-	if start < ch.withdrawSafeNumber {
-		return start, ch.withdrawSafeNumber - 1
 	}
 	return start, start
 }

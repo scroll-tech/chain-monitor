@@ -124,14 +124,10 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
 		start = l1.CurrentNumber() + 1
-		end   = start + l1BatchSize - 1
+		end   = mathutil.MinUint64(start+l1BatchSize-1, l1.SafeNumber())
 	)
-	safeNumber := l1.SafeNumber() - uint64(l1.cacheLen/2)
-	if end <= safeNumber {
+	if start <= end {
 		return start, end, nil
-	}
-	if start < safeNumber {
-		return start, safeNumber - 1, nil
 	}
 
 	// update latest number

@@ -123,14 +123,10 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
 	var (
 		start = l2.CurrentNumber() + 1
-		end   = start + l2BatchSize - 1
+		end   = mathutil.MinUint64(start+l2BatchSize-1, l2.SafeNumber())
 	)
-
-	if end <= l2.SafeNumber() {
+	if start <= end {
 		return start, end, nil
-	}
-	if start < l2.SafeNumber() {
-		return start, l2.SafeNumber() - 1, nil
 	}
 
 	curTime := time.Now()

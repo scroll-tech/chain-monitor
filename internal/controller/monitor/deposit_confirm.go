@@ -7,6 +7,7 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
+	"modernc.org/mathutil"
 
 	"chain-monitor/internal/orm"
 )
@@ -187,16 +188,13 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 }
 
 func (ch *ChainMonitor) getDepositStartAndEndNumber() (uint64, uint64) {
+	ch.depositSafeNumber = ch.l2watcher.CurrentNumber()
 	var (
 		start = ch.depositStartNumber + 1
-		end   = start + batchSize - 1
+		end   = mathutil.MinUint64(start+batchSize-1, ch.depositSafeNumber)
 	)
-	ch.depositSafeNumber = ch.l2watcher.CurrentNumber()
-	if end < ch.depositSafeNumber {
+	if start <= end {
 		return start, end
-	}
-	if start < ch.depositSafeNumber {
-		return start, ch.depositSafeNumber - 1
 	}
 	return start, start
 }
