@@ -15,7 +15,7 @@ import (
 
 func (l1 *l1Contracts) registerMessengerHandlers() {
 	l1.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerSentMessageEvent) error {
-		msgHash := utils.ComputeMessageHash(l1.ScrollMessenger.ABI, data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
+		msgHash := utils.ComputeMessageHash(data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
 		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
 		return orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
 	})

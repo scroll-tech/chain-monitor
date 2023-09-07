@@ -52,6 +52,8 @@ var (
             Bin: "0x{{.InputBin}}",
             {{end}}
         }
+        // {{.Type}}ABI is the input ABI used to generate the binding from.
+        {{.Type}}ABI, _ = {{.Type}}MetaData.GetAbi()
 	)
 
 	{{if $contract.FuncSigs}}
