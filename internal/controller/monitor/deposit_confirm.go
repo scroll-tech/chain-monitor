@@ -15,8 +15,8 @@ import (
 func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 	// Make sure the l1Watcher is ready to use.
 	if !ch.l1watcher.IsReady() {
-		log.Debug("l1watcher is not ready, sleep 10 seconds")
-		time.Sleep(time.Second * 10)
+		log.Debug("l1watcher is not ready, sleep 3 seconds")
+		time.Sleep(time.Second * 3)
 		return
 	}
 	start, end := ch.getDepositStartAndEndNumber()

@@ -36,7 +36,11 @@ type ChainMonitor struct {
 
 // NewChainMonitor initializes a new instance of the ChainMonitor.
 func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
-	startNumber, err := orm.GetLatestDepositConfirmedNumber(db)
+	depositStartNumber, err := orm.GetLatestDepositConfirmedNumber(db)
+	if err != nil {
+		return nil, err
+	}
+	withdrawStartNumber, err := orm.GetLatestWithdrawConfirmNumber(db)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +51,13 @@ func NewChainMonitor(cfg *config.SlackWebhookConfig, db *gorm.DB, l1Watcher, l2W
 	cli.SetTimeout(time.Second * 3)
 
 	monitor := &ChainMonitor{
-		cfg:                cfg,
-		db:                 db,
-		notifyCli:          cli,
-		depositStartNumber: startNumber,
-		l1watcher:          l1Watcher,
-		l2watcher:          l2Watcher,
+		cfg:                 cfg,
+		db:                  db,
+		notifyCli:           cli,
+		depositStartNumber:  depositStartNumber,
+		withdrawStartNumber: withdrawStartNumber,
+		l1watcher:           l1Watcher,
+		l2watcher:           l2Watcher,
 	}
 	return monitor, nil
 }

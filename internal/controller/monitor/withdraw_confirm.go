@@ -15,8 +15,8 @@ import (
 func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 	// Make sure the l2Watcher is ready to use.
 	if !ch.l2watcher.IsReady() {
-		log.Debug("l2watcher is not ready, sleep 10 seconds")
-		time.Sleep(time.Second * 10)
+		log.Debug("l2watcher is not ready, sleep 3 seconds")
+		time.Sleep(time.Second * 3)
 		return
 	}
 	start, end := ch.getWithdrawStartAndEndNumber()
@@ -164,7 +164,7 @@ func (ch *ChainMonitor) getWithdrawStartAndEndNumber() (uint64, uint64) {
 		start = ch.withdrawStartNumber + 1
 		end   = start + batchSize - 1
 	)
-	ch.withdrawSafeNumber = ch.l1watcher.StartNumber()
+	ch.withdrawSafeNumber = ch.l2watcher.StartNumber()
 	if end < ch.withdrawSafeNumber {
 		return start, end
 	}

@@ -46,7 +46,16 @@ func TestMonitor(t *testing.T) {
 }
 
 func TestLatest(t *testing.T) {
-	client, err := ethclient.Dial("http://10.5.11.195:8545")
+	client, err := ethclient.Dial("http://127.0.0.1:8545")
+	assert.NoError(t, err)
+	number := rpc.PendingBlockNumber
+	header, err := client.HeaderByNumber(context.Background(), big.NewInt(number.Int64()))
+	assert.NoError(t, err)
+	t.Log(header.Number.Int64())
+}
+
+func TestSepolia(t *testing.T) {
+	client, err := ethclient.Dial("http://10.5.12.230:8545/l1")
 	assert.NoError(t, err)
 	number := rpc.PendingBlockNumber
 	header, err := client.HeaderByNumber(context.Background(), big.NewInt(number.Int64()))
