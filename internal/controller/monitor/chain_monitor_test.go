@@ -48,7 +48,7 @@ func TestMonitor(t *testing.T) {
 func TestLatest(t *testing.T) {
 	client, err := ethclient.Dial("http://10.5.11.195:8545")
 	assert.NoError(t, err)
-	number := rpc.BlockNumber(rpc.PendingBlockNumber)
+	number := rpc.PendingBlockNumber
 	header, err := client.HeaderByNumber(context.Background(), big.NewInt(number.Int64()))
 	assert.NoError(t, err)
 	t.Log(header.Number.Int64())
