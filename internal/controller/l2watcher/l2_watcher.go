@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"modernc.org/mathutil"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/core/types"
@@ -25,6 +26,7 @@ type L2Watcher struct {
 
 	filter *l2Contracts
 
+	isOneByOne  bool
 	cacheLen    int
 	headerCache []*types.Header
 
@@ -86,7 +88,8 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 	}
 
 	var count int
-	if start == end {
+	if l2.isOneByOne || start == end {
+		l2.isOneByOne = true
 		var header *types.Header
 		header, err = l2.checkReorg(ctx)
 		if err != nil {
@@ -112,7 +115,6 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 			return
 		}
 	}
-
 	l2.setStartNumber(end)
 
 	log.Info("scan l2chain successful", "start", start, "end", end, "event_count", count)
@@ -137,6 +139,7 @@ func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		if err != nil {
 			return 0, 0, err
 		}
+		number = mathutil.MaxUint64(number, l2.SafeNumber())
 		l2.setSafeNumber(number)
 		l2.curTime = curTime
 	}

@@ -26,6 +26,7 @@ type L1Watcher struct {
 
 	filter *l1Contracts
 
+	isOneByOne  bool
 	cacheLen    int
 	headerCache []*types.Header
 
@@ -87,7 +88,8 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 
 	var count int
 	// If we sync events one by one.
-	if start == end {
+	if l1.isOneByOne || start == end {
+		l1.isOneByOne = true
 		var header *types.Header
 		header, err = l1.checkReorg(ctx)
 		if err != nil {
@@ -139,6 +141,7 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		if err != nil {
 			return 0, 0, err
 		}
+		number = mathutil.MaxUint64(number, l1.SafeNumber())
 		l1.setSafeNumber(number)
 		l1.curTime = curTime
 	}
