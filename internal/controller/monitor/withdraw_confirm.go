@@ -53,11 +53,13 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 		return
 	}
 
-	err := ch.db.Transaction(func(tx *gorm.DB) error {
-		failedNumbers, err := ch.confirmWithdrawEvents(ctx, tx, start, end)
-		if err != nil {
-			return err
-		}
+	// Get unmatched withdraw event numbers.
+	failedNumbers, err := ch.confirmWithdrawEvents(ctx, start, end)
+	if err != nil {
+		log.Error("failed to get unmatched withdraw events", "start", start, "end", end, "err", err)
+		return
+	}
+	err = ch.db.Transaction(func(tx *gorm.DB) error {
 		// Update withdraw records.
 		sTx := tx.Model(&orm.L1ChainConfirm{}).Select("withdraw_status", "confirm").
 			Where("number BETWEEN ? AND ?", start, end)
@@ -88,9 +90,9 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 	log.Info("confirm layer1 withdraw transactions", "start", start, "end", end)
 }
 
-func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, db *gorm.DB, start, end uint64) ([]uint64, error) {
-	db = db.WithContext(ctx)
+func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end uint64) ([]uint64, error) {
 	var (
+		db            = ch.db.WithContext(ctx)
 		failedNumbers []uint64
 		flagNumbers   = map[uint64]bool{}
 	)

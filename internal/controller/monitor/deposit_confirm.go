@@ -52,13 +52,13 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 		time.Sleep(time.Second * 3)
 		return
 	}
+	// Get unmatched deposit
+	failedNumbers, err := ch.confirmDepositEvents(ctx, start, end)
+	if err != nil {
 
-	err := ch.db.Transaction(func(tx *gorm.DB) error {
-		// confirm deposit events.
-		failedNumbers, err := ch.confirmDepositEvents(ctx, tx, start, end)
-		if err != nil {
-			return err
-		}
+	}
+	err = ch.db.Transaction(func(tx *gorm.DB) error {
+
 		// Update deposit records.
 		sTx := tx.Model(&orm.L2ChainConfirm{}).Select("deposit_status", "confirm").
 			Where("number BETWEEN ? AND ?", start, end)
@@ -88,9 +88,9 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 	log.Info("confirm layer2 deposit transactions", "start", start, "end", end)
 }
 
-func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, db *gorm.DB, start, end uint64) ([]uint64, error) {
-	db = db.WithContext(ctx)
+func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uint64) ([]uint64, error) {
 	var (
+		db            = ch.db.WithContext(ctx)
 		failedNumbers []uint64
 		flagNumbers   = map[uint64]bool{}
 	)
