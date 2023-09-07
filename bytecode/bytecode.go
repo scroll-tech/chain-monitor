@@ -63,10 +63,21 @@ func NewContractsFilter(name string, cAPIs ...ContractAPI) *ContractsFilter {
 func (c *ContractsFilter) ParseLogs(ctx context.Context, client *ethclient.Client, start, end uint64) (int, error) {
 	c.query.FromBlock.SetUint64(start)
 	c.query.ToBlock.SetUint64(end)
-	logs, err := client.FilterLogs(ctx, *c.query)
+
+	var (
+		logs []types.Log
+		err  error
+	)
+	// Retry 5 times until get logs succeed.
+	utils.TryTimes(5, func() bool {
+		logs, err = client.FilterLogs(ctx, *c.query)
+		return err == nil
+	})
 	if err != nil {
+		log.Error("failed to get event logs", "start", start, "end", end, "err", err)
 		return 0, err
 	}
+
 	for i := range logs {
 		vLog := &logs[i]
 		cAPI := c.contractAPIs[vLog.Address]
