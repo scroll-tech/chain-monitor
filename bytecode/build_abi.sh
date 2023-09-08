@@ -48,24 +48,31 @@ while [ -n "$dest" ]; do
   case "$dest" in
   L1)
     extract_abi "${l1[@]}"
+    break
     ;;
   L1/gateway)
     extract_abi "${l1_gateway[@]}"
+    break
     ;;
   L1/rollup)
     extract_abi "${l1_rollup[@]}"
+    break
     ;;
   L2)
     extract_abi "${l2[@]}"
+    break
     ;;
   L2/gateway)
     extract_abi "${l2_gateway[@]}"
+    break
     ;;
   L2/predeploys)
     extract_abi "${l2_predeploys[@]}"
+    break
     ;;
   token)
     extract_abi "${token_list[@]}"
+    break
     ;;
   *)
     echo "$1 is not supported"

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/modern-go/reflect2"
-	"github.com/scroll-tech/go-ethereum/accounts/abi"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/common/hexutil"
 	"github.com/scroll-tech/go-ethereum/crypto"
@@ -15,6 +14,8 @@ import (
 	"github.com/scroll-tech/go-ethereum/rpc"
 	"golang.org/x/sync/errgroup"
 	"modernc.org/mathutil"
+
+	"chain-monitor/bytecode/scroll/L2"
 )
 
 // TryTimes try run several times until the function return true.
@@ -48,14 +49,14 @@ func IsNil(i interface{}) bool {
 }
 
 // ComputeMessageHash compute message event fields to get message hash.
-func ComputeMessageHash(ABI *abi.ABI,
+func ComputeMessageHash(
 	sender common.Address,
 	target common.Address,
 	value *big.Int,
 	messageNonce *big.Int,
 	message []byte,
 ) common.Hash {
-	data, _ := ABI.Pack("relayMessage", sender, target, value, messageNonce, message)
+	data, _ := L2.L2ScrollMessengerABI.Pack("relayMessage", sender, target, value, messageNonce, message)
 	return common.BytesToHash(crypto.Keccak256(data))
 }
 
