@@ -13,5 +13,7 @@ scroll:
 	./build_abi.sh $(SCROLL_PATH) L2
 	# L2/gateway
 	./build_abi.sh $(SCROLL_PATH) L2/gateway
+	# L2/predeploys
+	./build_abi.sh $(SCROLL_PATH) L2/predeploys
 	# token
 	./build_abi.sh $(SCROLL_PATH) token
