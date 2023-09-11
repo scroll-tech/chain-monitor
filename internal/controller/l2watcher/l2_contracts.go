@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/rpc"
 	"gorm.io/gorm"
-	"math/big"
 
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L2"
