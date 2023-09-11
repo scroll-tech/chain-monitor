@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -110,7 +111,8 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
 			// If eth msg don't match, alert it.
-			go ch.SlackNotify(fmt.Sprintf("deposit eth don't match, message: %v", msg))
+			data, _ := json.Marshal(msg)
+			go ch.SlackNotify(fmt.Sprintf("deposit eth don't match, message: %s", string(data)))
 			log.Error("the eth deposit count or amount don't match", "start", start, "end", end, "event_type", orm.L2FinalizeDepositETH, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
@@ -134,7 +136,8 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
 			// If erc20 msg don't match, alert it.
-			go ch.SlackNotify(fmt.Sprintf("erc20 deposit don't match, message: %v", msg))
+			data, _ := json.Marshal(msg)
+			go ch.SlackNotify(fmt.Sprintf("erc20 deposit don't match, message: %s", string(data)))
 			log.Error(
 				"the erc20 deposit count or amount doesn't match",
 				"start", start,
@@ -160,7 +163,8 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
 			// If erc721 event don't match, alert it.
-			go ch.SlackNotify(fmt.Sprintf("erc721 event don't match, message: %v", msg))
+			data, _ := json.Marshal(msg)
+			go ch.SlackNotify(fmt.Sprintf("erc721 event don't match, message: %s", string(data)))
 			log.Error("the erc721 deposit count or amount doesn't match", "start", start, "end", end, "event_type", orm.L2FinalizeDepositERC721, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
@@ -179,7 +183,8 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
 			// If erc1155 event don't match, alert it.
-			go ch.SlackNotify(fmt.Sprintf("erc1155 event don't match, message: %v", msg))
+			data, _ := json.Marshal(msg)
+			go ch.SlackNotify(fmt.Sprintf("erc1155 event don't match, message: %s", string(data)))
 			log.Error("the erc1155 deposit count or amount doesn't match", "start", start, "end", end, "event_type", orm.L2FinalizeDepositERC1155, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
