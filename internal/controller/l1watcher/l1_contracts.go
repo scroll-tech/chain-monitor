@@ -138,7 +138,7 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	ignore, _ := rand.Int(rand.Reader, big.NewInt(0).SetUint64((end-start+1)*2))
 
 	// store l1chain gateway events.
-	if err = l1.storeGatewayEvents(ignore.Uint64()); err != nil {
+	if err = l1.storeGatewayEvents(ignore.Uint64() + start); err != nil {
 		l1.tx.Rollback()
 		return 0, err
 	}
