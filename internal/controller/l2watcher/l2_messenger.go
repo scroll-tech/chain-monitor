@@ -36,7 +36,7 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 	})
 }
 
-func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end, ignore uint64) error {
+func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint64) error {
 	if len(l2.msgSentEvents) == 0 {
 		return nil
 	}
@@ -54,17 +54,14 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end, ign
 			})
 			continue
 		}
-		// If the number equal to ignore number, don't update withdraw root.
-		if number != ignore {
-			msgs := l2.msgSentEvents[number]
-			for i, msg := range msgs {
-				proofs := l2.withdraw.AppendMessages([]common.Hash{common.HexToHash(msg.MsgHash)})
-				// Store the latest one for every block.
-				if i == len(msgs)-1 {
-					msg.MsgProof = common.Bytes2Hex(proofs[0])
-				}
-				msgSentEvents = append(msgSentEvents, msgs[i])
+		msgs := l2.msgSentEvents[number]
+		for i, msg := range msgs {
+			proofs := l2.withdraw.AppendMessages([]common.Hash{common.HexToHash(msg.MsgHash)})
+			// Store the latest one for every block.
+			if i == len(msgs)-1 {
+				msg.MsgProof = common.Bytes2Hex(proofs[0])
 			}
+			msgSentEvents = append(msgSentEvents, msgs[i])
 		}
 		chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
 			Number:       number,

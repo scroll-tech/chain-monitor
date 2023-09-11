@@ -143,6 +143,18 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
+	// Store l1 confirm.
+	var l1Confirms = make([]orm.L1ChainConfirm, 0, end-start+1)
+	for number := start; number <= end; number++ {
+		l1Confirms = append(l1Confirms, orm.L1ChainConfirm{
+			Number: number,
+		})
+	}
+	if err = l1.tx.Save(l1Confirms).Error; err != nil {
+		l1.tx.Rollback()
+		return 0, err
+	}
+
 	// store the latest l1 block numbers
 	err = l1.tx.Save(&orm.L1Block{
 		Number:     end,
