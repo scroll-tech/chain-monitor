@@ -175,13 +175,13 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	ignore, _ := rand.Int(rand.Reader, big.NewInt(0).SetUint64((end-start+1)*2))
 
 	// store l2Messenger sentMessenger events.
-	if err = l2.storeMessengerEvents(ctx, start, end, ignore.Uint64()); err != nil {
+	if err = l2.storeMessengerEvents(ctx, start, end, ignore.Uint64()+start); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}
 
 	// store l2chain gateway events.
-	if err = l2.storeGatewayEvents(ignore.Uint64()); err != nil {
+	if err = l2.storeGatewayEvents(ignore.Uint64() + start); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}
