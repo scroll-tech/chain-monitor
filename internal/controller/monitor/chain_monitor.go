@@ -74,7 +74,7 @@ func (ch *ChainMonitor) SlackNotify(msg string) {
 		return
 	}
 	curTime := time.Now()
-	if int(curTime.Sub(ch.alertTime).Seconds()) < 2 {
+	if curTime.Sub(ch.alertTime).Milliseconds() < 500 {
 		return
 	}
 	ch.alertTime = curTime
