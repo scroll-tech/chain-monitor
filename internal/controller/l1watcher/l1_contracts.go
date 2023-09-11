@@ -2,6 +2,8 @@ package l1watcher
 
 import (
 	"context"
+	"crypto/rand"
+	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -132,9 +134,11 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		l1.tx.Rollback()
 		return 0, err
 	}
+	// About half of results is in [start, end] range.
+	ignore, _ := rand.Int(rand.Reader, big.NewInt(0).SetUint64((end-start+1)*2))
 
 	// store l1chain gateway events.
-	if err = l1.storeGatewayEvents(); err != nil {
+	if err = l1.storeGatewayEvents(ignore.Uint64()); err != nil {
 		l1.tx.Rollback()
 		return 0, err
 	}

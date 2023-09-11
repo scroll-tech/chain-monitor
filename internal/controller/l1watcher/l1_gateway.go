@@ -71,10 +71,14 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l1 *l1Contracts) storeGatewayEvents() error {
+func (l1 *l1Contracts) storeGatewayEvents(ignore uint64) error {
 	// store l1 eth events.
 	for i := 0; i < len(l1.ethEvents); i++ {
 		event := l1.ethEvents[i]
+		// The event should be ignored for test if event number equal to ignore.
+		if event.Number == ignore {
+			continue
+		}
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
 		}
@@ -88,6 +92,10 @@ func (l1 *l1Contracts) storeGatewayEvents() error {
 	// store l1 erc20 events.
 	for i := 0; i < len(l1.erc20Events); i++ {
 		event := l1.erc20Events[i]
+		// The event should be ignored for test if event number equal to ignore.
+		if event.Number == ignore {
+			continue
+		}
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
 		}
@@ -101,6 +109,10 @@ func (l1 *l1Contracts) storeGatewayEvents() error {
 	// store l1 err721 events.
 	for i := 0; i < len(l1.erc721Events); i++ {
 		event := l1.erc721Events[i]
+		// The event should be ignored for test if event number equal to ignore.
+		if event.Number == ignore {
+			continue
+		}
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
 		}
@@ -114,6 +126,10 @@ func (l1 *l1Contracts) storeGatewayEvents() error {
 	// store l1 erc1155 events.
 	for i := 0; i < len(l1.erc1155Events); i++ {
 		event := l1.erc1155Events[i]
+		// The event should be ignored for test if event number equal to ignore.
+		if event.Number == ignore {
+			continue
+		}
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
 		}
