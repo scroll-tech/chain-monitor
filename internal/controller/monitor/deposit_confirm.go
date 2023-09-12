@@ -20,18 +20,21 @@ var (
 from l2_eth_events as l2ee full join l1_eth_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
 where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
+
 	l2erc20SQL = `select 
     l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
     l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
 from l2_erc20_events as l2ee full join l1_erc20_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
 where l2ee.number BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
+
 	l2erc721SQL = `select 
     l1ee.tx_hash as l1_tx_hash, l1ee.token_id as l1_token_id, 
     l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.token_id as l2_token_id
 from l2_erc721_events as l2ee full join l1_erc721_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
+
 	l2erc1155SQL = `select 
     l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, l1ee.token_id as l1_token_id, 
     l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id

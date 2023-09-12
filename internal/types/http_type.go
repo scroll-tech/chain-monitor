@@ -23,10 +23,11 @@ type QueryByBatchIndexOrHashRequest struct {
 	BatchHash  common.Hash `json:"batch_hash" binding:"required"`
 }
 
-// QueryByNumber request withdraw root by block number.
-type QueryByNumber struct {
+// QueryByBatchNumber request withdraw root by block number.
+type QueryByBatchNumber struct {
 	// block number
-	Number uint64 `form:"block_number" binding:"required"`
+	StartNumber uint64 `form:"start_number" binding:"required"`
+	EndNumber   uint64 `form:"end_number" binding:"required"`
 }
 
 // Response the response schema

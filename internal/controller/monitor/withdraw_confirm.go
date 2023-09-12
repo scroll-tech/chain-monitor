@@ -14,26 +14,29 @@ import (
 
 var (
 	l1ethSQL = `select 
-    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
+    l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.amount as l2_amount 
 from l2_eth_events as l2ee full join l1_eth_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
+
 	l1erc20SQL = `select 
-    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
+    l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.amount as l2_amount 
 from l2_erc20_events as l2ee full join l1_erc20_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
 where l1ee.number BETWEEN ? AND ? and l1ee.type in (?, ?, ?, ?);`
+
 	l1erc721SQL = `select 
-    l1ee.tx_hash as l1_tx_hash, l1ee.token_id as l1_token_id, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.token_id as l2_token_id
+   l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.token_id as l1_token_id, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.token_id as l2_token_id
 from l2_erc721_events as l2ee full join l1_erc721_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
+
 	l1erc1155SQL = `select 
-    l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, l1ee.token_id as l1_token_id, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id
+    l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, l1ee.token_id as l1_token_id, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id
 from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
@@ -107,9 +110,9 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 	for i := 0; i < len(ethEvents); i++ {
 		msg := ethEvents[i]
 		if msg.L1Amount != msg.L2Amount {
-			if !flagNumbers[msg.L2Number] {
-				flagNumbers[msg.L2Number] = true
-				failedNumbers = append(failedNumbers, msg.L2Number)
+			if !flagNumbers[msg.L1Number] {
+				flagNumbers[msg.L1Number] = true
+				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			// If eth msg don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("eth withdraw doesn't match, message: %v", msg))
@@ -131,9 +134,9 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 	for i := 0; i < len(erc20Events); i++ {
 		msg := erc20Events[i]
 		if msg.L1Amount != msg.L2Amount {
-			if !flagNumbers[msg.L2Number] {
-				flagNumbers[msg.L2Number] = true
-				failedNumbers = append(failedNumbers, msg.L2Number)
+			if !flagNumbers[msg.L1Number] {
+				flagNumbers[msg.L1Number] = true
+				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			// If erc20 msg don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc20 withdraw doesn't match, message: %v", msg))
@@ -157,9 +160,9 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 	for i := 0; i < len(erc721Events); i++ {
 		msg := erc721Events[i]
 		if msg.L1TokenID != msg.L2TokenID {
-			if !flagNumbers[msg.L2Number] {
-				flagNumbers[msg.L2Number] = true
-				failedNumbers = append(failedNumbers, msg.L2Number)
+			if !flagNumbers[msg.L1Number] {
+				flagNumbers[msg.L1Number] = true
+				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			// If erc721 event don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc721 withdraw doesn't match, message: %v", msg))
@@ -176,9 +179,9 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 	for i := 0; i < len(erc1155Events); i++ {
 		msg := erc1155Events[i]
 		if msg.L1TokenID != msg.L2TokenID || msg.L1Amount != msg.L2Amount {
-			if !flagNumbers[msg.L2Number] {
-				flagNumbers[msg.L2Number] = true
-				failedNumbers = append(failedNumbers, msg.L2Number)
+			if !flagNumbers[msg.L1Number] {
+				flagNumbers[msg.L1Number] = true
+				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			// If erc1155 event don't match, alert it.
 			go ch.SlackNotify(fmt.Sprintf("erc1155 withdraw doesn't match, message: %v", msg))

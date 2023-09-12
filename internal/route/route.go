@@ -30,5 +30,5 @@ func Route(db *gorm.DB) http.Handler {
 
 func v1(router *gin.RouterGroup, db *gorm.DB) {
 	monitorCtrler := controller.NewMetricsController(db)
-	router.GET("/block_status", monitorCtrler.ConfirmWithdrawRoot)
+	router.GET("/blocks_status", monitorCtrler.ConfirmWithdrawRoot)
 }

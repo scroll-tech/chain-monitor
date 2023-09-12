@@ -65,3 +65,16 @@ make chain-monitor
 # `--pprof` it's used for performance analysis
 ./build/bin/chain-monitor --config config.json --pprof
 ```
+
+# API call
+```
+request:
+curl --location 'http://localhost:8750/v1/blocks_status?start_number=528638&end_number=529638'
+
+response:
+{
+    "errcode": 0,
+    "errmsg": "",
+    "data": false
+}
+```
