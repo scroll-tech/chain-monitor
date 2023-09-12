@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -115,7 +116,8 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			// If eth msg don't match, alert it.
-			go ch.SlackNotify(fmt.Sprintf("eth withdraw doesn't match, message: %v", msg))
+			data, _ := json.Marshal(msg)
+			go ch.SlackNotify(fmt.Sprintf("eth withdraw doesn't match, message: %s", string(data)))
 			log.Error("the eth withdraw count or amount doesn't match", "start", start, "end", end, "event_type", orm.L1FinalizeWithdrawETH, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
@@ -139,7 +141,8 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			// If erc20 msg don't match, alert it.
-			go ch.SlackNotify(fmt.Sprintf("erc20 withdraw doesn't match, message: %v", msg))
+			data, _ := json.Marshal(msg)
+			go ch.SlackNotify(fmt.Sprintf("erc20 withdraw doesn't match, message: %s", string(data)))
 			log.Error(
 				"the erc20 withdraw count or amount doesn't match",
 				"start", start,
@@ -165,7 +168,8 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			// If erc721 event don't match, alert it.
-			go ch.SlackNotify(fmt.Sprintf("erc721 withdraw doesn't match, message: %v", msg))
+			data, _ := json.Marshal(msg)
+			go ch.SlackNotify(fmt.Sprintf("erc721 withdraw doesn't match, message: %s", string(data)))
 			log.Error("the erc721 withdraw count or amount doesn't match", "start", start, "end", end, "event_type", orm.L1FinalizeWithdrawERC721, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
@@ -184,7 +188,8 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			// If erc1155 event don't match, alert it.
-			go ch.SlackNotify(fmt.Sprintf("erc1155 withdraw doesn't match, message: %v", msg))
+			data, _ := json.Marshal(msg)
+			go ch.SlackNotify(fmt.Sprintf("erc1155 withdraw doesn't match, message: %s", string(data)))
 			log.Error("the erc1155 withdraw count or amount doesn't match", "start", start, "end", end, "event_type", orm.L1FinalizeWithdrawERC1155, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
