@@ -69,5 +69,6 @@ func TestConfirmWithdrawEvents(t *testing.T) {
 	monior, err := NewChainMonitor(cfg.ChainMonitor, db, nil, nil)
 	assert.NoError(t, err)
 	failedNumbers, err := monior.confirmWithdrawEvents(context.Background(), 4114111, 4114811)
+	assert.NoError(t, err)
 	t.Log(failedNumbers)
 }
