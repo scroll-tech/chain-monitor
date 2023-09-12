@@ -69,7 +69,7 @@ make chain-monitor
 # API call
 ```
 request:
-curl --location 'http://localhost:8750/v1/block_status?start_number=528638&end_number=529638'
+curl --location 'http://localhost:8750/v1/blocks_status?start_number=528638&end_number=529638'
 
 response:
 {
