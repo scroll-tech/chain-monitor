@@ -1,12 +1,16 @@
 package monitor
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+
+	"chain-monitor/internal/config"
+	"chain-monitor/internal/utils"
 )
 
 func TestMonitor(t *testing.T) {
@@ -39,4 +43,31 @@ func TestMonitor(t *testing.T) {
 	request = request.SetFormData(payload)
 	_, err = request.Post(slackWebhookURL)
 	assert.NoError(t, err)
+}
+
+func TestConfirmDepositEvents(t *testing.T) {
+	cfg, err := config.NewConfig("../../../config.json")
+	assert.NoError(t, err)
+	// Create db instance.
+	db, err := utils.InitDB(cfg.DBConfig)
+	assert.NoError(t, err)
+	// Create monitor instance.
+	monior, err := NewChainMonitor(cfg.ChainMonitor, db, nil, nil)
+	assert.NoError(t, err)
+	failedNumbers, err := monior.confirmDepositEvents(context.Background(), 528638, 529638)
+	assert.NoError(t, err)
+	t.Log(failedNumbers)
+}
+
+func TestConfirmWithdrawEvents(t *testing.T) {
+	cfg, err := config.NewConfig("../../../config.json")
+	assert.NoError(t, err)
+	// Create db instance.
+	db, err := utils.InitDB(cfg.DBConfig)
+	assert.NoError(t, err)
+	// Create monitor instance.
+	monior, err := NewChainMonitor(cfg.ChainMonitor, db, nil, nil)
+	assert.NoError(t, err)
+	failedNumbers, err := monior.confirmWithdrawEvents(context.Background(), 4114111, 4114811)
+	t.Log(failedNumbers)
 }

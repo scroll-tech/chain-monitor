@@ -20,23 +20,17 @@ func NewMetricsController(db *gorm.DB) *ChainConfirm {
 
 // ConfirmWithdrawRoot returns the batch status based on the requested block number.
 func (m *ChainConfirm) ConfirmWithdrawRoot(ctx *gin.Context) {
-	var req types.QueryByNumber
+	var req types.QueryByBatchNumber
 	err := ctx.ShouldBind(&req)
 	if err != nil {
 		types.RenderJSON(ctx, types.ErrParameterInvalidNo, err, nil)
 		return
 	}
 
-	l2Confirm, err := orm.GetL2ConfirmMsgByNumber(m.db, req.Number)
+	l2FailedConfirms, err := orm.GetL2ConfirmMsgByNumber(m.db, req.StartNumber, req.EndNumber)
 	if err != nil {
 		types.RenderJSON(ctx, types.ErrConfirmWithdrawRootByNumber, err, nil)
 		return
 	}
-
-	types.RenderJSON(
-		ctx,
-		types.Success,
-		nil,
-		l2Confirm.WithdrawRootStatus && l2Confirm.DepositStatus,
-	)
+	types.RenderJSON(ctx, types.Success, nil, len(l2FailedConfirms) == 0)
 }
