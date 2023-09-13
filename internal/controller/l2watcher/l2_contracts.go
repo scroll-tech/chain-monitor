@@ -2,7 +2,6 @@ package l2watcher
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"math/big"
 
@@ -171,8 +170,6 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		l2.tx.Rollback()
 		return 0, err
 	}
-	// About half of results is in [start, end] range.
-	ignore, _ := rand.Int(rand.Reader, big.NewInt(0).SetUint64((end-start+1)*2))
 
 	// store l2Messenger sentMessenger events.
 	if err = l2.storeMessengerEvents(ctx, start, end); err != nil {
@@ -181,7 +178,7 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	}
 
 	// store l2chain gateway events.
-	if err = l2.storeGatewayEvents(ignore.Uint64() + start); err != nil {
+	if err = l2.storeGatewayEvents(); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}

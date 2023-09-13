@@ -71,14 +71,10 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l1 *l1Contracts) storeGatewayEvents(ignore uint64) error {
+func (l1 *l1Contracts) storeGatewayEvents() error {
 	// store l1 eth events.
 	for i := 0; i < len(l1.ethEvents); i++ {
 		event := l1.ethEvents[i]
-		// The event should be ignored for test if event number equal to ignore.
-		if event.Number == ignore {
-			event.Amount = big.NewInt(0).SetUint64(ignore)
-		}
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
 		}
@@ -92,10 +88,6 @@ func (l1 *l1Contracts) storeGatewayEvents(ignore uint64) error {
 	// store l1 erc20 events.
 	for i := 0; i < len(l1.erc20Events); i++ {
 		event := l1.erc20Events[i]
-		// The event should be ignored for test if event number equal to ignore.
-		if event.Number == ignore {
-			event.Amount = big.NewInt(0).SetUint64(ignore)
-		}
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
 		}
