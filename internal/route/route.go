@@ -30,5 +30,6 @@ func Route(db *gorm.DB) http.Handler {
 
 func v1(router *gin.RouterGroup, db *gorm.DB) {
 	monitorCtrler := controller.NewMetricsController(db)
-	router.GET("/blocks_status", monitorCtrler.ConfirmWithdrawRoot)
+	router.GET("/blocks_status", monitorCtrler.ConfirmBlocksStatus)
+	router.GET("/batch_status", monitorCtrler.ConfirmBatchStatus)
 }

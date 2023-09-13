@@ -12,8 +12,10 @@ const (
 	Success = 0
 	// ErrParameterInvalidNo is invalid params
 	ErrParameterInvalidNo = 40001
-	// ErrConfirmWithdrawRootByNumber failed to get confirm batch
-	ErrConfirmWithdrawRootByNumber = 40005
+	// ErrBlocksStatus failed to get blocks status
+	ErrBlocksStatus = 40005
+	// ErrBatchStatus failed to get batch status
+	ErrBatchStatus = 40006
 )
 
 // QueryByBatchIndexOrHashRequest the request parameter of batch index api
@@ -28,6 +30,11 @@ type QueryByBatchNumber struct {
 	// block number
 	StartNumber uint64 `form:"start_number" binding:"required"`
 	EndNumber   uint64 `form:"end_number" binding:"required"`
+}
+
+// QueryByBatchIndex request withdraw root by block number.
+type QueryByBatchIndex struct {
+	BatchIndex uint64 `form:"batch_index" binding:"required"`
 }
 
 // Response the response schema
