@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
+
+	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/urfave/cli/v2"
 
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller/l1watcher"
