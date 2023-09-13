@@ -1,5 +1,7 @@
 package orm
 
+import "gorm.io/gorm"
+
 // BatchType batch event types.
 type BatchType uint8
 
@@ -31,4 +33,15 @@ type L1ScrollChainEvent struct {
 	L2EndNumber   uint64 `gorm:"comment: l2chain block end number contained in this batch"`
 
 	Status BatchType `gorm:"index"`
+}
+
+// GetBatchByIndex gets L1ScrollChainEvent by batch_index.
+func GetBatchByIndex(db *gorm.DB, index uint64) (*L1ScrollChainEvent, error) {
+	var scrollChain L1ScrollChainEvent
+	tx := db.Model(&L1ScrollChainEvent{}).Where("batch_index = ?", index)
+	err := tx.Last(&scrollChain).Error
+	if err != nil {
+		return nil, err
+	}
+	return &scrollChain, nil
 }
