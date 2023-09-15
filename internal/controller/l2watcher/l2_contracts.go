@@ -21,8 +21,10 @@ import (
 )
 
 type l2Contracts struct {
-	tx     *gorm.DB
-	cfg    *config.Gateway
+	tx        *gorm.DB
+	cfg       *config.Gateway
+	chainName string
+
 	rpcCli *rpc.Client
 	client *ethclient.Client
 
@@ -196,7 +198,7 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		l2.tx.Rollback()
 		return 0, err
 	}
-	controller.L2BlockNumber.Set(float64(end))
+	controller.BlockNumber.WithLabelValues(l2.chainName).Set(float64(end))
 	return count, nil
 }
 
