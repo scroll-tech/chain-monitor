@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"chain-monitor/common/types"
 	"chain-monitor/internal/orm"
-	"chain-monitor/internal/types"
 )
 
 // ChainConfirm controller is responsible for handling confirmation operations on the chain.
@@ -15,7 +17,9 @@ type ChainConfirm struct {
 
 // NewMetricsController creates and returns a new instance of the ChainConfirm controller.
 func NewMetricsController(db *gorm.DB) *ChainConfirm {
-	return &ChainConfirm{db: db}
+	return &ChainConfirm{
+		db: db,
+	}
 }
 
 func (m *ChainConfirm) confirmBlocksStatus(start, end uint64) (bool, error) {
@@ -28,6 +32,11 @@ func (m *ChainConfirm) confirmBlocksStatus(start, end uint64) (bool, error) {
 
 // ConfirmBlocksStatus returns the blocks status based on the requested start_number and end_number.
 func (m *ChainConfirm) ConfirmBlocksStatus(ctx *gin.Context) {
+	curTime := time.Now()
+	defer func() {
+		millUsed := time.Since(curTime).Milliseconds()
+		BlocksStatusTimeSecUsed.Set(float64(millUsed) / 1000)
+	}()
 	var req types.QueryByBatchNumber
 	err := ctx.ShouldBind(&req)
 	if err != nil {
@@ -45,6 +54,11 @@ func (m *ChainConfirm) ConfirmBlocksStatus(ctx *gin.Context) {
 
 // ConfirmBatchStatus returns the batch status based on the requested batch index.
 func (m *ChainConfirm) ConfirmBatchStatus(ctx *gin.Context) {
+	curTime := time.Now()
+	defer func() {
+		millUsed := time.Since(curTime).Milliseconds()
+		BatchStatusTimeSecUsed.Set(float64(millUsed) / 1000)
+	}()
 	var req types.QueryByBatchIndex
 	err := ctx.ShouldBind(&req)
 	if err != nil {

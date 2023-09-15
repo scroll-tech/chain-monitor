@@ -165,6 +165,7 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		l1.tx.Rollback()
 		return 0, err
 	}
+	controller.L1BlockNumber.Set(float64(end))
 	return count, nil
 }
 

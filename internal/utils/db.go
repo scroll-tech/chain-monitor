@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"database/sql"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -41,4 +43,17 @@ func CloseDB(db *gorm.DB) error {
 		return err
 	}
 	return nil
+}
+
+// Ping check db status
+func Ping(db *gorm.DB) (*sql.DB, error) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = sqlDB.Ping(); err != nil {
+		return nil, err
+	}
+	return sqlDB, nil
 }

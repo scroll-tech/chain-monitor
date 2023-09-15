@@ -6,10 +6,12 @@ import (
 	"github.com/scroll-tech/go-ethereum/core/types"
 )
 
+//go:generate stringer -type EventType
+
 // EventType represents the type of blockchain event.
 type EventType uint8
 
-var (
+const (
 	// L1DepositETH represents the event for depositing ETH on Layer 1.
 	L1DepositETH EventType = 1
 	// L1FinalizeWithdrawETH represents the event for finalizing ETH withdrawal on Layer 1.

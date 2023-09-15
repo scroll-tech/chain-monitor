@@ -6,10 +6,12 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 
 	"chain-monitor/internal/config"
+	"chain-monitor/internal/controller"
 	"chain-monitor/internal/controller/l1watcher"
 	"chain-monitor/internal/controller/l2watcher"
 	"chain-monitor/internal/controller/monitor"
@@ -67,8 +69,19 @@ func action(ctx *cli.Context) error {
 		}
 	}
 
-	// Start onchain_metrics server.
-	utils.StartServer(ctx, route.Route(db.WithContext(subCtx)))
+	reg := prometheus.NewRegistry()
+	// A new registry instance.
+	controller.InitMonitorMetrics(reg)
+
+	// Start chain-monitor api server.
+	if ctx.Bool(utils.HTTPEnabledFlag.Name) {
+		endpoint := fmt.Sprintf(
+			"%s:%d",
+			ctx.String(utils.HTTPListenAddrFlag.Name),
+			ctx.Int(utils.HTTPPortFlag.Name),
+		)
+		utils.StartServer(subCtx, endpoint, route.APIHandler(ctx, db.WithContext(subCtx), reg))
+	}
 
 	l1Watcher, err := l1watcher.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
 	if err != nil {

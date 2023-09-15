@@ -1,6 +1,7 @@
 package l2watcher
 
 import (
+	"chain-monitor/internal/controller"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -12,61 +13,75 @@ import (
 
 func (l2 *l2Contracts) registerGatewayHandlers() {
 	l2.ETHGateway.RegisterWithdrawETH(func(vLog *types.Log, data *gateway.L2ETHGatewayWithdrawETHEvent) error {
+		controller.ETHEventTotal.WithLabelValues(orm.L2WithdrawETH.String()).Inc()
 		l2.ethEvents = append(l2.ethEvents, newL2ETHEvent(orm.L2WithdrawETH, vLog, data.Amount))
 		return nil
 	})
 	l2.ETHGateway.RegisterFinalizeDepositETH(func(vLog *types.Log, data *gateway.L2ETHGatewayFinalizeDepositETHEvent) error {
+		controller.ETHEventTotal.WithLabelValues(orm.L2FinalizeDepositETH.String()).Inc()
 		l2.ethEvents = append(l2.ethEvents, newL2ETHEvent(orm.L2FinalizeDepositETH, vLog, data.Amount))
 		return nil
 	})
 
 	l2.WETHGateway.RegisterWithdrawERC20(func(vLog *types.Log, data *gateway.L2WETHGatewayWithdrawERC20Event) error {
+		controller.WETHEventTotal.WithLabelValues(orm.L2WithdrawWETH.String()).Inc()
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2WithdrawWETH, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 	l2.WETHGateway.RegisterFinalizeDepositERC20(func(vLog *types.Log, data *gateway.L2WETHGatewayFinalizeDepositERC20Event) error {
+		controller.WETHEventTotal.WithLabelValues(orm.L2FinalizeDepositWETH.String()).Inc()
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2FinalizeDepositWETH, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 	l2.DAIGateway.RegisterWithdrawERC20(func(vLog *types.Log, data *gateway.L2DAIGatewayWithdrawERC20Event) error {
+		controller.DAIEventTotal.WithLabelValues(orm.L2WithdrawDAI.String()).Inc()
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2WithdrawDAI, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 	l2.DAIGateway.RegisterFinalizeDepositERC20(func(vLog *types.Log, data *gateway.L2DAIGatewayFinalizeDepositERC20Event) error {
+		controller.DAIEventTotal.WithLabelValues(orm.L2FinalizeDepositDAI.String()).Inc()
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2FinalizeDepositDAI, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 	l2.StandardERC20Gateway.RegisterWithdrawERC20(func(vLog *types.Log, data *gateway.L2StandardERC20GatewayWithdrawERC20Event) error {
+		controller.StandardERC20EventsTotal.WithLabelValues(orm.L2WithdrawStandardERC20.String()).Inc()
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2WithdrawStandardERC20, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 	l2.StandardERC20Gateway.RegisterFinalizeDepositERC20(func(vLog *types.Log, data *gateway.L2StandardERC20GatewayFinalizeDepositERC20Event) error {
+		controller.StandardERC20EventsTotal.WithLabelValues(orm.L2FinalizeDepositStandardERC20.String()).Inc()
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2FinalizeDepositStandardERC20, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 	l2.CustomERC20Gateway.RegisterWithdrawERC20(func(vLog *types.Log, data *gateway.L2CustomERC20GatewayWithdrawERC20Event) error {
+		controller.CustomERC20EventsTotal.WithLabelValues(orm.L2WithdrawCustomERC20.String()).Inc()
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2WithdrawCustomERC20, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 	l2.CustomERC20Gateway.RegisterFinalizeDepositERC20(func(vLog *types.Log, data *gateway.L2CustomERC20GatewayFinalizeDepositERC20Event) error {
+		controller.CustomERC20EventsTotal.WithLabelValues(orm.L2FinalizeDepositCustomERC20.String()).Inc()
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2FinalizeDepositCustomERC20, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 
 	l2.ERC721Gateway.RegisterWithdrawERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayWithdrawERC721Event) error {
+		controller.ERC721EventsTotal.WithLabelValues(orm.L2WithdrawERC721.String()).Inc()
 		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2WithdrawERC721, vLog, data.L1Token, data.L2Token, data.TokenID))
 		return nil
 	})
 	l2.ERC721Gateway.RegisterFinalizeDepositERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayFinalizeDepositERC721Event) error {
+		controller.ERC721EventsTotal.WithLabelValues(orm.L2FinalizeDepositERC721.String()).Inc()
 		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2FinalizeDepositERC721, vLog, data.L1Token, data.L2Token, data.TokenID))
 		return nil
 	})
 
 	l2.ERC1155Gateway.RegisterWithdrawERC1155(func(vLog *types.Log, data *gateway.L2ERC1155GatewayWithdrawERC1155Event) error {
+		controller.ERC1155EventsTotal.WithLabelValues(orm.L2WithdrawERC1155.String()).Inc()
 		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2WithdrawERC1155, vLog, data.L1Token, data.L2Token, data.TokenID, data.Amount))
 		return nil
 	})
 	l2.ERC1155Gateway.RegisterFinalizeDepositERC1155(func(vLog *types.Log, data *gateway.L2ERC1155GatewayFinalizeDepositERC1155Event) error {
+		controller.ERC1155EventsTotal.WithLabelValues(orm.L2FinalizeDepositERC1155.String()).Inc()
 		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2FinalizeDepositERC1155, vLog, data.L1Token, data.L2Token, data.TokenID, data.Amount))
 		return nil
 	})

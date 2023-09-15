@@ -1,24 +1,19 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/urfave/cli/v2"
 )
 
 // StartServer initializes and starts an HTTP server based on provided CLI context settings.
 // If the HTTP-RPC server is enabled via CLI context, it sets up the server using the provided
 // handler and other context flags such as listen address and port.
 // The server will listen and serve until the context is done, after which it will gracefully shut down.
-func StartServer(ctx *cli.Context, handler http.Handler) {
-	if !ctx.Bool(httpEnabledFlag.Name) {
-		return
-	}
-	endpoint := fmt.Sprintf("%s:%d", ctx.String(httpListenAddrFlag.Name), ctx.Int(httpPortFlag.Name))
-
+func StartServer(ctx context.Context, endpoint string, handler http.Handler) {
 	srv := &http.Server{
 		Handler:      handler,
 		Addr:         endpoint,
@@ -28,7 +23,7 @@ func StartServer(ctx *cli.Context, handler http.Handler) {
 	}
 
 	go func() {
-		<-ctx.Context.Done()
+		<-ctx.Done()
 		if err := srv.Close(); err != nil {
 			log.Crit("failed to close chain_monitor serer", "err", err)
 		}
