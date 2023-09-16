@@ -35,6 +35,9 @@ var (
 	WithdrawFailedTotal *prometheus.CounterVec
 	// WithdrawRootMisMatchTotal The count of mismatch withdraw root.
 	WithdrawRootMisMatchTotal prometheus.Counter
+
+	// WorkerStartedTotal The count of started goroutine workers.
+	WorkerStartedTotal *prometheus.CounterVec
 )
 
 // InitMonitorMetrics returns a new monitor metrics instance.
@@ -98,4 +101,8 @@ func init() {
 		Name: "mismatch_withdraw_root_total",
 		Help: "The count of mismatch withdraw root.",
 	})
+	WorkerStartedTotal = factory.NewCounterVec(prometheus.CounterOpts{
+		Name: "started_worker_total",
+		Help: "The count of started goroutine workers.",
+	}, []string{"worker_name"})
 }

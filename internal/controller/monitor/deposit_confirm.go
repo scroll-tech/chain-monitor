@@ -12,6 +12,7 @@ import (
 
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
+	"chain-monitor/internal/utils"
 )
 
 var (
@@ -89,6 +90,10 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 		return
 	}
 	ch.depositStartNumber = end
+
+	// Metrics records current goroutine.
+	name := utils.GetFuncName()
+	controller.WorkerStartedTotal.WithLabelValues(name).Inc()
 
 	log.Info("confirm layer2 deposit transactions", "start", start, "end", end)
 }
