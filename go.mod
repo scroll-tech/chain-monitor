@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/bits-and-blooms/bitset v1.8.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
-	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-resty/resty/v2 v2.7.0
