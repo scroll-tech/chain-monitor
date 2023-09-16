@@ -43,6 +43,14 @@ func Server(c *cli.Context, db *gorm.DB) {
 		Handler:           r,
 		ReadHeaderTimeout: time.Minute,
 	}
+
+	go func() {
+		<-c.Context.Done()
+		if err := server.Close(); err != nil {
+			log.Crit("failed to close metrics server", "err", err)
+		}
+	}()
+
 	log.Info("Starting metrics server", "address", address)
 
 	go func() {

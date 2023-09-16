@@ -26,11 +26,6 @@ var (
 	ERC721EventsTotal *prometheus.CounterVec
 	// ERC1155EventsTotal Prometheus counter vector for tracking total ERC-1155 events.
 	ERC1155EventsTotal *prometheus.CounterVec
-
-	// BatchStatusTimeSecUsed Prometheus gauge for measuring time used for batch status.
-	BatchStatusTimeSecUsed prometheus.Gauge
-	// BlocksStatusTimeSecUsed Prometheus gauge for measuring time used for blocks status.
-	BlocksStatusTimeSecUsed prometheus.Gauge
 )
 
 // InitMonitorMetrics returns a new monitor metrics instance.
@@ -74,12 +69,4 @@ func initMonitorMetrics(reg prometheus.Registerer) {
 		Name: "erc1155_gateway_event_total",
 		Help: "Four types of erc1155 events on l1chain or l2chain.",
 	}, []string{"chain_name", "event_name"})
-	BatchStatusTimeSecUsed = factory.NewGauge(prometheus.GaugeOpts{
-		Name: "batch_status_api_time_sec_used",
-		Help: "batch_status api time(sec) used",
-	})
-	BlocksStatusTimeSecUsed = factory.NewGauge(prometheus.GaugeOpts{
-		Name: "blocks_status_api_time_sec_used",
-		Help: "blocks api time(sec) used",
-	})
 }

@@ -21,8 +21,8 @@ var (
 		&logDebugFlag,
 
 		&MetricsEnabled,
-		//&MetricsAddr,
-		//&MetricsPort,
+		&MetricsAddr,
+		&MetricsPort,
 
 		&pprofFlag,
 		&pprofPortFlag,

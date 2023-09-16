@@ -10,6 +10,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 
+	"chain-monitor/common/observability"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/controller/l1watcher"
@@ -69,7 +70,7 @@ func action(ctx *cli.Context) error {
 		}
 	}
 
-	reg := prometheus.NewRegistry()
+	reg := prometheus.DefaultRegisterer
 	// A new registry instance.
 	controller.InitMonitorMetrics(reg)
 
@@ -80,8 +81,11 @@ func action(ctx *cli.Context) error {
 			ctx.String(utils.HTTPListenAddrFlag.Name),
 			ctx.Int(utils.HTTPPortFlag.Name),
 		)
-		utils.StartServer(subCtx, endpoint, route.APIHandler(ctx, db.WithContext(subCtx), reg))
+		utils.StartServer(subCtx, endpoint, route.APIHandler(db.WithContext(subCtx)))
 	}
+
+	// Start metrics server.
+	observability.Server(ctx, db)
 
 	l1Watcher, err := l1watcher.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
 	if err != nil {
