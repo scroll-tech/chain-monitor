@@ -65,6 +65,7 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*l2Con
 			rpcCli:        rpcCli,
 			client:        client,
 			cfg:           cfg,
+			chainName:     "l2_chain",
 			withdraw:      msgproof.NewWithdrawTrie(),
 			txHashMsgHash: map[string]common.Hash{},
 		}
@@ -169,6 +170,7 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	l2.tx = db.Begin().WithContext(ctx)
 	count, err := l2.filter.ParseLogs(ctx, l2.client, start, end)
 	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
 		l2.tx.Rollback()
 		return 0, err
 	}
@@ -198,7 +200,6 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		l2.tx.Rollback()
 		return 0, err
 	}
-	controller.BlockNumber.WithLabelValues(l2.chainName).Set(float64(end))
 	return count, nil
 }
 

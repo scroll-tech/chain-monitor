@@ -13,6 +13,7 @@ import (
 	"modernc.org/mathutil"
 
 	"chain-monitor/internal/config"
+	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils"
 )
@@ -140,6 +141,7 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		number = mathutil.MaxUint64(number, l1.SafeNumber())
 		l1.setSafeNumber(number)
 		l1.curTime = curTime
+		controller.BlockNumber.WithLabelValues(l1.filter.chainName).Set(float64(number))
 	}
 
 	// Scan l2chain number one by one.
@@ -183,6 +185,10 @@ func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	// TODO: A deeper rollback is required
 	if len(l1.headerCache) == 0 {
 		panic(fmt.Errorf("l1chain reorged too deep"))
+	}
+	// Record reorg times.
+	if len(reorgNumbers) > 0 {
+		controller.ReorgTotal.WithLabelValues(l1.filter.chainName).Inc()
 	}
 
 	// Reorg stored events if the reorg headers is not empty.

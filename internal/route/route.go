@@ -4,10 +4,15 @@ import (
 	"net/http"
 	"time"
 
+	// enable the pprof
+	_ "net/http/pprof"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 
+	"chain-monitor/common/observability"
 	"chain-monitor/internal/controller"
 )
 
@@ -21,6 +26,14 @@ func APIHandler(db *gorm.DB) http.Handler {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Add api metrics.
+	observability.Use(router, "chain_monitor", prometheus.DefaultRegisterer)
+
+	// Add health and ready api for k8s.
+	probes := observability.NewProbesController(db)
+	router.GET("/health", probes.HealthCheck)
+	router.GET("/ready", probes.Ready)
 
 	// use v1 version
 	v1(router.Group("/v1"), db)

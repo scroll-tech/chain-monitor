@@ -6,13 +6,11 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 
 	"chain-monitor/common/observability"
 	"chain-monitor/internal/config"
-	"chain-monitor/internal/controller"
 	"chain-monitor/internal/controller/l1watcher"
 	"chain-monitor/internal/controller/l2watcher"
 	"chain-monitor/internal/controller/monitor"
@@ -69,10 +67,6 @@ func action(ctx *cli.Context) error {
 			return migrate.Rollback(db, ctx.Int64(utils.DBRollBackFlag.Name))
 		}
 	}
-
-	reg := prometheus.DefaultRegisterer
-	// A new registry instance.
-	controller.InitMonitorMetrics(reg)
 
 	// Start chain-monitor api server.
 	if ctx.Bool(utils.HTTPEnabledFlag.Name) {

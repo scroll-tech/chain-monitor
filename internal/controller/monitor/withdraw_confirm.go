@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"modernc.org/mathutil"
 
+	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
 )
 
@@ -22,7 +23,7 @@ from l2_eth_events as l2ee full join l1_eth_events as l1ee
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
 
 	l1erc20SQL = `select 
-    l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
+    l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.type as l1_type, l1ee.amount as l1_amount, 
     l2ee.tx_hash as l2_tx_hash, l2ee.amount as l2_amount 
 from l2_erc20_events as l2ee full join l1_erc20_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
@@ -115,6 +116,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				flagNumbers[msg.L1Number] = true
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
+			controller.WithdrawFailedTotal.WithLabelValues(orm.L1FinalizeWithdrawETH.String()).Inc()
 			// If eth msg don't match, alert it.
 			data, _ := json.Marshal(msg)
 			go ch.SlackNotify(fmt.Sprintf("eth withdraw doesn't match, message: %s", string(data)))
@@ -140,6 +142,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				flagNumbers[msg.L1Number] = true
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
+			controller.WithdrawFailedTotal.WithLabelValues(msg.L1Type.String()).Inc()
 			// If erc20 msg don't match, alert it.
 			data, _ := json.Marshal(msg)
 			go ch.SlackNotify(fmt.Sprintf("erc20 withdraw doesn't match, message: %s", string(data)))
@@ -167,6 +170,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				flagNumbers[msg.L1Number] = true
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
+			controller.WithdrawFailedTotal.WithLabelValues(orm.L1FinalizeWithdrawERC721.String()).Inc()
 			// If erc721 event don't match, alert it.
 			data, _ := json.Marshal(msg)
 			go ch.SlackNotify(fmt.Sprintf("erc721 withdraw doesn't match, message: %s", string(data)))
@@ -187,6 +191,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				flagNumbers[msg.L1Number] = true
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
+			controller.WithdrawFailedTotal.WithLabelValues(orm.L1FinalizeWithdrawERC1155.String()).Inc()
 			// If erc1155 event don't match, alert it.
 			data, _ := json.Marshal(msg)
 			go ch.SlackNotify(fmt.Sprintf("erc1155 withdraw doesn't match, message: %s", string(data)))
