@@ -9,7 +9,6 @@ import (
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 
-	"chain-monitor/common/observability"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller/l1watcher"
 	"chain-monitor/internal/controller/l2watcher"
@@ -86,9 +85,6 @@ func action(ctx *cli.Context) error {
 		)
 		utils.StartServer(subCtx, endpoint, route.MetricsHandler(db))
 	}
-
-	// Start metrics server.
-	observability.Server(ctx, db)
 
 	l1Watcher, err := l1watcher.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
 	if err != nil {
