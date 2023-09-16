@@ -79,6 +79,15 @@ func action(ctx *cli.Context) error {
 	}
 
 	// Start metrics server.
+	if ctx.Bool(utils.MetricsEnabled.Name) {
+		endpoint := fmt.Sprintf("%s:%d",
+			ctx.String(utils.MetricsAddr.Name),
+			ctx.Int(utils.MetricsPort.Name),
+		)
+		utils.StartServer(subCtx, endpoint, route.MetricsHandler(db))
+	}
+
+	// Start metrics server.
 	observability.Server(ctx, db)
 
 	l1Watcher, err := l1watcher.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))

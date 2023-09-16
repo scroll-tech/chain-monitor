@@ -29,7 +29,7 @@ func StartServer(ctx context.Context, endpoint string, handler http.Handler) {
 		}
 	}()
 
-	log.Info("starting chain_monitor server", "endpoint", fmt.Sprintf("http://%s/v1", endpoint))
+	log.Info("starting server", "endpoint", fmt.Sprintf("http://%s", endpoint))
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			log.Error("start chain_monitor server error", "error", err)
