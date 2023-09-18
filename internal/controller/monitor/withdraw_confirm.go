@@ -12,7 +12,6 @@ import (
 
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
-	"chain-monitor/internal/utils"
 )
 
 var (
@@ -95,8 +94,7 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 	ch.withdrawStartNumber = end
 
 	// Metrics records current goroutine.
-	name := utils.GetFuncName()
-	controller.WorkerStartedTotal.WithLabelValues(name).Inc()
+	controller.WorkerStartedTotal.WithLabelValues("withdraw_conform").Inc()
 
 	log.Info("confirm layer1 withdraw transactions", "start", start, "end", end)
 }

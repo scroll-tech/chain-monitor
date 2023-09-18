@@ -10,6 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"chain-monitor/internal/config"
+	"chain-monitor/internal/controller"
 	"chain-monitor/internal/controller/l1watcher"
 	"chain-monitor/internal/controller/l2watcher"
 	"chain-monitor/internal/controller/monitor"
@@ -66,6 +67,9 @@ func action(ctx *cli.Context) error {
 			return migrate.Rollback(db, ctx.Int64(utils.DBRollBackFlag.Name))
 		}
 	}
+
+	// Init metrics.
+	controller.InitChainMonitorMetrics()
 
 	// Start chain-monitor api server.
 	if ctx.Bool(utils.HTTPEnabledFlag.Name) {

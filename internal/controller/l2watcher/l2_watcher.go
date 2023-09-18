@@ -119,8 +119,7 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 	l2.setCurrentNumber(end)
 
 	// Metrics records current goroutine.
-	name := utils.GetFuncName()
-	controller.WorkerStartedTotal.WithLabelValues(name).Inc()
+	controller.WorkerStartedTotal.WithLabelValues("l2_watcher").Inc()
 
 	log.Info("scan l2chain successful", "start", start, "end", end, "event_count", count)
 }

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"runtime"
-	"strings"
 	"time"
 
 	"github.com/modern-go/reflect2"
@@ -161,13 +159,4 @@ func GetBatchWithdrawRoots(ctx context.Context, cli *rpc.Client, queueAddr commo
 	}
 
 	return withdrawRoots, eg.Wait()
-}
-
-// GetFuncName gets current function name.
-func GetFuncName() string {
-	pc := make([]uintptr, 1)
-	runtime.Callers(2, pc)
-	f := runtime.FuncForPC(pc[0])
-	paths := strings.Split(f.Name(), ".")
-	return paths[len(paths)-1]
 }

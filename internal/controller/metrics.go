@@ -40,9 +40,8 @@ var (
 	WorkerStartedTotal *prometheus.CounterVec
 )
 
-// InitMonitorMetrics returns a new monitor metrics instance.
-
-func init() {
+// InitChainMonitorMetrics init all the metrics for chain-metrics.
+func InitChainMonitorMetrics() {
 	factory := promauto.With(prometheus.DefaultRegisterer)
 	chainName := "chain_name"
 	eventName := "event_name"
