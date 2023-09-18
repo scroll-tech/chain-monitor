@@ -13,6 +13,7 @@ import (
 	"modernc.org/mathutil"
 
 	"chain-monitor/internal/config"
+	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils"
 )
@@ -117,6 +118,9 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 	}
 	l2.setCurrentNumber(end)
 
+	// Metrics records current goroutine.
+	controller.WorkerStartedTotal.WithLabelValues("l2_watcher").Inc()
+
 	log.Info("scan l2chain successful", "start", start, "end", end, "event_count", count)
 }
 
@@ -138,6 +142,7 @@ func (l2 *L2Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		number = mathutil.MaxUint64(number, l2.SafeNumber())
 		l2.setSafeNumber(number)
 		l2.curTime = curTime
+		controller.BlockNumber.WithLabelValues(l2.filter.chainName).Set(float64(number))
 	}
 	return start, start, nil
 }
@@ -177,6 +182,10 @@ func (l2 *L2Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	// TODO: A deeper rollback is required
 	if len(l2.headerCache) == 0 {
 		panic(fmt.Errorf("l2chain reorged too deep"))
+	}
+	// Record reorg times.
+	if len(reorgNumbers) > 0 {
+		controller.ReorgTotal.WithLabelValues(l2.filter.chainName).Inc()
 	}
 
 	// Reorg stored events if the reorg headers is not empty.

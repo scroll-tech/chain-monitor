@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"modernc.org/mathutil"
 
+	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
 )
 
@@ -23,7 +24,7 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 
 	l2erc20SQL = `select 
     l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.amount as l2_amount 
+    l2ee.tx_hash as l2_tx_hash, l2ee.number as l2_number, l2ee.type as l2_type, l2ee.amount as l2_amount 
 from l2_erc20_events as l2ee full join l1_erc20_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash  
 where l2ee.number BETWEEN ? AND ? and l2ee.type in (?, ?, ?, ?);`
@@ -60,10 +61,10 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 	// Get unmatched deposit
 	failedNumbers, err := ch.confirmDepositEvents(ctx, start, end)
 	if err != nil {
-
+		log.Error("failed to confirm deposit events", "start", start, "end", end, "err", err)
+		return
 	}
 	err = ch.db.Transaction(func(tx *gorm.DB) error {
-
 		// Update deposit records.
 		sTx := tx.Model(&orm.L2ChainConfirm{}).Select("deposit_status", "confirm").
 			Where("number BETWEEN ? AND ?", start, end)
@@ -80,7 +81,6 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 				return fTx.Error
 			}
 		}
-
 		return nil
 	})
 	if err != nil {
@@ -89,6 +89,9 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 		return
 	}
 	ch.depositStartNumber = end
+
+	// Metrics records current goroutine.
+	controller.WorkerStartedTotal.WithLabelValues("deposit_confirm").Inc()
 
 	log.Info("confirm layer2 deposit transactions", "start", start, "end", end)
 }
@@ -113,6 +116,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
+			controller.DepositFailedTotal.WithLabelValues(orm.L2FinalizeDepositETH.String()).Inc()
 			// If eth msg don't match, alert it.
 			data, _ := json.Marshal(msg)
 			go ch.SlackNotify(fmt.Sprintf("deposit eth don't match, message: %s", string(data)))
@@ -138,6 +142,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
+			controller.DepositFailedTotal.WithLabelValues(msg.L2Type.String()).Inc()
 			// If erc20 msg don't match, alert it.
 			data, _ := json.Marshal(msg)
 			go ch.SlackNotify(fmt.Sprintf("erc20 deposit don't match, message: %s", string(data)))
@@ -165,6 +170,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}
+			controller.DepositFailedTotal.WithLabelValues(orm.L2FinalizeDepositERC721.String()).Inc()
 			// If erc721 event don't match, alert it.
 			data, _ := json.Marshal(msg)
 			go ch.SlackNotify(fmt.Sprintf("erc721 event don't match, message: %s", string(data)))

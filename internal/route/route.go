@@ -2,26 +2,27 @@ package route
 
 import (
 	"net/http"
-	"time"
 
+	// enable the pprof
+	_ "net/http/pprof"
+
+	"github.com/gin-contrib/pprof"
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gorm.io/gorm"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-
+	"chain-monitor/common/observability"
 	"chain-monitor/internal/controller"
 )
 
-// Route routes the APIs
-func Route(db *gorm.DB) http.Handler {
+// APIHandler routes the APIs
+func APIHandler(db *gorm.DB) http.Handler {
 	router := gin.New()
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+	router.Use(gin.Recovery())
+
+	// Register metrics.
+	observability.Use(router, "chain_monitor", prometheus.DefaultRegisterer)
 
 	// use v1 version
 	v1(router.Group("/v1"), db)
@@ -32,4 +33,21 @@ func v1(router *gin.RouterGroup, db *gorm.DB) {
 	monitorCtrler := controller.NewMetricsController(db)
 	router.GET("/blocks_status", monitorCtrler.ConfirmBlocksStatus)
 	router.GET("/batch_status", monitorCtrler.ConfirmBatchStatus)
+}
+
+// MetricsHandler metrics Handler.
+func MetricsHandler(db *gorm.DB) http.Handler {
+	router := gin.New()
+	router.Use(gin.Recovery())
+	pprof.Register(router)
+	router.GET("/metrics", func(context *gin.Context) {
+		promhttp.Handler().ServeHTTP(context.Writer, context.Request)
+	})
+
+	// Add health api for k8s.
+	probeController := observability.NewProbesController(db)
+	router.GET("/health", probeController.HealthCheck)
+	router.GET("/ready", probeController.Ready)
+
+	return router
 }

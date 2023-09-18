@@ -10,6 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"chain-monitor/internal/config"
+	"chain-monitor/internal/controller"
 	"chain-monitor/internal/controller/l1watcher"
 	"chain-monitor/internal/controller/l2watcher"
 	"chain-monitor/internal/controller/monitor"
@@ -67,8 +68,27 @@ func action(ctx *cli.Context) error {
 		}
 	}
 
-	// Start onchain_metrics server.
-	utils.StartServer(ctx, route.Route(db.WithContext(subCtx)))
+	// Init metrics.
+	controller.InitChainMonitorMetrics()
+
+	// Start chain-monitor api server.
+	if ctx.Bool(utils.HTTPEnabledFlag.Name) {
+		endpoint := fmt.Sprintf(
+			"%s:%d",
+			ctx.String(utils.HTTPListenAddrFlag.Name),
+			ctx.Int(utils.HTTPPortFlag.Name),
+		)
+		utils.StartServer(subCtx, endpoint, route.APIHandler(db.WithContext(subCtx)))
+	}
+
+	// Start metrics server.
+	if ctx.Bool(utils.MetricsEnabled.Name) {
+		endpoint := fmt.Sprintf("%s:%d",
+			ctx.String(utils.MetricsAddr.Name),
+			ctx.Int(utils.MetricsPort.Name),
+		)
+		utils.StartServer(subCtx, endpoint, route.MetricsHandler(db))
+	}
 
 	l1Watcher, err := l1watcher.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
 	if err != nil {

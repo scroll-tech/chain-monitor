@@ -11,18 +11,18 @@ var (
 	CommonFlags = []cli.Flag{
 		&ConfigFileFlag,
 
-		&httpEnabledFlag,
-		&httpListenAddrFlag,
-		&httpPortFlag,
+		&HTTPEnabledFlag,
+		&HTTPListenAddrFlag,
+		&HTTPPortFlag,
 
 		&verbosityFlag,
 		&logFileFlag,
 		&logJSONFormat,
 		&logDebugFlag,
 
-		&metricsEnabled,
-		&metricsAddr,
-		&metricsPort,
+		&MetricsEnabled,
+		&MetricsAddr,
+		&MetricsPort,
 
 		&pprofFlag,
 		&pprofPortFlag,
@@ -40,20 +40,20 @@ var (
 		Value: "./config.json",
 	}
 
-	// httpEnabledFlag enable rpc server.
-	httpEnabledFlag = cli.BoolFlag{
+	// HTTPEnabledFlag enable rpc server.
+	HTTPEnabledFlag = cli.BoolFlag{
 		Name:  "http",
 		Usage: "Enable the HTTP-RPC server.",
 		Value: false,
 	}
-	// httpListenAddrFlag set the http address.
-	httpListenAddrFlag = cli.StringFlag{
+	// HTTPListenAddrFlag set the http address.
+	HTTPListenAddrFlag = cli.StringFlag{
 		Name:  "http.addr",
 		Usage: "HTTP-RPC server listening interface.",
 		Value: "localhost",
 	}
-	// httpPortFlag set http.port.
-	httpPortFlag = cli.IntFlag{
+	// HTTPPortFlag set http.port.
+	HTTPPortFlag = cli.IntFlag{
 		Name:  "http.port",
 		Usage: "HTTP-RPC server listening port.",
 		Value: 8750,
@@ -83,22 +83,22 @@ var (
 		Usage: "Prepends log messages with call-site location (file and line number).",
 	}
 
-	// metricsEnabled enable metrics collection and reporting
-	metricsEnabled = cli.BoolFlag{
+	// MetricsEnabled enable metrics collection and reporting
+	MetricsEnabled = cli.BoolFlag{
 		Name:     "metrics",
 		Usage:    "Enable metrics collection and reporting.",
 		Category: "METRICS",
 		Value:    false,
 	}
-	// metricsAddr is listening address of Metrics reporting server
-	metricsAddr = cli.StringFlag{
+	// MetricsAddr is listening address of Metrics reporting server
+	MetricsAddr = cli.StringFlag{
 		Name:     "metrics.addr",
 		Usage:    "Metrics reporting server listening address.",
 		Category: "METRICS",
 		Value:    "127.0.0.1",
 	}
-	// metricsPort is listening port of Metrics reporting server
-	metricsPort = cli.IntFlag{
+	// MetricsPort is listening port of Metrics reporting server
+	MetricsPort = cli.IntFlag{
 		Name:     "metrics.port",
 		Usage:    "Metrics reporting server listening port.",
 		Category: "METRICS",

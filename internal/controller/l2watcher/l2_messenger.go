@@ -9,6 +9,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/log"
 
 	"chain-monitor/bytecode/scroll/L2"
+	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils"
 )
@@ -114,6 +115,7 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*
 		monitor.WithdrawRootStatus = monitor.WithdrawRoot == expectRoot
 		// If the withdraw root doesn't match, alert it.
 		if !monitor.WithdrawRootStatus {
+			controller.WithdrawRootMisMatchTotal.Inc()
 			msg := fmt.Sprintf(
 				"withdraw root doestn't match, l2_number: %d, expect_withdraw_root: %s, actual_withdraw_root: %s",
 				monitor.Number,

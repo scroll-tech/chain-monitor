@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"chain-monitor/common/types"
 	"chain-monitor/internal/orm"
-	"chain-monitor/internal/types"
 )
 
 // ChainConfirm controller is responsible for handling confirmation operations on the chain.
@@ -15,7 +15,9 @@ type ChainConfirm struct {
 
 // NewMetricsController creates and returns a new instance of the ChainConfirm controller.
 func NewMetricsController(db *gorm.DB) *ChainConfirm {
-	return &ChainConfirm{db: db}
+	return &ChainConfirm{
+		db: db,
+	}
 }
 
 func (m *ChainConfirm) confirmBlocksStatus(start, end uint64) (bool, error) {

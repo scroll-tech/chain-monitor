@@ -17,8 +17,9 @@ import (
 )
 
 type l1Contracts struct {
-	tx     *gorm.DB
-	client *ethclient.Client
+	tx        *gorm.DB
+	client    *ethclient.Client
+	chainName string
 
 	monitorAPI controller.MonitorAPI
 
@@ -47,6 +48,7 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 	var (
 		cts = &l1Contracts{
 			client:        client,
+			chainName:     "l1_chain",
 			txHashMsgHash: map[string]common.Hash{},
 			ethEvents:     []*orm.L1ETHEvent{},
 			erc20Events:   []*orm.L1ERC20Event{},
@@ -129,6 +131,7 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	l1.tx = db.Begin().WithContext(ctx)
 	count, err := l1.filter.ParseLogs(ctx, l1.client, start, end)
 	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
 		l1.tx.Rollback()
 		return 0, err
 	}
