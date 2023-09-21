@@ -52,7 +52,7 @@ func TestConfirmDepositEvents(t *testing.T) {
 	db, err := utils.InitDB(cfg.DBConfig)
 	assert.NoError(t, err)
 	// Create monitor instance.
-	monior, err := NewChainMonitor(cfg.ChainMonitor, db, nil, nil)
+	monior, err := NewChainMonitor(cfg.AlertConfig, db, nil, nil)
 	assert.NoError(t, err)
 	failedNumbers, err := monior.confirmDepositEvents(context.Background(), 528638, 529638)
 	assert.NoError(t, err)
@@ -66,7 +66,7 @@ func TestConfirmWithdrawEvents(t *testing.T) {
 	db, err := utils.InitDB(cfg.DBConfig)
 	assert.NoError(t, err)
 	// Create monitor instance.
-	monior, err := NewChainMonitor(cfg.ChainMonitor, db, nil, nil)
+	monior, err := NewChainMonitor(cfg.AlertConfig, db, nil, nil)
 	assert.NoError(t, err)
 	failedNumbers, err := monior.confirmWithdrawEvents(context.Background(), 4114111, 4114811)
 	assert.NoError(t, err)

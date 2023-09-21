@@ -45,7 +45,7 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 		return nil, err
 	}
 
-	l2Filter, err := newL1Contracts(client, cfg.L1Gateways)
+	l2Filter, err := newL1Contracts(client, cfg.L1Contracts)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +91,8 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 	// If we sync events one by one.
 	if l1.isOneByOne || start == end {
 		l1.isOneByOne = true
+		l1.cfg.L1Contracts.CheckBalance = true
+
 		var header *types.Header
 		header, err = l1.checkReorg(ctx)
 		if err != nil {

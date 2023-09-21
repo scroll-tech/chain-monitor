@@ -17,11 +17,10 @@ import (
 )
 
 type l1Contracts struct {
+	cfg       *config.L1Contracts
 	tx        *gorm.DB
 	client    *ethclient.Client
 	chainName string
-
-	monitorAPI controller.MonitorAPI
 
 	txHashMsgHash map[string]common.Hash
 	ethEvents     []*orm.L1ETHEvent
@@ -47,6 +46,7 @@ type l1Contracts struct {
 func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contracts, error) {
 	var (
 		cts = &l1Contracts{
+			cfg:           cfg,
 			client:        client,
 			chainName:     "l1_chain",
 			txHashMsgHash: map[string]common.Hash{},
@@ -98,7 +98,7 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 		return nil, err
 	}
 
-	cts.filter = bytecode.NewContractsFilter("l1Watcher", []bytecode.ContractAPI{
+	cts.filter = bytecode.NewContractsFilter(nil, []bytecode.ContractAPI{
 		cts.ScrollMessenger,
 		// cts.MessageQueue,
 		cts.ETHGateway,
@@ -129,7 +129,7 @@ func (l1 *l1Contracts) clean() {
 func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
 	l1.clean()
 	l1.tx = db.Begin().WithContext(ctx)
-	count, err := l1.filter.ParseLogs(ctx, l1.client, start, end)
+	count, err := l1.filter.GetLogs(ctx, l1.client, start, end, l1.filter.ParseLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
 		l1.tx.Rollback()
@@ -169,8 +169,4 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 	return count, nil
-}
-
-func (l1 *l1Contracts) setMonitorAPI(monitor controller.MonitorAPI) {
-	l1.monitorAPI = monitor
 }

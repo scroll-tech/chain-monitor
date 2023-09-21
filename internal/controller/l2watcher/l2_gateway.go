@@ -1,6 +1,9 @@
 package l2watcher
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -87,58 +90,130 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l2 *l2Contracts) storeGatewayEvents() error {
-	// store l2 eth events.
-	for i := 0; i < len(l2.ethEvents); i++ {
-		event := l2.ethEvents[i]
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
+func (l2 *l2Contracts) normalTransferCheck(tp orm.EventType, txHash string, amount *big.Int) {
+	event, exist := l2.transferEvents[txHash]
+	if !exist {
+		data, _ := json.Marshal(event)
+		go controller.SlackNotify(
+			fmt.Sprintf("can't find the %s matched transfer tx, tx_hash: %s, content: %s",
+				tp.String(), txHash, string(data)),
+		)
+	} else if event.Value.Cmp(amount) != 0 {
+		data, _ := json.Marshal(event)
+		go controller.SlackNotify(
+			fmt.Sprintf(
+				"te %s transfer value cann't match tx, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
+				tp.String(), txHash, amount.String(), event.Value.String(), string(data)),
+		)
+		delete(l2.transferEvents, txHash)
+	}
+}
+
+func (l2 *l2Contracts) abnormalTransferCheck() {
+	// unexpect mint or burn operation.
+	for txHash, event := range l2.transferEvents {
+		switch event.To {
+		case l2.cfg.WETHGateway:
+			fallthrough
+		case l2.cfg.DAIGateway:
+			fallthrough
+		case l2.cfg.StandardERC20Gateway:
+			fallthrough
+		case l2.cfg.CustomERC20Gateway:
+			data, _ := json.Marshal(event)
+			go controller.SlackNotify(
+				fmt.Sprintf("unexpect mint tx from 0x000...000 address, tx_hash: %x, content: %s",
+					txHash, string(data)),
+			)
+		}
+		switch event.From {
+		case l2.cfg.WETHGateway:
+			fallthrough
+		case l2.cfg.DAIGateway:
+			fallthrough
+		case l2.cfg.StandardERC20Gateway:
+			fallthrough
+		case l2.cfg.CustomERC20Gateway:
+			data, _ := json.Marshal(event)
+			go controller.SlackNotify(
+				fmt.Sprintf("unexpect burn tx from 0x000...000 address, tx_hash: %x, content: %s",
+					txHash, string(data)),
+			)
 		}
 	}
+}
+
+func (l2 *l2Contracts) storeGatewayEvents(ctx context.Context, start, end uint64) error {
+	// store l2 eth events.
 	if len(l2.ethEvents) > 0 {
+		startBls, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start))
+		if err != nil {
+			return err
+		}
+
+		var bls = big.NewInt(0)
+		for _, event := range l2.ethEvents {
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
+			}
+			bls.Add(bls, event.Amount)
+		}
+
+		endBls, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(end))
+		if err != nil {
+			return err
+		}
+		endBls.Add(endBls, bls)
+		if endBls.Cmp(startBls) != 0 {
+			go controller.SlackNotify(
+				fmt.Sprintf("the eth balance doesn't match, start: %d, end: %d, expect_balance: %s, actual_balance: %s",
+					start, end, endBls.String(), startBls.String()),
+			)
+		}
+
 		if err := l2.tx.Save(l2.ethEvents).Error; err != nil {
 			return err
 		}
 	}
 
 	// store l2 erc20 events.
-	for i := 0; i < len(l2.erc20Events); i++ {
-		event := l2.erc20Events[i]
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-		}
-	}
 	if len(l2.erc20Events) > 0 {
+		for _, event := range l2.erc20Events {
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
+			}
+			l2.normalTransferCheck(event.Type, event.TxHash, event.Amount)
+		}
 		if err := l2.tx.Save(l2.erc20Events).Error; err != nil {
 			return err
 		}
 	}
 
 	// store l2 err721 events.
-	for i := 0; i < len(l2.erc721Events); i++ {
-		event := l2.erc721Events[i]
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-		}
-	}
 	if len(l2.erc721Events) > 0 {
+		for _, event := range l2.erc721Events {
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
+			}
+			l2.normalTransferCheck(event.Type, event.TxHash, event.TokenID)
+		}
 		if err := l2.tx.Save(l2.erc721Events).Error; err != nil {
 			return err
 		}
 	}
 
 	// store l2 erc1155 events.
-	for i := 0; i < len(l2.erc1155Events); i++ {
-		event := l2.erc1155Events[i]
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-		}
-	}
 	if len(l2.erc1155Events) > 0 {
+		for _, event := range l2.erc1155Events {
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
+			}
+		}
 		if err := l2.tx.Save(l2.erc1155Events).Error; err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

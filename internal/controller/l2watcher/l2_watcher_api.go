@@ -2,8 +2,6 @@ package l2watcher
 
 import (
 	"sync/atomic"
-
-	"chain-monitor/internal/controller"
 )
 
 // CurrentNumber retrieves the current starting block number
@@ -30,9 +28,4 @@ func (l2 *L2Watcher) setSafeNumber(number uint64) {
 // when the starting block number matches the safe block number.
 func (l2 *L2Watcher) IsReady() bool {
 	return l2.CurrentNumber() == l2.SafeNumber()
-}
-
-// SetMonitor sets the monitoring API for the L2Watcher.
-func (l2 *L2Watcher) SetMonitor(monitor controller.MonitorAPI) {
-	l2.filter.setMonitorAPI(monitor)
 }

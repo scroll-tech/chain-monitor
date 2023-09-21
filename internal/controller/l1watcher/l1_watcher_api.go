@@ -2,8 +2,6 @@ package l1watcher
 
 import (
 	"sync/atomic"
-
-	"chain-monitor/internal/controller"
 )
 
 // L1StartNumber returns l1watcher start number.
@@ -32,9 +30,4 @@ func (l1 *L1Watcher) setSafeNumber(number uint64) {
 // IsReady if l1watcher is ready return true.
 func (l1 *L1Watcher) IsReady() bool {
 	return l1.CurrentNumber() == l1.SafeNumber()
-}
-
-// SetMonitor sets monitor api.
-func (l1 *L1Watcher) SetMonitor(monitor controller.MonitorAPI) {
-	l1.filter.setMonitorAPI(monitor)
 }

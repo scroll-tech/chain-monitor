@@ -123,7 +123,7 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*
 				monitor.WithdrawRoot.String(),
 			)
 			log.Error("withdraw root doesn't match", "number", monitor.Number, "expect_root", expectRoot.String(), "actual_root", monitor.WithdrawRoot.String())
-			go l2.monitorAPI.SlackNotify(msg)
+			go controller.SlackNotify(msg)
 		}
 	}
 	if err = l2.tx.Model(&orm.L2ChainConfirm{}).Save(chainMonitors).Error; err != nil {

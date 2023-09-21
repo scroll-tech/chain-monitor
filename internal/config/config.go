@@ -11,8 +11,6 @@ import (
 
 // Gateway address list.
 type Gateway struct {
-	MessageQueue         common.Address `json:"message_queue"`
-	ScrollMessenger      common.Address `json:"scroll_messenger"`
 	ETHGateway           common.Address `json:"eth_gateway"`
 	DAIGateway           common.Address `json:"dai_gateway"`
 	WETHGateway          common.Address `json:"weth_gateway"`
@@ -24,23 +22,32 @@ type Gateway struct {
 
 // L1Contracts l1chain config.
 type L1Contracts struct {
-	*Gateway
-	L1ScrollChain common.Address `json:"scroll_chain"`
+	*Gateway        `json:"l1_gateways"`
+	MessageQueue    common.Address `json:"message_queue"`
+	ScrollMessenger common.Address `json:"scroll_messenger"`
+	L1ScrollChain   common.Address `json:"scroll_chain"`
 }
 
 // L1Config l1 chain config.
 type L1Config struct {
-	L1Gateways  *L1Contracts `json:"l1_gateways"`
+	L1Contracts *L1Contracts `json:"l1_contracts"`
 	L1URL       string       `json:"l1_url"`
 	Confirm     rpc.BlockNumber
 	StartNumber uint64 `json:"start_number"`
 }
 
+// L2Contracts l1chain config.
+type L2Contracts struct {
+	*Gateway        `json:"l2_gateways"`
+	MessageQueue    common.Address `json:"message_queue"`
+	ScrollMessenger common.Address `json:"scroll_messenger"`
+}
+
 // L2Config l1 chain config.
 type L2Config struct {
-	L2Gateways *Gateway `json:"l2_gateways"`
-	L2URL      string   `json:"l2_url"`
-	Confirm    rpc.BlockNumber
+	L2Contracts *L2Contracts `json:"l2_contracts"`
+	L2URL       string       `json:"l2_url"`
+	Confirm     rpc.BlockNumber
 }
 
 // DBConfig db config
@@ -63,10 +70,10 @@ type SlackWebhookConfig struct {
 
 // Config chain-monitor main config.
 type Config struct {
-	L1Config     *L1Config           `json:"l1_config"`
-	L2Config     *L2Config           `json:"l2_config"`
-	ChainMonitor *SlackWebhookConfig `json:"slack_webhook_config"`
-	DBConfig     *DBConfig           `json:"db_config"`
+	L1Config    *L1Config           `json:"l1_config"`
+	L2Config    *L2Config           `json:"l2_config"`
+	AlertConfig *SlackWebhookConfig `json:"slack_webhook_config"`
+	DBConfig    *DBConfig           `json:"db_config"`
 }
 
 // NewConfig return a unmarshalled config instance.

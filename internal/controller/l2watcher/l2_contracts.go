@@ -1,6 +1,7 @@
 package l2watcher
 
 import (
+	"chain-monitor/bytecode/scroll/token"
 	"context"
 	"fmt"
 	"math/big"
@@ -22,13 +23,11 @@ import (
 
 type l2Contracts struct {
 	tx        *gorm.DB
-	cfg       *config.Gateway
+	cfg       *config.L2Contracts
 	chainName string
 
 	rpcCli *rpc.Client
 	client *ethclient.Client
-
-	monitorAPI controller.MonitorAPI
 
 	withdraw *msgproof.WithdrawTrie
 
@@ -50,10 +49,15 @@ type l2Contracts struct {
 	ScrollMessenger *L2.L2ScrollMessenger
 	MessageQueue    *predeploys.L2MessageQueue
 
-	filter *bytecode.ContractsFilter
+	transferEvents map[string]*token.IScrollERC20TransferEvent
+	iERC20         *token.IScrollERC20
+
+	gatewayFilter  *bytecode.ContractsFilter
+	fDepositFilter *bytecode.ContractsFilter
+	withdrawFilter *bytecode.ContractsFilter
 }
 
-func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*l2Contracts, error) {
+func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l2Contracts, error) {
 	rpcCli, err := rpc.Dial(l2chainURL)
 	if err != nil {
 		return nil, err
@@ -107,8 +111,12 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*l2Con
 	if err != nil {
 		return nil, err
 	}
+	cts.iERC20, err = token.NewIScrollERC20(common.Address{}, client)
+	if err != nil {
+		return nil, err
+	}
 
-	cts.filter = bytecode.NewContractsFilter("l2Watcher", []bytecode.ContractAPI{
+	cts.gatewayFilter = bytecode.NewContractsFilter(nil, []bytecode.ContractAPI{
 		cts.ScrollMessenger,
 		// cts.MessageQueue,
 
@@ -120,6 +128,28 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*l2Con
 		cts.ERC721Gateway,
 		cts.ERC1155Gateway,
 	}...)
+	cts.fDepositFilter = bytecode.NewContractsFilter([][]common.Hash{
+		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+		{common.BigToHash(big.NewInt(0))},
+		{
+			//common.BytesToHash(cfg.WETHGateway[:]),
+			//common.BytesToHash(cfg.DAIGateway[:]),
+			//common.BytesToHash(cfg.StandardERC20Gateway[:]),
+			//common.BytesToHash(cfg.CustomERC20Gateway[:]),
+			//common.BytesToHash(cfg.ERC721Gateway[:]),
+		},
+	})
+	cts.withdrawFilter = bytecode.NewContractsFilter([][]common.Hash{
+		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+		{
+			//common.BytesToHash(cfg.WETHGateway[:]),
+			//common.BytesToHash(cfg.DAIGateway[:]),
+			//common.BytesToHash(cfg.StandardERC20Gateway[:]),
+			//common.BytesToHash(cfg.CustomERC20Gateway[:]),
+			//common.BytesToHash(cfg.ERC721Gateway[:]),
+		},
+		{common.BigToHash(big.NewInt(0))},
+	})
 
 	// Init withdraw root.
 	if err = cts.initWithdraw(db); err != nil {
@@ -128,6 +158,7 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.Gateway) (*l2Con
 
 	cts.registerGatewayHandlers()
 	cts.registerMessengerHandlers()
+	cts.registerTransfer()
 
 	return cts, nil
 }
@@ -159,6 +190,7 @@ func (l2 *l2Contracts) initWithdraw(db *gorm.DB) error {
 func (l2 *l2Contracts) clean() {
 	l2.txHashMsgHash = map[string]common.Hash{}
 	l2.msgSentEvents = map[uint64][]*orm.L2MessengerEvent{}
+	l2.transferEvents = map[string]*token.IScrollERC20TransferEvent{}
 	l2.ethEvents = l2.ethEvents[:0]
 	l2.erc20Events = l2.erc20Events[:0]
 	l2.erc721Events = l2.erc721Events[:0]
@@ -168,7 +200,25 @@ func (l2 *l2Contracts) clean() {
 func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
 	l2.clean()
 	l2.tx = db.Begin().WithContext(ctx)
-	count, err := l2.filter.ParseLogs(ctx, l2.client, start, end)
+
+	// Parse gateway logs
+	count, err := l2.gatewayFilter.GetLogs(ctx, l2.client, start, end, l2.gatewayFilter.ParseLogs)
+	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
+		l2.tx.Rollback()
+		return 0, err
+	}
+
+	// Parse finalizeDeposit transfer event logs.
+	_, err = l2.fDepositFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
+	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
+		l2.tx.Rollback()
+		return 0, err
+	}
+
+	// Parse withdraw transfer event logs.
+	_, err = l2.withdrawFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
 		l2.tx.Rollback()
@@ -182,7 +232,7 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	}
 
 	// store l2chain gateway events.
-	if err = l2.storeGatewayEvents(); err != nil {
+	if err = l2.storeGatewayEvents(ctx, start, end); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}
@@ -213,8 +263,4 @@ func (l2 *l2Contracts) withdrawRoot(ctx context.Context, number uint64) (common.
 		return [32]byte{}, err
 	}
 	return common.BytesToHash(data), nil
-}
-
-func (l2 *l2Contracts) setMonitorAPI(monitor controller.MonitorAPI) {
-	l2.monitorAPI = monitor
 }
