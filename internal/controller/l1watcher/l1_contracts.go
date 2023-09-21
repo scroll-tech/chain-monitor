@@ -1,6 +1,7 @@
 package l1watcher
 
 import (
+	"chain-monitor/bytecode/scroll/token"
 	"context"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -40,7 +41,12 @@ type l1Contracts struct {
 	ScrollMessenger *L1.L1ScrollMessenger
 	// MessageQueue    *rollup.L1MessageQueue
 
-	filter *bytecode.ContractsFilter
+	transferEvents map[string]*token.IScrollERC20TransferEvent
+	iERC20         *token.IScrollERC20
+
+	gatewayFilter   *bytecode.ContractsFilter
+	depositFilter   *bytecode.ContractsFilter
+	fWithdrawFilter *bytecode.ContractsFilter
 }
 
 func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contracts, error) {
@@ -97,8 +103,12 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 	if err != nil {
 		return nil, err
 	}
+	cts.iERC20, err = token.NewIScrollERC20(common.Address{}, client)
+	if err != nil {
+		return nil, err
+	}
 
-	cts.filter = bytecode.NewContractsFilter(nil, []bytecode.ContractAPI{
+	cts.gatewayFilter = bytecode.NewContractsFilter(nil, []bytecode.ContractAPI{
 		cts.ScrollMessenger,
 		// cts.MessageQueue,
 		cts.ETHGateway,
@@ -110,16 +120,39 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 		cts.ERC1155Gateway,
 		cts.ScrollChain,
 	}...)
+	cts.depositFilter = bytecode.NewContractsFilter([][]common.Hash{
+		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+		{},
+		{
+			common.BytesToHash(cfg.DAIGateway[:]),
+			common.BytesToHash(cfg.WETHGateway[:]),
+			common.BytesToHash(cfg.StandardERC20Gateway[:]),
+			common.BytesToHash(cfg.CustomERC20Gateway[:]),
+			common.BytesToHash(cfg.ERC721Gateway[:]),
+		},
+	})
+	cts.fWithdrawFilter = bytecode.NewContractsFilter([][]common.Hash{
+		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+		{
+			common.BytesToHash(cfg.DAIGateway[:]),
+			common.BytesToHash(cfg.WETHGateway[:]),
+			common.BytesToHash(cfg.StandardERC20Gateway[:]),
+			common.BytesToHash(cfg.CustomERC20Gateway[:]),
+			common.BytesToHash(cfg.ERC721Gateway[:]),
+		},
+	})
 
 	cts.registerGatewayHandlers()
 	cts.registerMessengerHandlers()
 	cts.registerScrollHandlers()
+	cts.registerTransfer()
 
 	return cts, nil
 }
 
 func (l1 *l1Contracts) clean() {
 	l1.txHashMsgHash = map[string]common.Hash{}
+	l1.transferEvents = map[string]*token.IScrollERC20TransferEvent{}
 	l1.ethEvents = l1.ethEvents[:0]
 	l1.erc20Events = l1.erc20Events[:0]
 	l1.erc721Events = l1.erc721Events[:0]
@@ -129,7 +162,25 @@ func (l1 *l1Contracts) clean() {
 func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
 	l1.clean()
 	l1.tx = db.Begin().WithContext(ctx)
-	count, err := l1.filter.GetLogs(ctx, l1.client, start, end, l1.filter.ParseLogs)
+
+	// Parse gateway logs.
+	count, err := l1.gatewayFilter.GetLogs(ctx, l1.client, start, end, l1.gatewayFilter.ParseLogs)
+	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
+		l1.tx.Rollback()
+		return 0, err
+	}
+
+	// Parse finalizeWithdraw transfer event logs.
+	_, err = l1.fWithdrawFilter.GetLogs(ctx, l1.client, start, end, l1.parseTransferLogs)
+	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
+		l1.tx.Rollback()
+		return 0, err
+	}
+
+	// Parse deposit transfer event logs.
+	_, err = l1.depositFilter.GetLogs(ctx, l1.client, start, end, l1.parseTransferLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
 		l1.tx.Rollback()

@@ -1,6 +1,8 @@
 package l1watcher
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -86,6 +88,56 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 	})
 }
 
+func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) {
+	event, exist := l1.transferEvents[txHash]
+	if !exist {
+		go controller.SlackNotify(
+			fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s", tp.String(), txHash),
+		)
+	} else if event.Value.Cmp(amount) != 0 {
+		data, _ := json.Marshal(event)
+		go controller.SlackNotify(
+			fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
+				tp.String(), txHash, amount.String(), event.Value.String(), string(data),
+			),
+		)
+	}
+	delete(l1.transferEvents, txHash)
+}
+
+func (l1 *l1Contracts) transferAbnormalCheck() {
+	for txHash, event := range l1.transferEvents {
+		switch event.To {
+		case l1.cfg.WETHGateway:
+			fallthrough
+		case l1.cfg.DAIGateway:
+			fallthrough
+		case l1.cfg.StandardERC20Gateway:
+			fallthrough
+		case l1.cfg.CustomERC20Gateway:
+			fallthrough
+		case l1.cfg.ERC721Gateway:
+			data, _ := json.Marshal(event)
+			go controller.SlackNotify(
+				fmt.Sprintf("unexpect deposit event appear, tx_hash: %s, content: %s", txHash, string(data)))
+		}
+		switch event.From {
+		case l1.cfg.WETHGateway:
+			fallthrough
+		case l1.cfg.DAIGateway:
+			fallthrough
+		case l1.cfg.StandardERC20Gateway:
+			fallthrough
+		case l1.cfg.CustomERC20Gateway:
+			fallthrough
+		case l1.cfg.ERC721Gateway:
+			data, _ := json.Marshal(event)
+			go controller.SlackNotify(
+				fmt.Sprintf("unexpect finalizeWithdraw event appear, tx_hash: %s, content: %s", txHash, string(data)))
+		}
+	}
+}
+
 func (l1 *l1Contracts) storeGatewayEvents() error {
 	// store l1 eth events.
 	for i := 0; i < len(l1.ethEvents); i++ {
@@ -106,6 +158,7 @@ func (l1 *l1Contracts) storeGatewayEvents() error {
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
 		}
+		l1.transferNormalCheck(event.Type, event.TxHash, event.Amount)
 	}
 	if len(l1.erc20Events) > 0 {
 		if err := l1.tx.Save(l1.erc20Events).Error; err != nil {
@@ -119,6 +172,7 @@ func (l1 *l1Contracts) storeGatewayEvents() error {
 		if msgHash, exist := l1.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()
 		}
+		l1.transferNormalCheck(event.Type, event.TxHash, event.TokenID)
 	}
 	if len(l1.erc721Events) > 0 {
 		if err := l1.tx.Save(l1.erc721Events).Error; err != nil {
@@ -138,6 +192,10 @@ func (l1 *l1Contracts) storeGatewayEvents() error {
 			return err
 		}
 	}
+
+	// check the remain log events.
+	l1.transferAbnormalCheck()
+
 	return nil
 }
 

@@ -131,23 +131,10 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 	cts.fDepositFilter = bytecode.NewContractsFilter([][]common.Hash{
 		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
 		{common.BigToHash(big.NewInt(0))},
-		{
-			//common.BytesToHash(cfg.WETHGateway[:]),
-			//common.BytesToHash(cfg.DAIGateway[:]),
-			//common.BytesToHash(cfg.StandardERC20Gateway[:]),
-			//common.BytesToHash(cfg.CustomERC20Gateway[:]),
-			//common.BytesToHash(cfg.ERC721Gateway[:]),
-		},
 	})
 	cts.withdrawFilter = bytecode.NewContractsFilter([][]common.Hash{
 		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
-		{
-			//common.BytesToHash(cfg.WETHGateway[:]),
-			//common.BytesToHash(cfg.DAIGateway[:]),
-			//common.BytesToHash(cfg.StandardERC20Gateway[:]),
-			//common.BytesToHash(cfg.CustomERC20Gateway[:]),
-			//common.BytesToHash(cfg.ERC721Gateway[:]),
-		},
+		{},
 		{common.BigToHash(big.NewInt(0))},
 	})
 
@@ -232,7 +219,7 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	}
 
 	// store l2chain gateway events.
-	if err = l2.storeGatewayEvents(ctx, start, end); err != nil {
+	if err = l2.storeGatewayEvents(); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}

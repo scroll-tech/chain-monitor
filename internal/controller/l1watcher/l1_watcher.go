@@ -91,8 +91,6 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 	// If we sync events one by one.
 	if l1.isOneByOne || start == end {
 		l1.isOneByOne = true
-		l1.cfg.L1Contracts.CheckBalance = true
-
 		var header *types.Header
 		header, err = l1.checkReorg(ctx)
 		if err != nil {

@@ -1,7 +1,6 @@
 package l2watcher
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -90,26 +89,25 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l2 *l2Contracts) normalTransferCheck(tp orm.EventType, txHash string, amount *big.Int) {
+func (l2 *l2Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) {
 	event, exist := l2.transferEvents[txHash]
 	if !exist {
-		data, _ := json.Marshal(event)
 		go controller.SlackNotify(
-			fmt.Sprintf("can't find the %s matched transfer tx, tx_hash: %s, content: %s",
-				tp.String(), txHash, string(data)),
+			fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s",
+				tp.String(), txHash),
 		)
 	} else if event.Value.Cmp(amount) != 0 {
 		data, _ := json.Marshal(event)
 		go controller.SlackNotify(
 			fmt.Sprintf(
-				"te %s transfer value cann't match tx, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
+				"the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
 				tp.String(), txHash, amount.String(), event.Value.String(), string(data)),
 		)
-		delete(l2.transferEvents, txHash)
 	}
+	delete(l2.transferEvents, txHash)
 }
 
-func (l2 *l2Contracts) abnormalTransferCheck() {
+func (l2 *l2Contracts) transferAbnormalCheck() {
 	// unexpect mint or burn operation.
 	for txHash, event := range l2.transferEvents {
 		switch event.To {
@@ -120,6 +118,8 @@ func (l2 *l2Contracts) abnormalTransferCheck() {
 		case l2.cfg.StandardERC20Gateway:
 			fallthrough
 		case l2.cfg.CustomERC20Gateway:
+			fallthrough
+		case l2.cfg.ERC721Gateway:
 			data, _ := json.Marshal(event)
 			go controller.SlackNotify(
 				fmt.Sprintf("unexpect mint tx from 0x000...000 address, tx_hash: %x, content: %s",
@@ -134,6 +134,8 @@ func (l2 *l2Contracts) abnormalTransferCheck() {
 		case l2.cfg.StandardERC20Gateway:
 			fallthrough
 		case l2.cfg.CustomERC20Gateway:
+			fallthrough
+		case l2.cfg.ERC721Gateway:
 			data, _ := json.Marshal(event)
 			go controller.SlackNotify(
 				fmt.Sprintf("unexpect burn tx from 0x000...000 address, tx_hash: %x, content: %s",
@@ -143,34 +145,14 @@ func (l2 *l2Contracts) abnormalTransferCheck() {
 	}
 }
 
-func (l2 *l2Contracts) storeGatewayEvents(ctx context.Context, start, end uint64) error {
+func (l2 *l2Contracts) storeGatewayEvents() error {
 	// store l2 eth events.
 	if len(l2.ethEvents) > 0 {
-		startBls, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start))
-		if err != nil {
-			return err
-		}
-
-		var bls = big.NewInt(0)
 		for _, event := range l2.ethEvents {
 			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
 				event.MsgHash = msgHash.String()
 			}
-			bls.Add(bls, event.Amount)
 		}
-
-		endBls, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(end))
-		if err != nil {
-			return err
-		}
-		endBls.Add(endBls, bls)
-		if endBls.Cmp(startBls) != 0 {
-			go controller.SlackNotify(
-				fmt.Sprintf("the eth balance doesn't match, start: %d, end: %d, expect_balance: %s, actual_balance: %s",
-					start, end, endBls.String(), startBls.String()),
-			)
-		}
-
 		if err := l2.tx.Save(l2.ethEvents).Error; err != nil {
 			return err
 		}
@@ -182,7 +164,7 @@ func (l2 *l2Contracts) storeGatewayEvents(ctx context.Context, start, end uint64
 			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
 				event.MsgHash = msgHash.String()
 			}
-			l2.normalTransferCheck(event.Type, event.TxHash, event.Amount)
+			l2.transferNormalCheck(event.Type, event.TxHash, event.Amount)
 		}
 		if err := l2.tx.Save(l2.erc20Events).Error; err != nil {
 			return err
@@ -195,7 +177,7 @@ func (l2 *l2Contracts) storeGatewayEvents(ctx context.Context, start, end uint64
 			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
 				event.MsgHash = msgHash.String()
 			}
-			l2.normalTransferCheck(event.Type, event.TxHash, event.TokenID)
+			l2.transferNormalCheck(event.Type, event.TxHash, event.TokenID)
 		}
 		if err := l2.tx.Save(l2.erc721Events).Error; err != nil {
 			return err
@@ -213,6 +195,9 @@ func (l2 *l2Contracts) storeGatewayEvents(ctx context.Context, start, end uint64
 			return err
 		}
 	}
+
+	// check the remain log events.
+	l2.transferAbnormalCheck()
 
 	return nil
 }
