@@ -15,8 +15,9 @@ func (l1 *l1Contracts) registerTransfer() {
 }
 
 func (l1 *l1Contracts) parseTransferLogs(logs []types.Log) error {
-	for _, vLog := range logs {
-		_, err := l1.iERC20.ParseLog(&vLog)
+	for i := 0; i < len(logs); i++ {
+		vLog := &logs[i]
+		_, err := l1.iERC20.ParseLog(vLog)
 		if err != nil {
 			log.Debug("can't parse this log to transfer", "tx_hash", vLog.TxHash.String(), "err", err)
 		}

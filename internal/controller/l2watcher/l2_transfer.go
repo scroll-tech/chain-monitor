@@ -1,9 +1,10 @@
 package l2watcher
 
 import (
-	"chain-monitor/bytecode/scroll/token"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
+
+	"chain-monitor/bytecode/scroll/token"
 )
 
 func (l2 *l2Contracts) registerTransfer() {
@@ -14,8 +15,9 @@ func (l2 *l2Contracts) registerTransfer() {
 }
 
 func (l2 *l2Contracts) parseTransferLogs(logs []types.Log) error {
-	for _, vLog := range logs {
-		_, err := l2.iERC20.ParseLog(&vLog)
+	for i := 0; i < len(logs); i++ {
+		vLog := &logs[i]
+		_, err := l2.iERC20.ParseLog(vLog)
 		if err != nil {
 			log.Warn("can't parse transfer event", "tx_hash", vLog.TxHash.String(), "err", err)
 		}

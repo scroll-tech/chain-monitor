@@ -1,12 +1,14 @@
 package controller
 
 import (
-	"chain-monitor/internal/config"
 	"encoding/json"
-	"github.com/go-resty/resty/v2"
-	"github.com/scroll-tech/go-ethereum/log"
 	"sync"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/scroll-tech/go-ethereum/log"
+
+	"chain-monitor/internal/config"
 )
 
 var (
