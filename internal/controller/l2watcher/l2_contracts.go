@@ -1,7 +1,6 @@
 package l2watcher
 
 import (
-	"chain-monitor/bytecode/scroll/token"
 	"context"
 	"fmt"
 	"math/big"
@@ -15,6 +14,7 @@ import (
 	"chain-monitor/bytecode/scroll/L2"
 	"chain-monitor/bytecode/scroll/L2/gateway"
 	"chain-monitor/bytecode/scroll/L2/predeploys"
+	"chain-monitor/bytecode/scroll/token"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
@@ -49,8 +49,10 @@ type l2Contracts struct {
 	ScrollMessenger *L2.L2ScrollMessenger
 	MessageQueue    *predeploys.L2MessageQueue
 
-	transferEvents map[string]*token.IScrollERC20TransferEvent
-	iERC20         *token.IScrollERC20
+	// this fields are used check balance.
+	latestETHBalance *big.Int
+	transferEvents   map[string]*token.IScrollERC20TransferEvent
+	iERC20           *token.IScrollERC20
 
 	gatewayFilter  *bytecode.ContractsFilter
 	fDepositFilter *bytecode.ContractsFilter
@@ -188,6 +190,15 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	l2.clean()
 	l2.tx = db.Begin().WithContext(ctx)
 
+	// init eth balance.
+	if l2.latestETHBalance == nil {
+		balance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
+		if err != nil {
+			return 0, err
+		}
+		l2.latestETHBalance = balance
+	}
+
 	// Parse gateway logs
 	count, err := l2.gatewayFilter.GetLogs(ctx, l2.client, start, end, l2.gatewayFilter.ParseLogs)
 	if err != nil {
@@ -208,6 +219,12 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	_, err = l2.withdrawFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
+		l2.tx.Rollback()
+		return 0, err
+	}
+
+	// Check scroll messenger eth balance.
+	if err = l2.checkETHBalance(ctx, start, end); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}
@@ -237,6 +254,7 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		l2.tx.Rollback()
 		return 0, err
 	}
+
 	return count, nil
 }
 

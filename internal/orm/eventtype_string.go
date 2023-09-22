@@ -36,12 +36,6 @@ func _() {
 	_ = x[L1FinalizeWithdrawERC1155-2]
 	_ = x[L2FinalizeDepositERC1155-101]
 	_ = x[L2WithdrawERC1155-102]
-	_ = x[L1SentMessage-1]
-	_ = x[L1RelayedMessage-2]
-	_ = x[L1FailedRelayedMessage-3]
-	_ = x[L2SentMessage-1]
-	_ = x[L2RelayedMessage-2]
-	_ = x[L2FailedRelayedMessage-3]
 }
 
 const (

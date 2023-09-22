@@ -1,8 +1,8 @@
 package l1watcher
 
 import (
-	"chain-monitor/bytecode/scroll/token"
 	"context"
+	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -12,6 +12,7 @@ import (
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L1/gateway"
 	"chain-monitor/bytecode/scroll/L1/rollup"
+	"chain-monitor/bytecode/scroll/token"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
@@ -41,8 +42,11 @@ type l1Contracts struct {
 	ScrollMessenger *L1.L1ScrollMessenger
 	// MessageQueue    *rollup.L1MessageQueue
 
-	transferEvents map[string]*token.IScrollERC20TransferEvent
-	iERC20         *token.IScrollERC20
+	// this fields are used check balance.
+	checkBalance     bool
+	latestETHBalance *big.Int
+	transferEvents   map[string]*token.IScrollERC20TransferEvent
+	iERC20           *token.IScrollERC20
 
 	gatewayFilter   *bytecode.ContractsFilter
 	depositFilter   *bytecode.ContractsFilter
@@ -163,6 +167,15 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	l1.clean()
 	l1.tx = db.Begin().WithContext(ctx)
 
+	// init eth balance.
+	if l1.latestETHBalance == nil {
+		balance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
+		if err != nil {
+			return 0, err
+		}
+		l1.latestETHBalance = balance
+	}
+
 	// Parse gateway logs.
 	count, err := l1.gatewayFilter.GetLogs(ctx, l1.client, start, end, l1.gatewayFilter.ParseLogs)
 	if err != nil {
@@ -185,6 +198,14 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
 		l1.tx.Rollback()
 		return 0, err
+	}
+
+	// check eth balance.
+	if l1.checkBalance {
+		if err = l1.checkETHBalance(ctx, start, end); err != nil {
+			l1.tx.Rollback()
+			return 0, err
+		}
 	}
 
 	// store l1chain gateway events.
