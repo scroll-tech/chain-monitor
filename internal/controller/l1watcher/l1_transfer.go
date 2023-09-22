@@ -32,7 +32,7 @@ func (l1 *l1Contracts) parseTransferLogs(logs []types.Log) error {
 	return nil
 }
 
-func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) error {
+func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 	if len(l1.ethEvents) == 0 {
 		return nil
 	}

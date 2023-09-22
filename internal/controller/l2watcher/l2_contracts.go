@@ -153,7 +153,7 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 }
 
 func (l2 *l2Contracts) initWithdraw(db *gorm.DB) error {
-	tx := db.Where("type = ? AND msg_proof != ''", orm.L2SentMessage).Order("number DESC")
+	tx := db.Where("type = ? AND msg_proof != ''", orm.L2SentMessage).Order("Number DESC")
 	var msg orm.L2MessengerEvent
 	err := tx.Last(&msg).Error
 	if err != nil && err.Error() != gorm.ErrRecordNotFound.Error() {
@@ -224,7 +224,7 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	}
 
 	// Check scroll messenger eth balance.
-	if err = l2.checkETHBalance(ctx, start, end); err != nil {
+	if err = l2.checkETHBalance(ctx, end); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}

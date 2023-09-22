@@ -50,7 +50,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 		return nil, err
 	}
 
-	// Get confirm number.
+	// Get confirm Number.
 	number, err := utils.GetLatestConfirmedBlockNumber(context.Background(), client, cfg.Confirm)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 	start, end, err := l2.getStartAndEndNumber(ctx)
 	if err != nil {
-		log.Error("l2Watcher failed to get start and end number", "err", err)
+		log.Error("l2Watcher failed to get start and end Number", "err", err)
 		return
 	}
 	if end > l2.SafeNumber() {
@@ -94,7 +94,7 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 		var header *types.Header
 		header, err = l2.checkReorg(ctx)
 		if err != nil {
-			log.Error("appear error when do l2chain reorg process", "number", start, "err", err)
+			log.Error("appear error when do l2chain reorg process", "Number", start, "err", err)
 			return
 		}
 		start = header.Number.Uint64()
@@ -210,7 +210,7 @@ func deleteReorgEvents(ctx context.Context, db *gorm.DB, numbers []uint64) error
 	tx := db.Begin().WithContext(ctx)
 	for _, tb := range tables {
 		// delete eth events.
-		result = tx.Where("number BETWEEN ? AND ?", start, end).Delete(tb)
+		result = tx.Where("Number BETWEEN ? AND ?", start, end).Delete(tb)
 		if result.Error != nil {
 			tx.Rollback()
 			return result.Error
