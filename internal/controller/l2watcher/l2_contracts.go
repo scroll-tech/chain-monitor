@@ -235,7 +235,9 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
-	// store l2chain gateway events.
+	// Check erc20 balance.
+	l2.checkERC20Balance()
+	// Check eth balance.
 	if err = l2.storeGatewayEvents(); err != nil {
 		l2.tx.Rollback()
 		return 0, err

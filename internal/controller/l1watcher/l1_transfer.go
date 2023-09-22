@@ -69,6 +69,7 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 					return err
 				}
 				if amount.Cmp(eBalance) != 0 {
+					controller.ETHBalanceFailedTotal.WithLabelValues(l1.chainName, event.Type.String()).Inc()
 					data, _ := json.Marshal(preEvent)
 					go controller.SlackNotify(fmt.Sprintf("the l1scrollMessenger eth balance mismatch, event_type: %s, expect_balance: %s, actual_balance: %s, content: %s", preEvent.Type.String(), eBalance.String(), amount.String(), string(data)))
 				}
@@ -84,4 +85,69 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 	l1.latestETHBalance = eBalance
 
 	return nil
+}
+
+func (l1 *l1Contracts) checkERC20Balance() {
+	for _, event := range l1.erc20Events {
+		l1.transferNormalCheck(event.Type, event.TxHash, event.Amount)
+	}
+	for _, event := range l1.erc721Events {
+		l1.transferNormalCheck(event.Type, event.TxHash, event.TokenID)
+	}
+	// check the remain log events.
+	l1.transferAbnormalCheck()
+}
+
+func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) {
+	event, exist := l1.transferEvents[txHash]
+	if !exist {
+		controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
+		go controller.SlackNotify(
+			fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s", tp.String(), txHash),
+		)
+	} else if event.Value.Cmp(amount) != 0 {
+		controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
+		data, _ := json.Marshal(event)
+		go controller.SlackNotify(
+			fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
+				tp.String(), txHash, amount.String(), event.Value.String(), string(data),
+			),
+		)
+	}
+	delete(l1.transferEvents, txHash)
+}
+
+func (l1 *l1Contracts) transferAbnormalCheck() {
+	for txHash, event := range l1.transferEvents {
+		switch event.To {
+		case l1.cfg.WETHGateway:
+			fallthrough
+		case l1.cfg.DAIGateway:
+			fallthrough
+		case l1.cfg.StandardERC20Gateway:
+			fallthrough
+		case l1.cfg.CustomERC20Gateway:
+			fallthrough
+		case l1.cfg.ERC721Gateway:
+			controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
+			data, _ := json.Marshal(event)
+			go controller.SlackNotify(
+				fmt.Sprintf("unexpect deposit event appear, tx_hash: %s, content: %s", txHash, string(data)))
+		}
+		switch event.From {
+		case l1.cfg.WETHGateway:
+			fallthrough
+		case l1.cfg.DAIGateway:
+			fallthrough
+		case l1.cfg.StandardERC20Gateway:
+			fallthrough
+		case l1.cfg.CustomERC20Gateway:
+			fallthrough
+		case l1.cfg.ERC721Gateway:
+			controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
+			data, _ := json.Marshal(event)
+			go controller.SlackNotify(
+				fmt.Sprintf("unexpect finalizeWithdraw event appear, tx_hash: %s, content: %s", txHash, string(data)))
+		}
+	}
 }

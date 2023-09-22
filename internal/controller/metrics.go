@@ -38,6 +38,13 @@ var (
 
 	// WorkerStartedTotal The count of started goroutine workers.
 	WorkerStartedTotal *prometheus.CounterVec
+
+	// ETHBalanceFailedTotal The count of eth or erc20 balance mismatch.
+	ETHBalanceFailedTotal *prometheus.CounterVec
+	// ERC20BalanceFailedTotal The count of eth or erc20 balance mismatch.
+	ERC20BalanceFailedTotal *prometheus.CounterVec
+	// ERC20UnexpectTotal The count of unexpect erc20 transfer.
+	ERC20UnexpectTotal *prometheus.CounterVec
 )
 
 // InitChainMonitorMetrics init all the metrics for chain-metrics.
@@ -104,4 +111,16 @@ func InitChainMonitorMetrics() {
 		Name: "started_worker_total",
 		Help: "The count of started goroutine workers.",
 	}, []string{"worker_name"})
+	ETHBalanceFailedTotal = factory.NewCounterVec(prometheus.CounterOpts{
+		Name: "eth_mismatch_balance_total",
+		Help: "The count of mismatched eth balance",
+	}, []string{chainName, eventName})
+	ERC20BalanceFailedTotal = factory.NewCounterVec(prometheus.CounterOpts{
+		Name: "erc20_mismatch_balance_total",
+		Help: "The count of mismatched erc20 balance",
+	}, []string{chainName, eventName})
+	ERC20UnexpectTotal = factory.NewCounterVec(prometheus.CounterOpts{
+		Name: "erc20_unexpect_total",
+		Help: "The count of unexpect erc20 transfer.",
+	}, []string{chainName})
 }

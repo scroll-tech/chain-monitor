@@ -200,8 +200,10 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
-	// check eth balance.
 	if l1.checkBalance {
+		// Check erc20 balance.
+		l1.checkERC20Balance()
+		// Check eth balance.
 		if err = l1.checkETHBalance(ctx, end); err != nil {
 			l1.tx.Rollback()
 			return 0, err
