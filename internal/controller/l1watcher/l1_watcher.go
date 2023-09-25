@@ -83,15 +83,16 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		log.Error("failed to get l1Chain start and end number", "err", err)
 		return
 	}
-	if end > l1.SafeNumber() {
+	safeNumber := l1.SafeNumber()
+	if end > safeNumber {
 		return
 	}
+	l1.filter.checkBalance = (safeNumber - end) <= 50
 
 	var count int
 	// If we sync events one by one.
 	if l1.isOneByOne || start == end {
 		l1.isOneByOne = true
-		l1.filter.checkBalance = true
 		var header *types.Header
 		header, err = l1.checkReorg(ctx)
 		if err != nil {
@@ -112,7 +113,6 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		}
 		l1.headerCache = append(l1.headerCache, header)
 	} else {
-		l1.filter.checkBalance = false
 		count, err = l1.filter.ParseL1Events(ctx, l1.db, start, end)
 		if err != nil {
 			log.Error("failed to parse l1chain events", "start", start, "end", end, "err", err)
