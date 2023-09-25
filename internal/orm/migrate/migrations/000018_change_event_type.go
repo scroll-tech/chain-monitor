@@ -3,8 +3,6 @@ package migrations
 import (
 	"context"
 	"database/sql"
-	"fmt"
-
 	"github.com/pressly/goose/v3"
 )
 
@@ -15,7 +13,7 @@ func init() {
 // Up000018 Change gateway and messenger event_type.
 func Up000018(ctx context.Context, tx *sql.Tx) error {
 	// Update l1_erc20_gateway
-	_, err := tx.ExecContext(ctx, fmt.Sprintf("UPDATE l1_erc20_events SET type = type + 10;"))
+	_, err := tx.ExecContext(ctx, "UPDATE l1_erc20_events SET type = type + 10;")
 	if err != nil {
 		return err
 	}
