@@ -5,9 +5,10 @@ import (
 	"os"
 	"strconv"
 
-	_ "chain-monitor/internal/orm/migrate/migrations"
 	"github.com/pressly/goose/v3"
 	"gorm.io/gorm"
+
+	_ "chain-monitor/internal/orm/migrate/migrations" //nolint:golint
 )
 
 //go:embed migrations/*
