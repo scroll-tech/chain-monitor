@@ -194,7 +194,8 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	if l1.checkBalance {
 		// init eth balance.
 		if l1.latestETHBalance == nil {
-			balance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
+			var balance *big.Int
+			balance, err = l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
 			if err != nil {
 				return 0, err
 			}

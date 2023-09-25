@@ -5,10 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/scroll-tech/go-ethereum/common"
 	"math/big"
 	"sort"
 
+	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
 
