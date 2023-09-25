@@ -116,8 +116,8 @@ func action(ctx *cli.Context) error {
 
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
-	go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.DepositConfirm)
-	go utils.LoopWithContext(subCtx, time.Millisecond*500, chainMonitor.WithdrawConfirm)
+	//go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.DepositConfirm)
+	//go utils.LoopWithContext(subCtx, time.Millisecond*500, chainMonitor.WithdrawConfirm)
 
 	// Catch CTRL-C to ensure a graceful shutdown.
 	interrupt := make(chan os.Signal, 1)

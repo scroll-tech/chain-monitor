@@ -16,7 +16,7 @@ import (
 )
 
 func (l2 *l2Contracts) registerTransfer() {
-	l2.iERC20.RegisterTransfer(func(vLog *types.Log, data *token.IScrollERC20TransferEvent) error {
+	l2.iERC20.RegisterTransfer(func(vLog *types.Log, data *token.IERC20TransferEvent) error {
 		l2.transferEvents[vLog.TxHash.String()] = data
 		return nil
 	})
@@ -27,7 +27,7 @@ func (l2 *l2Contracts) parseTransferLogs(logs []types.Log) error {
 		vLog := &logs[i]
 		_, err := l2.iERC20.ParseLog(vLog)
 		if err != nil {
-			log.Debug("can't parse transfer event", "tx_hash", vLog.TxHash.String(), "err", err)
+			log.Debug("can't parse this l2chain transfer event", "tx_hash", vLog.TxHash.String(), "err", err)
 		}
 	}
 	return nil

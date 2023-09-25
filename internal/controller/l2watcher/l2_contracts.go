@@ -51,8 +51,8 @@ type l2Contracts struct {
 
 	// this fields are used check balance.
 	latestETHBalance *big.Int
-	transferEvents   map[string]*token.IScrollERC20TransferEvent
-	iERC20           *token.IScrollERC20
+	transferEvents   map[string]*token.IERC20TransferEvent
+	iERC20           *token.IERC20
 
 	gatewayFilter  *bytecode.ContractsFilter
 	fDepositFilter *bytecode.ContractsFilter
@@ -113,7 +113,7 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 	if err != nil {
 		return nil, err
 	}
-	cts.iERC20, err = token.NewIScrollERC20(common.Address{}, client)
+	cts.iERC20, err = token.NewIERC20(common.Address{}, client)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (l2 *l2Contracts) initWithdraw(db *gorm.DB) error {
 func (l2 *l2Contracts) clean() {
 	l2.txHashMsgHash = map[string]common.Hash{}
 	l2.msgSentEvents = map[uint64][]*orm.L2MessengerEvent{}
-	l2.transferEvents = map[string]*token.IScrollERC20TransferEvent{}
+	l2.transferEvents = map[string]*token.IERC20TransferEvent{}
 	l2.ethEvents = l2.ethEvents[:0]
 	l2.erc20Events = l2.erc20Events[:0]
 	l2.erc721Events = l2.erc721Events[:0]

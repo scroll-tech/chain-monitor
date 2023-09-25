@@ -45,8 +45,8 @@ type l1Contracts struct {
 	// this fields are used check balance.
 	checkBalance     bool
 	latestETHBalance *big.Int
-	transferEvents   map[string]*token.IScrollERC20TransferEvent
-	iERC20           *token.IScrollERC20
+	transferEvents   map[string]*token.IERC20TransferEvent
+	iERC20           *token.IERC20
 
 	gatewayFilter   *bytecode.ContractsFilter
 	depositFilter   *bytecode.ContractsFilter
@@ -107,7 +107,7 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 	if err != nil {
 		return nil, err
 	}
-	cts.iERC20, err = token.NewIScrollERC20(common.Address{}, client)
+	cts.iERC20, err = token.NewIERC20(common.Address{}, client)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 
 func (l1 *l1Contracts) clean() {
 	l1.txHashMsgHash = map[string]common.Hash{}
-	l1.transferEvents = map[string]*token.IScrollERC20TransferEvent{}
+	l1.transferEvents = map[string]*token.IERC20TransferEvent{}
 	l1.ethEvents = l1.ethEvents[:0]
 	l1.erc20Events = l1.erc20Events[:0]
 	l1.erc721Events = l1.erc721Events[:0]
