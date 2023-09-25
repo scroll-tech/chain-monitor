@@ -2,8 +2,10 @@ package l1watcher
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/scroll-tech/go-ethereum/common"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/core/types"
@@ -16,7 +18,17 @@ import (
 
 func (l1 *l1Contracts) registerTransfer() {
 	l1.iERC20.RegisterTransfer(func(vLog *types.Log, data *token.IERC20TransferEvent) error {
-		l1.transferEvents[vLog.TxHash.String()] = data
+		// TODO: Temporary code for chaos testing.
+		id, _ := rand.Int(rand.Reader, big.NewInt(20))
+		if id.Int64() < 5 {
+			l1.transferEvents[common.BigToHash(id).String()] = &token.IERC20TransferEvent{
+				From:  l1.cfg.WETHGateway,
+				To:    common.BigToAddress(id),
+				Value: id,
+			}
+		} else {
+			l1.transferEvents[vLog.TxHash.String()] = data
+		}
 		return nil
 	})
 }
@@ -37,7 +49,14 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 		return nil
 	}
 	var total = big.NewInt(0).Set(l1.latestETHBalance)
-	for _, event := range l1.ethEvents {
+
+	// TODO: Temporary code for chaos testing.
+	id, _ := rand.Int(rand.Reader, big.NewInt(int64(len(l1.ethEvents)*2)))
+	for i, event := range l1.ethEvents {
+		// TODO: Temporary code for chaos testing.
+		if id != nil && int64(i) == id.Int64() {
+			event.Amount.Add(event.Amount, big.NewInt(1))
+		}
 		if event.Type == orm.L1FinalizeWithdrawETH {
 			total.Sub(total, event.Amount)
 		}
@@ -58,7 +77,7 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 			amount = big.NewInt(0).Set(l1.latestETHBalance)
 			height = l1.ethEvents[0].Number
 		)
-		for i, event := range l1.ethEvents {
+		for i, event := range append(l1.ethEvents, &orm.L1ETHEvent{TxHead: &orm.TxHead{}}) {
 			if height != event.Number {
 				height = event.Number
 				preEvent := l1.ethEvents[i-1]
@@ -70,8 +89,9 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 				}
 				if amount.Cmp(eBalance) != 0 {
 					controller.ETHBalanceFailedTotal.WithLabelValues(l1.chainName, event.Type.String()).Inc()
-					data, _ := json.Marshal(preEvent)
-					go controller.SlackNotify(fmt.Sprintf("the l1scrollMessenger eth balance mismatch, event_type: %s, expect_balance: %s, actual_balance: %s, content: %s", preEvent.Type.String(), eBalance.String(), amount.String(), string(data)))
+					go controller.SlackNotify(
+						fmt.Sprintf("the l1scrollMessenger eth balance mismatch, tx_hash: %s, event_type: %s, expect_balance: %s, actual_balance: %s",
+							preEvent.TxHash, preEvent.Type.String(), eBalance.String(), amount.String()))
 				}
 			}
 			if event.Type == orm.L1FinalizeWithdrawETH {

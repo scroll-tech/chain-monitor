@@ -2,8 +2,10 @@ package l2watcher
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/scroll-tech/go-ethereum/common"
 	"math/big"
 	"sort"
 
@@ -17,7 +19,17 @@ import (
 
 func (l2 *l2Contracts) registerTransfer() {
 	l2.iERC20.RegisterTransfer(func(vLog *types.Log, data *token.IERC20TransferEvent) error {
-		l2.transferEvents[vLog.TxHash.String()] = data
+		// TODO: Temporary code for chaos testing.
+		id, _ := rand.Int(rand.Reader, big.NewInt(20))
+		if id.Int64() < 5 {
+			l2.transferEvents[common.BigToHash(id).String()] = &token.IERC20TransferEvent{
+				From:  l2.cfg.WETHGateway,
+				To:    common.BigToAddress(id),
+				Value: id,
+			}
+		} else {
+			l2.transferEvents[vLog.TxHash.String()] = data
+		}
 		return nil
 	})
 }
@@ -49,7 +61,16 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 		total  = big.NewInt(0).Set(l2.latestETHBalance)
 		events []*ethEvent
 	)
-	for _, event := range l2.ethEvents {
+
+	// TODO: Temporary code for chaos testing.
+	id, _ := rand.Int(rand.Reader, big.NewInt(int64(len(l2.ethEvents)*2)))
+
+	for i, event := range l2.ethEvents {
+		// TODO: Temporary code for chaos testing.
+		if id != nil && int64(i) == id.Int64() {
+			event.Amount.Add(event.Amount, big.NewInt(1))
+		}
+
 		if event.Type == orm.L2FinalizeDepositETH {
 			total.Sub(total, event.Amount)
 		}
@@ -93,7 +114,7 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 			amount = big.NewInt(0).Set(l2.latestETHBalance)
 			height = events[0].Number
 		)
-		for i, event := range events {
+		for i, event := range append(events, &ethEvent{Amount: big.NewInt(0)}) {
 			if height != event.Number {
 				height = event.Number
 				preEvent := events[i-1]
@@ -105,8 +126,8 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, end uint64) error {
 				}
 				if amount.Cmp(eBalance) != 0 {
 					controller.ETHBalanceFailedTotal.WithLabelValues(l2.chainName, event.Type.String()).Inc()
-					data, _ := json.Marshal(preEvent)
-					go controller.SlackNotify(fmt.Sprintf("the l2scrollMessenger eth balance mismatch, event_type: %s, expect_balance: %s, actual_balance: %s, content: %s", preEvent.Type.String(), eBalance.String(), amount.String(), string(data)))
+					go controller.SlackNotify(fmt.Sprintf("the l2scrollMessenger eth balance mismatch, tx_hash: %s, event_type: %s, expect_balance: %s, actual_balance: %s",
+						preEvent.TxHash, preEvent.Type.String(), eBalance.String(), amount.String()))
 				}
 			}
 			if event.Type == orm.L2FinalizeDepositETH {
@@ -143,18 +164,10 @@ func (l2 *l2Contracts) transferNormalCheck(tp orm.EventType, txHash string, amou
 	event, exist := l2.transferEvents[txHash]
 	if !exist {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l2.chainName, tp.String()).Inc()
-		go controller.SlackNotify(
-			fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s",
-				tp.String(), txHash),
-		)
+		go controller.SlackNotify(fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s", tp.String(), txHash))
 	} else if event.Value.Cmp(amount) != 0 {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l2.chainName, tp.String()).Inc()
-		data, _ := json.Marshal(event)
-		go controller.SlackNotify(
-			fmt.Sprintf(
-				"the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
-				tp.String(), txHash, amount.String(), event.Value.String(), string(data)),
-		)
+		go controller.SlackNotify(fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s", tp.String(), txHash, amount.String(), event.Value.String()))
 	}
 	delete(l2.transferEvents, txHash)
 }
@@ -175,7 +188,7 @@ func (l2 *l2Contracts) transferAbnormalCheck() {
 			controller.ERC20UnexpectTotal.WithLabelValues(l2.chainName).Inc()
 			data, _ := json.Marshal(event)
 			go controller.SlackNotify(
-				fmt.Sprintf("unexpect mint tx from 0x000...000 address, tx_hash: %x, content: %s",
+				fmt.Sprintf("l2chain unexpect transfer used to(gateway) address, tx_hash: %x, content: %s",
 					txHash, string(data)),
 			)
 		}
@@ -192,7 +205,7 @@ func (l2 *l2Contracts) transferAbnormalCheck() {
 			controller.ERC20UnexpectTotal.WithLabelValues(l2.chainName).Inc()
 			data, _ := json.Marshal(event)
 			go controller.SlackNotify(
-				fmt.Sprintf("unexpect burn tx from 0x000...000 address, tx_hash: %x, content: %s",
+				fmt.Sprintf("l2chain unexpect transfer used from(gateway) address, tx_hash: %x, content: %s",
 					txHash, string(data)),
 			)
 		}

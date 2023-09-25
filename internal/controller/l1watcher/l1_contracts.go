@@ -167,15 +167,6 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	l1.clean()
 	l1.tx = db.Begin().WithContext(ctx)
 
-	// init eth balance.
-	if l1.latestETHBalance == nil {
-		balance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
-		if err != nil {
-			return 0, err
-		}
-		l1.latestETHBalance = balance
-	}
-
 	// Parse gateway logs.
 	count, err := l1.gatewayFilter.GetLogs(ctx, l1.client, start, end, l1.gatewayFilter.ParseLogs)
 	if err != nil {
@@ -201,6 +192,14 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	}
 
 	if l1.checkBalance {
+		// init eth balance.
+		if l1.latestETHBalance == nil {
+			balance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
+			if err != nil {
+				return 0, err
+			}
+			l1.latestETHBalance = balance
+		}
 		// Check erc20 balance.
 		l1.checkERC20Balance()
 		// Check eth balance.
