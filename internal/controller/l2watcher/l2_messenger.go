@@ -62,7 +62,8 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	}
 
 	// Store messenger events.
-	if err := l2.tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
+	tx := l2.tx.WithContext(ctx)
+	if err := tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
 		return err
 	}
 	return nil

@@ -245,7 +245,7 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	}
 
 	// Check withdraw root and store confirm monitor.
-	if err := l2.storeWithdrawRoots(ctx); err != nil {
+	if err = l2.storeWithdrawRoots(ctx); err != nil {
 		return 0, err
 	}
 

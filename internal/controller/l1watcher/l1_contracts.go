@@ -196,7 +196,7 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 
 	// Check balance.
 	if l1.checkBalance {
-		if err := l1.checkL1Balance(ctx, start, end); err != nil {
+		if err = l1.checkL1Balance(ctx, start, end); err != nil {
 			return 0, err
 		}
 	}
