@@ -146,6 +146,7 @@ var (
              if err := o.{{$contract.Type}}Caller.contract.UnpackLog(event, "{{.Original.Name}}", *log); err != nil {
                  return err
              }
+             event.Log = log
              return handler(log, event)
            }
            o.topics[_id] = "{{.Original.Name}}"
@@ -273,7 +274,9 @@ var (
 
 	{{range .Events}}
 		// {{$contract.Type}}{{.Normalized.Name}} represents a {{.Normalized.Name}} event raised by the {{$contract.Type}} contract.
-		type {{$contract.Type}}{{.Normalized.Name}}Event struct { {{range .Normalized.Inputs}}
+		type {{$contract.Type}}{{.Normalized.Name}}Event struct {
+		    Log   *types.Log `json:"-" gorm:"-"`
+		    {{range .Normalized.Inputs}}
 			{{capitalise .Name}} {{if .Indexed}}{{bindtopictype .Type $structs}}{{else}}{{bindtype .Type $structs}}{{end}}; {{end}}
 		}
  	{{end}}

@@ -33,6 +33,8 @@ var (
 	L1BlockContainerMetaData = &bind.MetaData{
 		ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"blockHash\",\"type\":\"bytes32\",\"indexed\":true},{\"internalType\":\"uint256\",\"name\":\"blockHeight\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"blockTimestamp\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"baseFee\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"bytes32\",\"name\":\"stateRoot\",\"type\":\"bytes32\",\"indexed\":false}],\"type\":\"event\",\"name\":\"ImportBlock\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oldOwner\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"_newOwner\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oldWhitelist\",\"type\":\"address\",\"indexed\":false},{\"internalType\":\"address\",\"name\":\"_newWhitelist\",\"type\":\"address\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateWhitelist\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"_blockHash\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"getBlockTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"_blockHash\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"getStateRoot\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"_blockHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"_blockHeaderRLP\",\"type\":\"bytes\"},{\"internalType\":\"bool\",\"name\":\"_updateGasPriceOracle\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"importBlockHeader\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"_startBlockHash\",\"type\":\"bytes32\"},{\"internalType\":\"uint64\",\"name\":\"_startBlockHeight\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"_startBlockTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint128\",\"name\":\"_startBlockBaseFee\",\"type\":\"uint128\"},{\"internalType\":\"bytes32\",\"name\":\"_startStateRoot\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"initialize\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"latestBaseFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"latestBlockHash\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"latestBlockNumber\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"latestBlockTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"metadata\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"height\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"timestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint128\",\"name\":\"baseFee\",\"type\":\"uint128\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"renounceOwnership\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"stateRoot\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newOwner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"transferOwnership\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newWhitelist\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateWhitelist\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"whitelist\",\"outputs\":[{\"internalType\":\"contractIWhitelist\",\"name\":\"\",\"type\":\"address\"}]}]",
 	}
+	// L1BlockContainerABI is the input ABI used to generate the binding from.
+	L1BlockContainerABI, _ = L1BlockContainerMetaData.GetAbi()
 )
 
 // L1BlockContainer is an auto generated Go binding around an Ethereum contract.
@@ -80,10 +82,8 @@ func (o *L1BlockContainer) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
 		return true, parse(vLog)
-	} else {
-		return false, nil
 	}
-	return true, nil
+	return false, nil
 }
 
 // RegisterImportBlock, the ImportBlock event ID is 0xa7823f45e1ee21f9530b77959b57507ad515a14fa9fa24d262ee80e79b2b5745.
@@ -94,6 +94,7 @@ func (o *L1BlockContainer) RegisterImportBlock(handler func(vLog *types.Log, dat
 		if err := o.L1BlockContainerCaller.contract.UnpackLog(event, "ImportBlock", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "ImportBlock"
@@ -107,6 +108,7 @@ func (o *L1BlockContainer) RegisterOwnershipTransferred(handler func(vLog *types
 		if err := o.L1BlockContainerCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "OwnershipTransferred"
@@ -120,6 +122,7 @@ func (o *L1BlockContainer) RegisterUpdateWhitelist(handler func(vLog *types.Log,
 		if err := o.L1BlockContainerCaller.contract.UnpackLog(event, "UpdateWhitelist", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateWhitelist"
@@ -407,6 +410,8 @@ func (_L1BlockContainer *L1BlockContainerTransactor) UpdateWhitelist(opts *bind.
 
 // L1BlockContainerImportBlock represents a ImportBlock event raised by the L1BlockContainer contract.
 type L1BlockContainerImportBlockEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	BlockHash      [32]byte
 	BlockHeight    *big.Int
 	BlockTimestamp *big.Int
@@ -416,12 +421,16 @@ type L1BlockContainerImportBlockEvent struct {
 
 // L1BlockContainerOwnershipTransferred represents a OwnershipTransferred event raised by the L1BlockContainer contract.
 type L1BlockContainerOwnershipTransferredEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldOwner common.Address
 	NewOwner common.Address
 }
 
 // L1BlockContainerUpdateWhitelist represents a UpdateWhitelist event raised by the L1BlockContainer contract.
 type L1BlockContainerUpdateWhitelistEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldWhitelist common.Address
 	NewWhitelist common.Address
 }

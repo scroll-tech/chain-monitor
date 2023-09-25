@@ -54,6 +54,8 @@ type l2Contracts struct {
 	transferEvents   map[string]*token.IERC20TransferEvent
 	iERC20           *token.IERC20
 
+	l2Confirms map[uint64]*orm.L2ChainConfirm
+
 	gatewayFilter  *bytecode.ContractsFilter
 	fDepositFilter *bytecode.ContractsFilter
 	withdrawFilter *bytecode.ContractsFilter
@@ -180,6 +182,7 @@ func (l2 *l2Contracts) clean() {
 	l2.txHashMsgHash = map[string]common.Hash{}
 	l2.msgSentEvents = map[uint64][]*orm.L2MessengerEvent{}
 	l2.transferEvents = map[string]*token.IERC20TransferEvent{}
+	l2.l2Confirms = map[uint64]*orm.L2ChainConfirm{}
 	l2.ethEvents = l2.ethEvents[:0]
 	l2.erc20Events = l2.erc20Events[:0]
 	l2.erc721Events = l2.erc721Events[:0]
@@ -223,8 +226,8 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
-	// Check scroll messenger eth balance.
-	if err = l2.checkETHBalance(ctx, end); err != nil {
+	// Check balance.
+	if err = l2.checkL2Balance(ctx, start, end); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}
@@ -235,11 +238,14 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
-	// Check erc20 balance.
-	l2.checkERC20Balance()
 	// Check eth balance.
 	if err = l2.storeGatewayEvents(); err != nil {
 		l2.tx.Rollback()
+		return 0, err
+	}
+
+	// Check withdraw root and store confirm monitor.
+	if err := l2.storeWithdrawRoots(ctx); err != nil {
 		return 0, err
 	}
 

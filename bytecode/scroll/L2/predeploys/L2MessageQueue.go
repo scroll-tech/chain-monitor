@@ -33,6 +33,8 @@ var (
 	L2MessageQueueMetaData = &bind.MetaData{
 		ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"bytes32\",\"name\":\"messageHash\",\"type\":\"bytes32\",\"indexed\":false}],\"type\":\"event\",\"name\":\"AppendMessage\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oldOwner\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"_newOwner\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"_messageHash\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"appendMessage\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"branches\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_messenger\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"initialize\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"messageRoot\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"messenger\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"nextMessageIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"renounceOwnership\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newOwner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"transferOwnership\"}]",
 	}
+	// L2MessageQueueABI is the input ABI used to generate the binding from.
+	L2MessageQueueABI, _ = L2MessageQueueMetaData.GetAbi()
 )
 
 // L2MessageQueue is an auto generated Go binding around an Ethereum contract.
@@ -80,10 +82,8 @@ func (o *L2MessageQueue) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
 		return true, parse(vLog)
-	} else {
-		return false, nil
 	}
-	return true, nil
+	return false, nil
 }
 
 // RegisterAppendMessage, the AppendMessage event ID is 0xfaa617c2d8ce12c62637dbce76efcc18dae60574aa95709bdcedce7e76071693.
@@ -94,6 +94,7 @@ func (o *L2MessageQueue) RegisterAppendMessage(handler func(vLog *types.Log, dat
 		if err := o.L2MessageQueueCaller.contract.UnpackLog(event, "AppendMessage", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "AppendMessage"
@@ -107,6 +108,7 @@ func (o *L2MessageQueue) RegisterOwnershipTransferred(handler func(vLog *types.L
 		if err := o.L2MessageQueueCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "OwnershipTransferred"
@@ -291,12 +293,16 @@ func (_L2MessageQueue *L2MessageQueueTransactor) TransferOwnership(opts *bind.Tr
 
 // L2MessageQueueAppendMessage represents a AppendMessage event raised by the L2MessageQueue contract.
 type L2MessageQueueAppendMessageEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Index       *big.Int
 	MessageHash [32]byte
 }
 
 // L2MessageQueueOwnershipTransferred represents a OwnershipTransferred event raised by the L2MessageQueue contract.
 type L2MessageQueueOwnershipTransferredEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldOwner common.Address
 	NewOwner common.Address
 }

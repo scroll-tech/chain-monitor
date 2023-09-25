@@ -94,6 +94,7 @@ func (o *L2ScrollMessenger) RegisterFailedRelayedMessage(handler func(vLog *type
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "FailedRelayedMessage", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "FailedRelayedMessage"
@@ -107,6 +108,7 @@ func (o *L2ScrollMessenger) RegisterInitialized(handler func(vLog *types.Log, da
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Initialized"
@@ -120,6 +122,7 @@ func (o *L2ScrollMessenger) RegisterOwnershipTransferred(handler func(vLog *type
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "OwnershipTransferred"
@@ -133,6 +136,7 @@ func (o *L2ScrollMessenger) RegisterPaused(handler func(vLog *types.Log, data *L
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "Paused", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Paused"
@@ -146,6 +150,7 @@ func (o *L2ScrollMessenger) RegisterRelayedMessage(handler func(vLog *types.Log,
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "RelayedMessage", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "RelayedMessage"
@@ -159,6 +164,7 @@ func (o *L2ScrollMessenger) RegisterSentMessage(handler func(vLog *types.Log, da
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "SentMessage", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "SentMessage"
@@ -172,6 +178,7 @@ func (o *L2ScrollMessenger) RegisterUnpaused(handler func(vLog *types.Log, data 
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "Unpaused", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Unpaused"
@@ -185,6 +192,7 @@ func (o *L2ScrollMessenger) RegisterUpdateFeeVault(handler func(vLog *types.Log,
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "UpdateFeeVault", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateFeeVault"
@@ -198,6 +206,7 @@ func (o *L2ScrollMessenger) RegisterUpdateMaxFailedExecutionTimes(handler func(v
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "UpdateMaxFailedExecutionTimes", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateMaxFailedExecutionTimes"
@@ -211,6 +220,7 @@ func (o *L2ScrollMessenger) RegisterUpdateRateLimiter(handler func(vLog *types.L
 		if err := o.L2ScrollMessengerCaller.contract.UnpackLog(event, "UpdateRateLimiter", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateRateLimiter"
@@ -505,32 +515,44 @@ func (_L2ScrollMessenger *L2ScrollMessengerTransactor) Receive(opts *bind.Transa
 
 // L2ScrollMessengerFailedRelayedMessage represents a FailedRelayedMessage event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerFailedRelayedMessageEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	MessageHash [32]byte
 }
 
 // L2ScrollMessengerInitialized represents a Initialized event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerInitializedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Version uint8
 }
 
 // L2ScrollMessengerOwnershipTransferred represents a OwnershipTransferred event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerOwnershipTransferredEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	PreviousOwner common.Address
 	NewOwner      common.Address
 }
 
 // L2ScrollMessengerPaused represents a Paused event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerPausedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Account common.Address
 }
 
 // L2ScrollMessengerRelayedMessage represents a RelayedMessage event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerRelayedMessageEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	MessageHash [32]byte
 }
 
 // L2ScrollMessengerSentMessage represents a SentMessage event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerSentMessageEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Sender       common.Address
 	Target       common.Address
 	Value        *big.Int
@@ -541,23 +563,31 @@ type L2ScrollMessengerSentMessageEvent struct {
 
 // L2ScrollMessengerUnpaused represents a Unpaused event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerUnpausedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Account common.Address
 }
 
 // L2ScrollMessengerUpdateFeeVault represents a UpdateFeeVault event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerUpdateFeeVaultEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldFeeVault common.Address
 	NewFeeVault common.Address
 }
 
 // L2ScrollMessengerUpdateMaxFailedExecutionTimes represents a UpdateMaxFailedExecutionTimes event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerUpdateMaxFailedExecutionTimesEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldMaxFailedExecutionTimes *big.Int
 	NewMaxFailedExecutionTimes *big.Int
 }
 
 // L2ScrollMessengerUpdateRateLimiter represents a UpdateRateLimiter event raised by the L2ScrollMessenger contract.
 type L2ScrollMessengerUpdateRateLimiterEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldRateLimiter common.Address
 	NewRateLimiter common.Address
 }

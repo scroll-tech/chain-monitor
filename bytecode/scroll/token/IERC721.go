@@ -94,6 +94,7 @@ func (o *IERC721) RegisterApproval(handler func(vLog *types.Log, data *IERC721Ap
 		if err := o.IERC721Caller.contract.UnpackLog(event, "Approval", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Approval"
@@ -107,6 +108,7 @@ func (o *IERC721) RegisterApprovalForAll(handler func(vLog *types.Log, data *IER
 		if err := o.IERC721Caller.contract.UnpackLog(event, "ApprovalForAll", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "ApprovalForAll"
@@ -120,6 +122,7 @@ func (o *IERC721) RegisterTransfer(handler func(vLog *types.Log, data *IERC721Tr
 		if err := o.IERC721Caller.contract.UnpackLog(event, "Transfer", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Transfer"
@@ -311,6 +314,8 @@ func (_IERC721 *IERC721Transactor) TransferFrom(opts *bind.TransactOpts, from co
 
 // IERC721Approval represents a Approval event raised by the IERC721 contract.
 type IERC721ApprovalEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Owner    common.Address
 	Approved common.Address
 	TokenId  *big.Int
@@ -318,6 +323,8 @@ type IERC721ApprovalEvent struct {
 
 // IERC721ApprovalForAll represents a ApprovalForAll event raised by the IERC721 contract.
 type IERC721ApprovalForAllEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Owner    common.Address
 	Operator common.Address
 	Approved bool
@@ -325,6 +332,8 @@ type IERC721ApprovalForAllEvent struct {
 
 // IERC721Transfer represents a Transfer event raised by the IERC721 contract.
 type IERC721TransferEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	From    common.Address
 	To      common.Address
 	TokenId *big.Int

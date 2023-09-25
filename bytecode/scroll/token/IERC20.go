@@ -94,6 +94,7 @@ func (o *IERC20) RegisterApproval(handler func(vLog *types.Log, data *IERC20Appr
 		if err := o.IERC20Caller.contract.UnpackLog(event, "Approval", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Approval"
@@ -107,6 +108,7 @@ func (o *IERC20) RegisterTransfer(handler func(vLog *types.Log, data *IERC20Tran
 		if err := o.IERC20Caller.contract.UnpackLog(event, "Transfer", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Transfer"
@@ -250,6 +252,8 @@ func (_IERC20 *IERC20Transactor) TransferFrom(opts *bind.TransactOpts, from comm
 
 // IERC20Approval represents a Approval event raised by the IERC20 contract.
 type IERC20ApprovalEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Owner   common.Address
 	Spender common.Address
 	Value   *big.Int
@@ -257,6 +261,8 @@ type IERC20ApprovalEvent struct {
 
 // IERC20Transfer represents a Transfer event raised by the IERC20 contract.
 type IERC20TransferEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	From  common.Address
 	To    common.Address
 	Value *big.Int

@@ -33,6 +33,8 @@ var (
 	L1MessageQueueMetaData = &bind.MetaData{
 		ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"startIndex\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"count\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"skippedBitmap\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"DequeueTransaction\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"DropTransaction\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false}],\"type\":\"event\",\"name\":\"Initialized\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"target\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint64\",\"name\":\"queueIndex\",\"type\":\"uint64\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"gasLimit\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\",\"indexed\":false}],\"type\":\"event\",\"name\":\"QueueTransaction\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oldGateway\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"_newGateway\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"UpdateEnforcedTxGateway\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oldGasOracle\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"_newGasOracle\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"UpdateGasOracle\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_oldMaxGasLimit\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"_newMaxGasLimit\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateMaxGasLimit\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_gasLimit\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"appendCrossDomainMessage\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_gasLimit\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"appendEnforcedTransaction\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"calculateIntrinsicGasFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_queueIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_gasLimit\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"stateMutability\":\"pure\",\"type\":\"function\",\"name\":\"computeTransactionHash\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"dropCrossDomainMessage\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"enforcedTxGateway\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_gasLimit\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"estimateCrossDomainMessageFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"gasOracle\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_queueIndex\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"getCrossDomainMessage\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_messenger\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_scrollChain\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_enforcedTxGateway\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_gasOracle\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_maxGasLimit\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"initialize\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"maxGasLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"messageQueue\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"messenger\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"nextCrossDomainMessageIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"pendingQueueIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_startIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_count\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_skippedBitmap\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"popCrossDomainMessage\"},{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"renounceOwnership\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"scrollChain\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"transferOwnership\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newGateway\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateEnforcedTxGateway\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newGasOracle\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateGasOracle\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_newMaxGasLimit\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateMaxGasLimit\"}]",
 	}
+	// L1MessageQueueABI is the input ABI used to generate the binding from.
+	L1MessageQueueABI, _ = L1MessageQueueMetaData.GetAbi()
 )
 
 // L1MessageQueue is an auto generated Go binding around an Ethereum contract.
@@ -80,10 +82,8 @@ func (o *L1MessageQueue) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
 		return true, parse(vLog)
-	} else {
-		return false, nil
 	}
-	return true, nil
+	return false, nil
 }
 
 // RegisterDequeueTransaction, the DequeueTransaction event ID is 0xc77f792f838ae38399ac31acc3348389aeb110ce7bedf3cfdbdd5e6679267970.
@@ -94,6 +94,7 @@ func (o *L1MessageQueue) RegisterDequeueTransaction(handler func(vLog *types.Log
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "DequeueTransaction", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "DequeueTransaction"
@@ -107,6 +108,7 @@ func (o *L1MessageQueue) RegisterDropTransaction(handler func(vLog *types.Log, d
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "DropTransaction", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "DropTransaction"
@@ -120,6 +122,7 @@ func (o *L1MessageQueue) RegisterInitialized(handler func(vLog *types.Log, data 
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Initialized"
@@ -133,6 +136,7 @@ func (o *L1MessageQueue) RegisterOwnershipTransferred(handler func(vLog *types.L
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "OwnershipTransferred"
@@ -146,6 +150,7 @@ func (o *L1MessageQueue) RegisterQueueTransaction(handler func(vLog *types.Log, 
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "QueueTransaction", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "QueueTransaction"
@@ -159,6 +164,7 @@ func (o *L1MessageQueue) RegisterUpdateEnforcedTxGateway(handler func(vLog *type
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "UpdateEnforcedTxGateway", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateEnforcedTxGateway"
@@ -172,6 +178,7 @@ func (o *L1MessageQueue) RegisterUpdateGasOracle(handler func(vLog *types.Log, d
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "UpdateGasOracle", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateGasOracle"
@@ -185,6 +192,7 @@ func (o *L1MessageQueue) RegisterUpdateMaxGasLimit(handler func(vLog *types.Log,
 		if err := o.L1MessageQueueCaller.contract.UnpackLog(event, "UpdateMaxGasLimit", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateMaxGasLimit"
@@ -547,6 +555,8 @@ func (_L1MessageQueue *L1MessageQueueTransactor) UpdateMaxGasLimit(opts *bind.Tr
 
 // L1MessageQueueDequeueTransaction represents a DequeueTransaction event raised by the L1MessageQueue contract.
 type L1MessageQueueDequeueTransactionEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	StartIndex    *big.Int
 	Count         *big.Int
 	SkippedBitmap *big.Int
@@ -554,22 +564,30 @@ type L1MessageQueueDequeueTransactionEvent struct {
 
 // L1MessageQueueDropTransaction represents a DropTransaction event raised by the L1MessageQueue contract.
 type L1MessageQueueDropTransactionEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Index *big.Int
 }
 
 // L1MessageQueueInitialized represents a Initialized event raised by the L1MessageQueue contract.
 type L1MessageQueueInitializedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Version uint8
 }
 
 // L1MessageQueueOwnershipTransferred represents a OwnershipTransferred event raised by the L1MessageQueue contract.
 type L1MessageQueueOwnershipTransferredEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	PreviousOwner common.Address
 	NewOwner      common.Address
 }
 
 // L1MessageQueueQueueTransaction represents a QueueTransaction event raised by the L1MessageQueue contract.
 type L1MessageQueueQueueTransactionEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Sender     common.Address
 	Target     common.Address
 	Value      *big.Int
@@ -580,18 +598,24 @@ type L1MessageQueueQueueTransactionEvent struct {
 
 // L1MessageQueueUpdateEnforcedTxGateway represents a UpdateEnforcedTxGateway event raised by the L1MessageQueue contract.
 type L1MessageQueueUpdateEnforcedTxGatewayEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldGateway common.Address
 	NewGateway common.Address
 }
 
 // L1MessageQueueUpdateGasOracle represents a UpdateGasOracle event raised by the L1MessageQueue contract.
 type L1MessageQueueUpdateGasOracleEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldGasOracle common.Address
 	NewGasOracle common.Address
 }
 
 // L1MessageQueueUpdateMaxGasLimit represents a UpdateMaxGasLimit event raised by the L1MessageQueue contract.
 type L1MessageQueueUpdateMaxGasLimitEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldMaxGasLimit *big.Int
 	NewMaxGasLimit *big.Int
 }

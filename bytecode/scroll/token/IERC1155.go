@@ -94,6 +94,7 @@ func (o *IERC1155) RegisterApprovalForAll(handler func(vLog *types.Log, data *IE
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "ApprovalForAll", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "ApprovalForAll"
@@ -107,6 +108,7 @@ func (o *IERC1155) RegisterTransferBatch(handler func(vLog *types.Log, data *IER
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "TransferBatch", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "TransferBatch"
@@ -120,6 +122,7 @@ func (o *IERC1155) RegisterTransferSingle(handler func(vLog *types.Log, data *IE
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "TransferSingle", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "TransferSingle"
@@ -133,6 +136,7 @@ func (o *IERC1155) RegisterURI(handler func(vLog *types.Log, data *IERC1155URIEv
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "URI", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "URI"
@@ -293,6 +297,8 @@ func (_IERC1155 *IERC1155Transactor) SetApprovalForAll(opts *bind.TransactOpts, 
 
 // IERC1155ApprovalForAll represents a ApprovalForAll event raised by the IERC1155 contract.
 type IERC1155ApprovalForAllEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Account  common.Address
 	Operator common.Address
 	Approved bool
@@ -300,6 +306,8 @@ type IERC1155ApprovalForAllEvent struct {
 
 // IERC1155TransferBatch represents a TransferBatch event raised by the IERC1155 contract.
 type IERC1155TransferBatchEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Operator common.Address
 	From     common.Address
 	To       common.Address
@@ -309,6 +317,8 @@ type IERC1155TransferBatchEvent struct {
 
 // IERC1155TransferSingle represents a TransferSingle event raised by the IERC1155 contract.
 type IERC1155TransferSingleEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Operator common.Address
 	From     common.Address
 	To       common.Address
@@ -318,6 +328,8 @@ type IERC1155TransferSingleEvent struct {
 
 // IERC1155URI represents a URI event raised by the IERC1155 contract.
 type IERC1155URIEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Value string
 	Id    *big.Int
 }

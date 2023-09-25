@@ -48,6 +48,8 @@ type l1Contracts struct {
 	transferEvents   map[string]*token.IERC20TransferEvent
 	iERC20           *token.IERC20
 
+	l1Confirms []*orm.L1ChainConfirm
+
 	gatewayFilter   *bytecode.ContractsFilter
 	depositFilter   *bytecode.ContractsFilter
 	fWithdrawFilter *bytecode.ContractsFilter
@@ -157,6 +159,7 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 func (l1 *l1Contracts) clean() {
 	l1.txHashMsgHash = map[string]common.Hash{}
 	l1.transferEvents = map[string]*token.IERC20TransferEvent{}
+	l1.l1Confirms = l1.l1Confirms[:0]
 	l1.ethEvents = l1.ethEvents[:0]
 	l1.erc20Events = l1.erc20Events[:0]
 	l1.erc721Events = l1.erc721Events[:0]
@@ -191,21 +194,9 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
+	// Check balance.
 	if l1.checkBalance {
-		// init eth balance.
-		if l1.latestETHBalance == nil {
-			var balance *big.Int
-			balance, err = l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
-			if err != nil {
-				return 0, err
-			}
-			l1.latestETHBalance = balance
-		}
-		// Check erc20 balance.
-		l1.checkERC20Balance()
-		// Check eth balance.
-		if err = l1.checkETHBalance(ctx, end); err != nil {
-			l1.tx.Rollback()
+		if err := l1.checkL1Balance(ctx, start, end); err != nil {
 			return 0, err
 		}
 	}
@@ -216,14 +207,7 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
-	// Store l1 confirm.
-	var l1Confirms = make([]orm.L1ChainConfirm, 0, end-start+1)
-	for number := start; number <= end; number++ {
-		l1Confirms = append(l1Confirms, orm.L1ChainConfirm{
-			Number: number,
-		})
-	}
-	if err = l1.tx.Save(l1Confirms).Error; err != nil {
+	if err = l1.tx.Save(l1.l1Confirms).Error; err != nil {
 		l1.tx.Rollback()
 		return 0, err
 	}

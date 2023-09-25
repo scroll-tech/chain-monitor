@@ -43,16 +43,10 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	}
 
 	// Calculate withdraw root.
-	var (
-		chainMonitors = make([]*orm.L2ChainConfirm, 0, end-start+1)
-		msgSentEvents []*orm.L2MessengerEvent
-	)
+	var msgSentEvents []*orm.L2MessengerEvent
 	for number := start; number <= end; number++ {
 		if l2.msgSentEvents[number] == nil {
-			chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
-				Number:             number,
-				WithdrawRootStatus: true,
-			})
+			l2.l2Confirms[number].WithdrawRootStatus = true
 			continue
 		}
 		msgs := l2.msgSentEvents[number]
@@ -64,15 +58,7 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 			}
 			msgSentEvents = append(msgSentEvents, msgs[i])
 		}
-		chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
-			Number:       number,
-			WithdrawRoot: l2.withdraw.MessageRoot(),
-		})
-	}
-
-	// Check withdraw root and store confirm monitor.
-	if err := l2.storeWithdrawRoots(ctx, chainMonitors); err != nil {
-		return err
+		l2.l2Confirms[number].WithdrawRoot = l2.withdraw.MessageRoot()
 	}
 
 	// Store messenger events.
@@ -82,16 +68,18 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	return nil
 }
 
-func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.L2ChainConfirm) error {
+func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 	var (
 		numbers       []uint64
 		withdrawRoots []common.Hash
+		chainMonitors = make([]*orm.L2ChainConfirm, 0, len(l2.l2Confirms))
 		err           error
 	)
-	for _, monitor := range chainMonitors {
+	for i, monitor := range l2.l2Confirms {
 		if !monitor.WithdrawRootStatus {
 			numbers = append(numbers, monitor.Number)
 		}
+		chainMonitors = append(chainMonitors, l2.l2Confirms[i])
 	}
 
 	utils.TryTimes(3, func() bool {
