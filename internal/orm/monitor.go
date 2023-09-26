@@ -24,8 +24,8 @@ type L2ChainConfirm struct {
 	Confirm       bool `gorm:"type: confirm"`
 }
 
-// GetL2DepositNumber retrieves the latest block number with confirmation status set to true.
-func GetL2DepositNumber(db *gorm.DB) (uint64, error) {
+// GetL2ConfirmNumber retrieves the latest block number with confirmation status set to true.
+func GetL2ConfirmNumber(db *gorm.DB) (uint64, error) {
 	var monitor L2ChainConfirm
 	err := db.Model(&L2ChainConfirm{}).Where("confirm = true").Last(&monitor).Error
 	if err != nil && err.Error() != gorm.ErrRecordNotFound.Error() {
@@ -34,8 +34,8 @@ func GetL2DepositNumber(db *gorm.DB) (uint64, error) {
 	return monitor.Number, nil
 }
 
-// GetL1WithdrawNumber retrieves the latest block number with confirmation status set to true.
-func GetL1WithdrawNumber(db *gorm.DB) (uint64, error) {
+// GetL1ConfirmNumber retrieves the latest block number with confirmation status set to true.
+func GetL1ConfirmNumber(db *gorm.DB) (uint64, error) {
 	var monitor L1ChainConfirm
 	err := db.Model(&L1ChainConfirm{}).Where("confirm = true").Last(&monitor).Error
 	if err != nil && err.Error() != gorm.ErrRecordNotFound.Error() {
