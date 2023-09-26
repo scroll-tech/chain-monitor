@@ -226,6 +226,14 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
+	// Create l2Confirms
+	for number := start; number <= end; number++ {
+		l2.l2Confirms[number] = &orm.L2ChainConfirm{
+			Number:        number,
+			BalanceStatus: true,
+		}
+	}
+
 	// Check balance.
 	if err = l2.checkL2Balance(ctx, start, end); err != nil {
 		l2.tx.Rollback()

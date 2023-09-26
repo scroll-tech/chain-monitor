@@ -194,6 +194,14 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
+	// Create l1Confirms
+	for number := start; number <= end; number++ {
+		l1.l1Confirms = append(l1.l1Confirms, &orm.L1ChainConfirm{
+			Number:        number,
+			BalanceStatus: true,
+		})
+	}
+
 	// Check balance.
 	if l1.checkBalance {
 		if err = l1.checkL1Balance(ctx, start, end); err != nil {

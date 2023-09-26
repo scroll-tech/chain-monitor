@@ -147,11 +147,8 @@ func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) er
 	}
 	failedNumbers[failedNumber] = true
 
-	for number := start; number <= end; number++ {
-		l1.l1Confirms = append(l1.l1Confirms, &orm.L1ChainConfirm{
-			Number:        number,
-			BalanceStatus: !failedNumbers[number],
-		})
+	for _, cfm := range l1.l1Confirms {
+		cfm.BalanceStatus = !failedNumbers[cfm.Number]
 	}
 
 	return nil
