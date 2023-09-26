@@ -28,7 +28,7 @@ func (m *ChainConfirm) confirmBlocksStatus(start, end uint64) (bool, error) {
 		return false, err
 	}
 	if confirmNumber < end {
-		fmt.Errorf("l2 confirm is not ready, current confirm number: %d", confirmNumber)
+		return false, fmt.Errorf("l2 confirm is not ready, current confirm number: %d", confirmNumber)
 	}
 	l2FailedConfirms, err := orm.GetL2ConfirmMsgByNumber(m.db, start, end)
 	if err != nil {
