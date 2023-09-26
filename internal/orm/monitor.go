@@ -45,8 +45,8 @@ func GetL1WithdrawNumber(db *gorm.DB) (uint64, error) {
 	return monitor.Number, nil
 }
 
-// GetL2ConfirmMsgByNumber fetches the L2ChainConfirm message for a given block number.
-func GetL2ConfirmMsgByNumber(db *gorm.DB, start, end uint64) ([]L2ChainConfirm, error) {
+// GetL2FailedConfirmMsgByNumber fetches the L2ChainConfirm message for a given block number.
+func GetL2FailedConfirmMsgByNumber(db *gorm.DB, start, end uint64) ([]L2ChainConfirm, error) {
 	var failedConfirms []L2ChainConfirm
 	tx := db.Model(&L2ChainConfirm{}).Where("number BETWEEN ? AND ? AND (deposit_status = false OR withdraw_root_status = false OR balance_status = false)", start, end)
 	err := tx.Scan(&failedConfirms).Error

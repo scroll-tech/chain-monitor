@@ -21,7 +21,7 @@ func NewMetricsController(db *gorm.DB) *ChainConfirm {
 }
 
 func (m *ChainConfirm) confirmBlocksStatus(start, end uint64) (bool, error) {
-	l2FailedConfirms, err := orm.GetL2ConfirmMsgByNumber(m.db, start, end)
+	l2FailedConfirms, err := orm.GetL2FailedConfirmMsgByNumber(m.db, start, end)
 	if err != nil {
 		return false, err
 	}
