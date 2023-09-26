@@ -73,14 +73,14 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 	var (
 		numbers       []uint64
 		withdrawRoots []common.Hash
-		chainMonitors = make([]*orm.L2ChainConfirm, 0, len(l2.l2Confirms))
+		l2Confirms    = make([]*orm.L2ChainConfirm, 0, len(l2.l2Confirms))
 		err           error
 	)
 	for i, monitor := range l2.l2Confirms {
 		if !monitor.WithdrawRootStatus {
 			numbers = append(numbers, monitor.Number)
 		}
-		chainMonitors = append(chainMonitors, l2.l2Confirms[i])
+		l2Confirms = append(l2Confirms, l2.l2Confirms[i])
 	}
 
 	utils.TryTimes(3, func() bool {
@@ -92,7 +92,7 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 		return err
 	}
 
-	for _, monitor := range chainMonitors {
+	for _, monitor := range l2Confirms {
 		if len(withdrawRoots) == 0 {
 			break
 		}
@@ -115,7 +115,7 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 			go controller.SlackNotify(msg)
 		}
 	}
-	if err = l2.tx.Model(&orm.L2ChainConfirm{}).Save(chainMonitors).Error; err != nil {
+	if err = l2.tx.Model(&orm.L2ChainConfirm{}).Save(l2Confirms).Error; err != nil {
 		return err
 	}
 	return nil
