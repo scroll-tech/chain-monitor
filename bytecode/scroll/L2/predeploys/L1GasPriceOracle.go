@@ -33,6 +33,8 @@ var (
 	L1GasPriceOracleMetaData = &bind.MetaData{
 		ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"l1BaseFee\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"L1BaseFeeUpdated\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"overhead\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"OverheadUpdated\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oldOwner\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"_newOwner\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"scalar\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"ScalarUpdated\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oldWhitelist\",\"type\":\"address\",\"indexed\":false},{\"internalType\":\"address\",\"name\":\"_newWhitelist\",\"type\":\"address\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateWhitelist\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"getL1Fee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"getL1GasUsed\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"l1BaseFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"overhead\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"renounceOwnership\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"scalar\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_l1BaseFee\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"setL1BaseFee\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_overhead\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"setOverhead\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_scalar\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"setScalar\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newOwner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"transferOwnership\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newWhitelist\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateWhitelist\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"whitelist\",\"outputs\":[{\"internalType\":\"contractIWhitelist\",\"name\":\"\",\"type\":\"address\"}]}]",
 	}
+	// L1GasPriceOracleABI is the input ABI used to generate the binding from.
+	L1GasPriceOracleABI, _ = L1GasPriceOracleMetaData.GetAbi()
 )
 
 // L1GasPriceOracle is an auto generated Go binding around an Ethereum contract.
@@ -80,10 +82,8 @@ func (o *L1GasPriceOracle) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
 		return true, parse(vLog)
-	} else {
-		return false, nil
 	}
-	return true, nil
+	return false, nil
 }
 
 // RegisterL1BaseFeeUpdated, the L1BaseFeeUpdated event ID is 0x351fb23757bb5ea0546c85b7996ddd7155f96b939ebaa5ff7bc49c75f27f2c44.
@@ -94,6 +94,7 @@ func (o *L1GasPriceOracle) RegisterL1BaseFeeUpdated(handler func(vLog *types.Log
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "L1BaseFeeUpdated", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "L1BaseFeeUpdated"
@@ -107,6 +108,7 @@ func (o *L1GasPriceOracle) RegisterOverheadUpdated(handler func(vLog *types.Log,
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "OverheadUpdated", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "OverheadUpdated"
@@ -120,6 +122,7 @@ func (o *L1GasPriceOracle) RegisterOwnershipTransferred(handler func(vLog *types
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "OwnershipTransferred"
@@ -133,6 +136,7 @@ func (o *L1GasPriceOracle) RegisterScalarUpdated(handler func(vLog *types.Log, d
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "ScalarUpdated", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "ScalarUpdated"
@@ -146,6 +150,7 @@ func (o *L1GasPriceOracle) RegisterUpdateWhitelist(handler func(vLog *types.Log,
 		if err := o.L1GasPriceOracleCaller.contract.UnpackLog(event, "UpdateWhitelist", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateWhitelist"
@@ -378,27 +383,37 @@ func (_L1GasPriceOracle *L1GasPriceOracleTransactor) UpdateWhitelist(opts *bind.
 
 // L1GasPriceOracleL1BaseFeeUpdated represents a L1BaseFeeUpdated event raised by the L1GasPriceOracle contract.
 type L1GasPriceOracleL1BaseFeeUpdatedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	L1BaseFee *big.Int
 }
 
 // L1GasPriceOracleOverheadUpdated represents a OverheadUpdated event raised by the L1GasPriceOracle contract.
 type L1GasPriceOracleOverheadUpdatedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Overhead *big.Int
 }
 
 // L1GasPriceOracleOwnershipTransferred represents a OwnershipTransferred event raised by the L1GasPriceOracle contract.
 type L1GasPriceOracleOwnershipTransferredEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldOwner common.Address
 	NewOwner common.Address
 }
 
 // L1GasPriceOracleScalarUpdated represents a ScalarUpdated event raised by the L1GasPriceOracle contract.
 type L1GasPriceOracleScalarUpdatedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Scalar *big.Int
 }
 
 // L1GasPriceOracleUpdateWhitelist represents a UpdateWhitelist event raised by the L1GasPriceOracle contract.
 type L1GasPriceOracleUpdateWhitelistEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldWhitelist common.Address
 	NewWhitelist common.Address
 }

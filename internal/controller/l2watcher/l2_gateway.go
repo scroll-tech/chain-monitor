@@ -66,79 +66,76 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 
 	l2.ERC721Gateway.RegisterWithdrawERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayWithdrawERC721Event) error {
 		controller.ERC721EventsTotal.WithLabelValues(l2.chainName, orm.L2WithdrawERC721.String()).Inc()
-		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2WithdrawERC721, vLog, data.L1Token, data.L2Token, data.TokenID))
+		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2WithdrawERC721, vLog, data.L1Token, data.L2Token, data.TokenId))
 		return nil
 	})
 	l2.ERC721Gateway.RegisterFinalizeDepositERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayFinalizeDepositERC721Event) error {
 		controller.ERC721EventsTotal.WithLabelValues(l2.chainName, orm.L2FinalizeDepositERC721.String()).Inc()
-		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2FinalizeDepositERC721, vLog, data.L1Token, data.L2Token, data.TokenID))
+		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2FinalizeDepositERC721, vLog, data.L1Token, data.L2Token, data.TokenId))
 		return nil
 	})
 
 	l2.ERC1155Gateway.RegisterWithdrawERC1155(func(vLog *types.Log, data *gateway.L2ERC1155GatewayWithdrawERC1155Event) error {
 		controller.ERC1155EventsTotal.WithLabelValues(l2.chainName, orm.L2WithdrawERC1155.String()).Inc()
-		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2WithdrawERC1155, vLog, data.L1Token, data.L2Token, data.TokenID, data.Amount))
+		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2WithdrawERC1155, vLog, data.L1Token, data.L2Token, data.TokenId, data.Amount))
 		return nil
 	})
 	l2.ERC1155Gateway.RegisterFinalizeDepositERC1155(func(vLog *types.Log, data *gateway.L2ERC1155GatewayFinalizeDepositERC1155Event) error {
 		controller.ERC1155EventsTotal.WithLabelValues(l2.chainName, orm.L2FinalizeDepositERC1155.String()).Inc()
-		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2FinalizeDepositERC1155, vLog, data.L1Token, data.L2Token, data.TokenID, data.Amount))
+		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2FinalizeDepositERC1155, vLog, data.L1Token, data.L2Token, data.TokenId, data.Amount))
 		return nil
 	})
 }
 
 func (l2 *l2Contracts) storeGatewayEvents() error {
 	// store l2 eth events.
-	for i := 0; i < len(l2.ethEvents); i++ {
-		event := l2.ethEvents[i]
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-		}
-	}
 	if len(l2.ethEvents) > 0 {
+		for _, event := range l2.ethEvents {
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
+			}
+		}
 		if err := l2.tx.Save(l2.ethEvents).Error; err != nil {
 			return err
 		}
 	}
 
 	// store l2 erc20 events.
-	for i := 0; i < len(l2.erc20Events); i++ {
-		event := l2.erc20Events[i]
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-		}
-	}
 	if len(l2.erc20Events) > 0 {
+		for _, event := range l2.erc20Events {
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
+			}
+		}
 		if err := l2.tx.Save(l2.erc20Events).Error; err != nil {
 			return err
 		}
 	}
 
 	// store l2 err721 events.
-	for i := 0; i < len(l2.erc721Events); i++ {
-		event := l2.erc721Events[i]
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-		}
-	}
 	if len(l2.erc721Events) > 0 {
+		for _, event := range l2.erc721Events {
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
+			}
+		}
 		if err := l2.tx.Save(l2.erc721Events).Error; err != nil {
 			return err
 		}
 	}
 
 	// store l2 erc1155 events.
-	for i := 0; i < len(l2.erc1155Events); i++ {
-		event := l2.erc1155Events[i]
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-		}
-	}
 	if len(l2.erc1155Events) > 0 {
+		for _, event := range l2.erc1155Events {
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
+			}
+		}
 		if err := l2.tx.Save(l2.erc1155Events).Error; err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

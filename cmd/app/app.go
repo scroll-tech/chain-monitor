@@ -90,6 +90,9 @@ func action(ctx *cli.Context) error {
 		utils.StartServer(subCtx, endpoint, route.MetricsHandler(db))
 	}
 
+	// Init webhook alert.
+	controller.InitWebhookAlert(cfg.AlertConfig)
+
 	l1Watcher, err := l1watcher.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
 	if err != nil {
 		log.Error("failed to create l1 watcher instance", "err", err)
@@ -104,16 +107,12 @@ func action(ctx *cli.Context) error {
 	}
 	_ = l2Watcher
 
-	chainMonitor, err := monitor.NewChainMonitor(cfg.ChainMonitor, db.WithContext(subCtx), l1Watcher, l2Watcher)
+	chainMonitor, err := monitor.NewChainMonitor(db.WithContext(subCtx), l1Watcher, l2Watcher)
 	if err != nil {
 		log.Error("failed to create chain chainMonitor instance", "err", err)
 		return err
 	}
 	_ = chainMonitor
-
-	// Let l1watcher and l2watcher can use monitor api.
-	l1Watcher.SetMonitor(chainMonitor)
-	l2Watcher.SetMonitor(chainMonitor)
 
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)

@@ -2,15 +2,17 @@
   "l1_config": {
     "l1_url": "http://10.5.12.230:8545/l1",
     "confirm": "0x4",
-    "start_number": 4041200,
-    "l1_gateways": {
-      "eth_gateway": "0x8A54A2347Da2562917304141ab67324615e9866d",
-      "weth_gateway": "0x3dA0BF44814cfC678376b3311838272158211695",
-      "standard_erc20_gateway": "0x65D123d6389b900d954677c26327bfc1C3e88A13",
-      "custom_erc20_gateway": "0x31C994F2017E71b82fd4D8118F140c81215bbb37",
-      "erc721_gateway": "0xEF27A5E63aa3f1B8312f744b9b4DcEB910Ba77AC",
-      "erc1155_gateway": "0xa5Df8530766A85936EE3E139dECE3bF081c83146",
-      "dai_gateway": "0x8b0B9c4e9f41b9bbDEfFee24F9f11C328093d248",
+    "start_number": 4038000,
+    "l1_contracts": {
+      "l1_gateways": {
+        "eth_gateway": "0x8A54A2347Da2562917304141ab67324615e9866d",
+        "weth_gateway": "0x3dA0BF44814cfC678376b3311838272158211695",
+        "standard_erc20_gateway": "0x65D123d6389b900d954677c26327bfc1C3e88A13",
+        "custom_erc20_gateway": "0x31C994F2017E71b82fd4D8118F140c81215bbb37",
+        "erc721_gateway": "0xEF27A5E63aa3f1B8312f744b9b4DcEB910Ba77AC",
+        "erc1155_gateway": "0xa5Df8530766A85936EE3E139dECE3bF081c83146",
+        "dai_gateway": "0x8b0B9c4e9f41b9bbDEfFee24F9f11C328093d248"
+      },
       "scroll_messenger": "0x50c7d3e7f7c656493D1D76aaa1a836CedfCBB16A",
       "message_queue": "0xF0B2293F5D834eAe920c6974D50957A1732de763",
       "scroll_chain": "0x2D567EcE699Eabe5afCd141eDB7A4f2D0D6ce8a0"
@@ -19,22 +21,24 @@
   "l2_config": {
     "l2_url": "http://10.5.11.195:8545",
     "confirm": "0x4",
-    "l2_gateways": {
-      "eth_gateway": "0x91e8ADDFe1358aCa5314c644312d38237fC1101C",
-      "weth_gateway": "0x481B20A927206aF7A754dB8b904B052e2781ea27",
-      "standard_erc20_gateway": "0xaDcA915971A336EA2f5b567e662F5bd74AEf9582",
-      "custom_erc20_gateway": "0x058dec71E53079F9ED053F3a0bBca877F6f3eAcf",
-      "erc721_gateway": "0x179B9415194B67DC3c0b8760E075cD4415785c97",
-      "erc1155_gateway": "0xe17C9b9C66FAF07753cdB04316D09f52144612A5",
-      "dai_gateway": "0xbF28c28490988026Dca2396148DE50136A54534e",
+    "l2_contracts": {
+      "l2_gateways": {
+        "eth_gateway": "0x91e8ADDFe1358aCa5314c644312d38237fC1101C",
+        "weth_gateway": "0x481B20A927206aF7A754dB8b904B052e2781ea27",
+        "standard_erc20_gateway": "0xaDcA915971A336EA2f5b567e662F5bd74AEf9582",
+        "custom_erc20_gateway": "0x058dec71E53079F9ED053F3a0bBca877F6f3eAcf",
+        "erc721_gateway": "0x179B9415194B67DC3c0b8760E075cD4415785c97",
+        "erc1155_gateway": "0xe17C9b9C66FAF07753cdB04316D09f52144612A5",
+        "dai_gateway": "0xbF28c28490988026Dca2396148DE50136A54534e"
+      },
       "scroll_messenger": "0xBa50f5340FB9F3Bd074bD638c9BE13eCB36E603d",
       "message_queue": "0x5300000000000000000000000000000000000000"
     }
   },
   "slack_webhook_config": {
-    "channel": "#chain_monitor",
-    "user_name": "chain_monitor",
-    "webhook_url": ""
+    "channel": "#chain_monitor_test",
+    "user_name": "chain_monitor_balance",
+    "webhook_url": "https://hooks.slack.com/services/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"
   },
   "db_config": {
     "driver_name": "postgres",

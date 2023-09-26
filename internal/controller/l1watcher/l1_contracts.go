@@ -2,6 +2,7 @@ package l1watcher
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -11,17 +12,17 @@ import (
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L1/gateway"
 	"chain-monitor/bytecode/scroll/L1/rollup"
+	"chain-monitor/bytecode/scroll/token"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
 )
 
 type l1Contracts struct {
+	cfg       *config.L1Contracts
 	tx        *gorm.DB
 	client    *ethclient.Client
 	chainName string
-
-	monitorAPI controller.MonitorAPI
 
 	txHashMsgHash map[string]common.Hash
 	ethEvents     []*orm.L1ETHEvent
@@ -41,12 +42,23 @@ type l1Contracts struct {
 	ScrollMessenger *L1.L1ScrollMessenger
 	// MessageQueue    *rollup.L1MessageQueue
 
-	filter *bytecode.ContractsFilter
+	// this fields are used check balance.
+	checkBalance     bool
+	latestETHBalance *big.Int
+	transferEvents   map[string]*token.IERC20TransferEvent
+	iERC20           *token.IERC20
+
+	l1Confirms []*orm.L1ChainConfirm
+
+	gatewayFilter   *bytecode.ContractsFilter
+	depositFilter   *bytecode.ContractsFilter
+	fWithdrawFilter *bytecode.ContractsFilter
 }
 
 func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contracts, error) {
 	var (
 		cts = &l1Contracts{
+			cfg:           cfg,
 			client:        client,
 			chainName:     "l1_chain",
 			txHashMsgHash: map[string]common.Hash{},
@@ -97,8 +109,12 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 	if err != nil {
 		return nil, err
 	}
+	cts.iERC20, err = token.NewIERC20(common.Address{}, client)
+	if err != nil {
+		return nil, err
+	}
 
-	cts.filter = bytecode.NewContractsFilter("l1Watcher", []bytecode.ContractAPI{
+	cts.gatewayFilter = bytecode.NewContractsFilter(nil, []bytecode.ContractAPI{
 		cts.ScrollMessenger,
 		// cts.MessageQueue,
 		cts.ETHGateway,
@@ -110,16 +126,44 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 		cts.ERC1155Gateway,
 		cts.ScrollChain,
 	}...)
+	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+	// The Topic[2] should be gateway hash(address).
+	cts.depositFilter = bytecode.NewContractsFilter([][]common.Hash{
+		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+		{},
+		{
+			common.BytesToHash(cfg.DAIGateway[:]),
+			common.BytesToHash(cfg.WETHGateway[:]),
+			common.BytesToHash(cfg.StandardERC20Gateway[:]),
+			common.BytesToHash(cfg.CustomERC20Gateway[:]),
+			common.BytesToHash(cfg.ERC721Gateway[:]),
+		},
+	})
+	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+	// The Topic[1] should be gateway hash(address).
+	cts.fWithdrawFilter = bytecode.NewContractsFilter([][]common.Hash{
+		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+		{
+			common.BytesToHash(cfg.DAIGateway[:]),
+			common.BytesToHash(cfg.WETHGateway[:]),
+			common.BytesToHash(cfg.StandardERC20Gateway[:]),
+			common.BytesToHash(cfg.CustomERC20Gateway[:]),
+			common.BytesToHash(cfg.ERC721Gateway[:]),
+		},
+	})
 
 	cts.registerGatewayHandlers()
 	cts.registerMessengerHandlers()
 	cts.registerScrollHandlers()
+	cts.registerTransfer()
 
 	return cts, nil
 }
 
 func (l1 *l1Contracts) clean() {
 	l1.txHashMsgHash = map[string]common.Hash{}
+	l1.transferEvents = map[string]*token.IERC20TransferEvent{}
+	l1.l1Confirms = l1.l1Confirms[:0]
 	l1.ethEvents = l1.ethEvents[:0]
 	l1.erc20Events = l1.erc20Events[:0]
 	l1.erc721Events = l1.erc721Events[:0]
@@ -129,11 +173,44 @@ func (l1 *l1Contracts) clean() {
 func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
 	l1.clean()
 	l1.tx = db.Begin().WithContext(ctx)
-	count, err := l1.filter.ParseLogs(ctx, l1.client, start, end)
+
+	// Parse gateway logs.
+	count, err := l1.gatewayFilter.GetLogs(ctx, l1.client, start, end, l1.gatewayFilter.ParseLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
 		l1.tx.Rollback()
 		return 0, err
+	}
+
+	// Parse finalizeWithdraw transfer event logs.
+	_, err = l1.fWithdrawFilter.GetLogs(ctx, l1.client, start, end, l1.parseTransferLogs)
+	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
+		l1.tx.Rollback()
+		return 0, err
+	}
+
+	// Parse deposit transfer event logs.
+	_, err = l1.depositFilter.GetLogs(ctx, l1.client, start, end, l1.parseTransferLogs)
+	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
+		l1.tx.Rollback()
+		return 0, err
+	}
+
+	// Create l1Confirms
+	for number := start; number <= end; number++ {
+		l1.l1Confirms = append(l1.l1Confirms, &orm.L1ChainConfirm{
+			Number:        number,
+			BalanceStatus: true,
+		})
+	}
+
+	// Check balance.
+	if l1.checkBalance {
+		if err = l1.checkL1Balance(ctx, start, end); err != nil {
+			return 0, err
+		}
 	}
 
 	// store l1chain gateway events.
@@ -142,14 +219,7 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
-	// Store l1 confirm.
-	var l1Confirms = make([]orm.L1ChainConfirm, 0, end-start+1)
-	for number := start; number <= end; number++ {
-		l1Confirms = append(l1Confirms, orm.L1ChainConfirm{
-			Number: number,
-		})
-	}
-	if err = l1.tx.Save(l1Confirms).Error; err != nil {
+	if err = l1.tx.Save(l1.l1Confirms).Error; err != nil {
 		l1.tx.Rollback()
 		return 0, err
 	}
@@ -169,8 +239,4 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 	return count, nil
-}
-
-func (l1 *l1Contracts) setMonitorAPI(monitor controller.MonitorAPI) {
-	l1.monitorAPI = monitor
 }

@@ -31,8 +31,10 @@ var (
 // ScrollChainMetaData contains all meta data concerning the ScrollChain contract.
 var (
 	ScrollChainMetaData = &bind.MetaData{
-		ABI: "[{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_chainId\",\"type\":\"uint64\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\",\"indexed\":true},{\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\",\"indexed\":true}],\"type\":\"event\",\"name\":\"CommitBatch\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\",\"indexed\":true},{\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\",\"indexed\":true},{\"internalType\":\"bytes32\",\"name\":\"stateRoot\",\"type\":\"bytes32\",\"indexed\":false},{\"internalType\":\"bytes32\",\"name\":\"withdrawRoot\",\"type\":\"bytes32\",\"indexed\":false}],\"type\":\"event\",\"name\":\"FinalizeBatch\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false}],\"type\":\"event\",\"name\":\"Initialized\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":false}],\"type\":\"event\",\"name\":\"Paused\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\",\"indexed\":true},{\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\",\"indexed\":true}],\"type\":\"event\",\"name\":\"RevertBatch\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":false}],\"type\":\"event\",\"name\":\"Unpaused\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"oldMaxNumL2TxInChunk\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"newMaxNumL2TxInChunk\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateMaxNumL2TxInChunk\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateProver\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateSequencer\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"oldVerifier\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"newVerifier\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"UpdateVerifier\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"addProver\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"addSequencer\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"_version\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"_parentBatchHeader\",\"type\":\"bytes\"},{\"internalType\":\"bytes[]\",\"name\":\"_chunks\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes\",\"name\":\"_skippedL1MessageBitmap\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"commitBatch\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"committedBatches\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_batchHeader\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"_prevStateRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_postStateRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_withdrawRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"_aggrProof\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"finalizeBatchWithProof\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"finalizedStateRoots\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_batchHeader\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"_stateRoot\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"importGenesisBatch\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_messageQueue\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_verifier\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_maxNumL2TxInChunk\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"initialize\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_batchIndex\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"isBatchFinalized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"isProver\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"isSequencer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"lastFinalizedBatchIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"layer2ChainId\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"maxNumL2TxInChunk\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"messageQueue\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"removeProver\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"removeSequencer\"},{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"renounceOwnership\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_batchHeader\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"_count\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"revertBatch\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_status\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"setPause\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"transferOwnership\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_maxNumL2TxInChunk\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateMaxNumL2TxInChunk\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newVerifier\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateVerifier\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"verifier\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"withdrawRoots\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]}]",
+		ABI: "[{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_chainId\",\"type\":\"uint64\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\",\"indexed\":true},{\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\",\"indexed\":true}],\"type\":\"event\",\"name\":\"CommitBatch\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\",\"indexed\":true},{\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\",\"indexed\":true},{\"internalType\":\"bytes32\",\"name\":\"stateRoot\",\"type\":\"bytes32\",\"indexed\":false},{\"internalType\":\"bytes32\",\"name\":\"withdrawRoot\",\"type\":\"bytes32\",\"indexed\":false}],\"type\":\"event\",\"name\":\"FinalizeBatch\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false}],\"type\":\"event\",\"name\":\"Initialized\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":false}],\"type\":\"event\",\"name\":\"Paused\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\",\"indexed\":true},{\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\",\"indexed\":true}],\"type\":\"event\",\"name\":\"RevertBatch\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":false}],\"type\":\"event\",\"name\":\"Unpaused\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"oldMaxNumTxInChunk\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"newMaxNumTxInChunk\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateMaxNumTxInChunk\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateProver\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\",\"indexed\":false}],\"type\":\"event\",\"name\":\"UpdateSequencer\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"oldVerifier\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"newVerifier\",\"type\":\"address\",\"indexed\":true}],\"type\":\"event\",\"name\":\"UpdateVerifier\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"addProver\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"addSequencer\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"_version\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"_parentBatchHeader\",\"type\":\"bytes\"},{\"internalType\":\"bytes[]\",\"name\":\"_chunks\",\"type\":\"bytes[]\"},{\"internalType\":\"bytes\",\"name\":\"_skippedL1MessageBitmap\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"commitBatch\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"committedBatches\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_batchHeader\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"_prevStateRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_postStateRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"_withdrawRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"_aggrProof\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"finalizeBatchWithProof\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"finalizedStateRoots\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_batchHeader\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"_stateRoot\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"importGenesisBatch\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_messageQueue\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_verifier\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_maxNumTxInChunk\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"initialize\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_batchIndex\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"isBatchFinalized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"isProver\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"isSequencer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"lastFinalizedBatchIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"layer2ChainId\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"maxNumTxInChunk\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"messageQueue\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"paused\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"removeProver\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"removeSequencer\"},{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"renounceOwnership\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_batchHeader\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"_count\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"revertBatch\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_status\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"setPause\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"transferOwnership\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_maxNumTxInChunk\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateMaxNumTxInChunk\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newVerifier\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"updateVerifier\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"verifier\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"withdrawRoots\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}]}]",
 	}
+	// ScrollChainABI is the input ABI used to generate the binding from.
+	ScrollChainABI, _ = ScrollChainMetaData.GetAbi()
 )
 
 // ScrollChain is an auto generated Go binding around an Ethereum contract.
@@ -80,10 +82,8 @@ func (o *ScrollChain) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
 		return true, parse(vLog)
-	} else {
-		return false, nil
 	}
-	return true, nil
+	return false, nil
 }
 
 // RegisterCommitBatch, the CommitBatch event ID is 0x2c32d4ae151744d0bf0b9464a3e897a1d17ed2f1af71f7c9a75f12ce0d28238f.
@@ -94,6 +94,7 @@ func (o *ScrollChain) RegisterCommitBatch(handler func(vLog *types.Log, data *Sc
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "CommitBatch", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "CommitBatch"
@@ -107,6 +108,7 @@ func (o *ScrollChain) RegisterFinalizeBatch(handler func(vLog *types.Log, data *
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "FinalizeBatch", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "FinalizeBatch"
@@ -120,6 +122,7 @@ func (o *ScrollChain) RegisterInitialized(handler func(vLog *types.Log, data *Sc
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "Initialized", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Initialized"
@@ -133,6 +136,7 @@ func (o *ScrollChain) RegisterOwnershipTransferred(handler func(vLog *types.Log,
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "OwnershipTransferred", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "OwnershipTransferred"
@@ -146,6 +150,7 @@ func (o *ScrollChain) RegisterPaused(handler func(vLog *types.Log, data *ScrollC
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "Paused", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Paused"
@@ -159,6 +164,7 @@ func (o *ScrollChain) RegisterRevertBatch(handler func(vLog *types.Log, data *Sc
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "RevertBatch", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "RevertBatch"
@@ -172,22 +178,24 @@ func (o *ScrollChain) RegisterUnpaused(handler func(vLog *types.Log, data *Scrol
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "Unpaused", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "Unpaused"
 }
 
-// RegisterUpdateMaxNumL2TxInChunk, the UpdateMaxNumL2TxInChunk event ID is 0xcc8534af91b38a0c22ca140ec3dd8ae7eca9ff2dd638f9969628b50a85e3c652.
-func (o *ScrollChain) RegisterUpdateMaxNumL2TxInChunk(handler func(vLog *types.Log, data *ScrollChainUpdateMaxNumL2TxInChunkEvent) error) {
-	_id := o.ABI.Events["UpdateMaxNumL2TxInChunk"].ID
+// RegisterUpdateMaxNumTxInChunk, the UpdateMaxNumTxInChunk event ID is 0x6d0f49971e462a2f78a25906f145cb29cd5e7bd01ebf681ac8f58cb814e5877a.
+func (o *ScrollChain) RegisterUpdateMaxNumTxInChunk(handler func(vLog *types.Log, data *ScrollChainUpdateMaxNumTxInChunkEvent) error) {
+	_id := o.ABI.Events["UpdateMaxNumTxInChunk"].ID
 	o.parsers[_id] = func(log *types.Log) error {
-		event := new(ScrollChainUpdateMaxNumL2TxInChunkEvent)
-		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateMaxNumL2TxInChunk", *log); err != nil {
+		event := new(ScrollChainUpdateMaxNumTxInChunkEvent)
+		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateMaxNumTxInChunk", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
-	o.topics[_id] = "UpdateMaxNumL2TxInChunk"
+	o.topics[_id] = "UpdateMaxNumTxInChunk"
 }
 
 // RegisterUpdateProver, the UpdateProver event ID is 0x967f99d5d403870e4356ff46556df3a6b6ba1f50146639aaedfb9f248eb8661e.
@@ -198,6 +206,7 @@ func (o *ScrollChain) RegisterUpdateProver(handler func(vLog *types.Log, data *S
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateProver", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateProver"
@@ -211,6 +220,7 @@ func (o *ScrollChain) RegisterUpdateSequencer(handler func(vLog *types.Log, data
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateSequencer", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateSequencer"
@@ -224,6 +234,7 @@ func (o *ScrollChain) RegisterUpdateVerifier(handler func(vLog *types.Log, data 
 		if err := o.ScrollChainCaller.contract.UnpackLog(event, "UpdateVerifier", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "UpdateVerifier"
@@ -412,12 +423,12 @@ func (_ScrollChain *ScrollChainCaller) Layer2ChainId(opts *bind.CallOpts) (uint6
 
 }
 
-// MaxNumL2TxInChunk is a free data retrieval call binding the contract method 0xd19a92d7.
+// MaxNumTxInChunk is a free data retrieval call binding the contract method 0xef6602ba.
 //
-// Solidity: function maxNumL2TxInChunk() view returns(uint256)
-func (_ScrollChain *ScrollChainCaller) MaxNumL2TxInChunk(opts *bind.CallOpts) (*big.Int, error) {
+// Solidity: function maxNumTxInChunk() view returns(uint256)
+func (_ScrollChain *ScrollChainCaller) MaxNumTxInChunk(opts *bind.CallOpts) (*big.Int, error) {
 	var out []interface{}
-	err := _ScrollChain.contract.Call(opts, &out, "maxNumL2TxInChunk")
+	err := _ScrollChain.contract.Call(opts, &out, "maxNumTxInChunk")
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -551,9 +562,9 @@ func (_ScrollChain *ScrollChainTransactor) ImportGenesisBatch(opts *bind.Transac
 
 // Initialize is a paid mutator transaction binding the contract method 0x1794bb3c.
 //
-// Solidity: function initialize(address _messageQueue, address _verifier, uint256 _maxNumL2TxInChunk) returns()
-func (_ScrollChain *ScrollChainTransactor) Initialize(opts *bind.TransactOpts, _messageQueue common.Address, _verifier common.Address, _maxNumL2TxInChunk *big.Int) (*types.Transaction, error) {
-	return _ScrollChain.contract.Transact(opts, "initialize", _messageQueue, _verifier, _maxNumL2TxInChunk)
+// Solidity: function initialize(address _messageQueue, address _verifier, uint256 _maxNumTxInChunk) returns()
+func (_ScrollChain *ScrollChainTransactor) Initialize(opts *bind.TransactOpts, _messageQueue common.Address, _verifier common.Address, _maxNumTxInChunk *big.Int) (*types.Transaction, error) {
+	return _ScrollChain.contract.Transact(opts, "initialize", _messageQueue, _verifier, _maxNumTxInChunk)
 }
 
 // RemoveProver is a paid mutator transaction binding the contract method 0xb571d3dd.
@@ -598,11 +609,11 @@ func (_ScrollChain *ScrollChainTransactor) TransferOwnership(opts *bind.Transact
 	return _ScrollChain.contract.Transact(opts, "transferOwnership", newOwner)
 }
 
-// UpdateMaxNumL2TxInChunk is a paid mutator transaction binding the contract method 0x7bb67dde.
+// UpdateMaxNumTxInChunk is a paid mutator transaction binding the contract method 0x1e228302.
 //
-// Solidity: function updateMaxNumL2TxInChunk(uint256 _maxNumL2TxInChunk) returns()
-func (_ScrollChain *ScrollChainTransactor) UpdateMaxNumL2TxInChunk(opts *bind.TransactOpts, _maxNumL2TxInChunk *big.Int) (*types.Transaction, error) {
-	return _ScrollChain.contract.Transact(opts, "updateMaxNumL2TxInChunk", _maxNumL2TxInChunk)
+// Solidity: function updateMaxNumTxInChunk(uint256 _maxNumTxInChunk) returns()
+func (_ScrollChain *ScrollChainTransactor) UpdateMaxNumTxInChunk(opts *bind.TransactOpts, _maxNumTxInChunk *big.Int) (*types.Transaction, error) {
+	return _ScrollChain.contract.Transact(opts, "updateMaxNumTxInChunk", _maxNumTxInChunk)
 }
 
 // UpdateVerifier is a paid mutator transaction binding the contract method 0x97fc007c.
@@ -614,12 +625,16 @@ func (_ScrollChain *ScrollChainTransactor) UpdateVerifier(opts *bind.TransactOpt
 
 // ScrollChainCommitBatch represents a CommitBatch event raised by the ScrollChain contract.
 type ScrollChainCommitBatchEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	BatchIndex *big.Int
 	BatchHash  [32]byte
 }
 
 // ScrollChainFinalizeBatch represents a FinalizeBatch event raised by the ScrollChain contract.
 type ScrollChainFinalizeBatchEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	BatchIndex   *big.Int
 	BatchHash    [32]byte
 	StateRoot    [32]byte
@@ -628,51 +643,69 @@ type ScrollChainFinalizeBatchEvent struct {
 
 // ScrollChainInitialized represents a Initialized event raised by the ScrollChain contract.
 type ScrollChainInitializedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Version uint8
 }
 
 // ScrollChainOwnershipTransferred represents a OwnershipTransferred event raised by the ScrollChain contract.
 type ScrollChainOwnershipTransferredEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	PreviousOwner common.Address
 	NewOwner      common.Address
 }
 
 // ScrollChainPaused represents a Paused event raised by the ScrollChain contract.
 type ScrollChainPausedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Account common.Address
 }
 
 // ScrollChainRevertBatch represents a RevertBatch event raised by the ScrollChain contract.
 type ScrollChainRevertBatchEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	BatchIndex *big.Int
 	BatchHash  [32]byte
 }
 
 // ScrollChainUnpaused represents a Unpaused event raised by the ScrollChain contract.
 type ScrollChainUnpausedEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Account common.Address
 }
 
-// ScrollChainUpdateMaxNumL2TxInChunk represents a UpdateMaxNumL2TxInChunk event raised by the ScrollChain contract.
-type ScrollChainUpdateMaxNumL2TxInChunkEvent struct {
-	OldMaxNumL2TxInChunk *big.Int
-	NewMaxNumL2TxInChunk *big.Int
+// ScrollChainUpdateMaxNumTxInChunk represents a UpdateMaxNumTxInChunk event raised by the ScrollChain contract.
+type ScrollChainUpdateMaxNumTxInChunkEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
+	OldMaxNumTxInChunk *big.Int
+	NewMaxNumTxInChunk *big.Int
 }
 
 // ScrollChainUpdateProver represents a UpdateProver event raised by the ScrollChain contract.
 type ScrollChainUpdateProverEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Account common.Address
 	Status  bool
 }
 
 // ScrollChainUpdateSequencer represents a UpdateSequencer event raised by the ScrollChain contract.
 type ScrollChainUpdateSequencerEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Account common.Address
 	Status  bool
 }
 
 // ScrollChainUpdateVerifier represents a UpdateVerifier event raised by the ScrollChain contract.
 type ScrollChainUpdateVerifierEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	OldVerifier common.Address
 	NewVerifier common.Address
 }

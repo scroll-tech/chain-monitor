@@ -33,6 +33,8 @@ var (
 	IERC1155MetaData = &bind.MetaData{
 		ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"bool\",\"name\":\"approved\",\"type\":\"bool\",\"indexed\":false}],\"type\":\"event\",\"name\":\"ApprovalForAll\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\",\"indexed\":false},{\"internalType\":\"uint256[]\",\"name\":\"values\",\"type\":\"uint256[]\",\"indexed\":false}],\"type\":\"event\",\"name\":\"TransferBatch\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\",\"indexed\":false}],\"type\":\"event\",\"name\":\"TransferSingle\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"value\",\"type\":\"string\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\",\"indexed\":true}],\"type\":\"event\",\"name\":\"URI\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"accounts\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"balanceOfBatch\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"isApprovedForAll\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"amounts\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"safeBatchTransferFrom\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"safeTransferFrom\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"approved\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"setApprovalForAll\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}]}]",
 	}
+	// IERC1155ABI is the input ABI used to generate the binding from.
+	IERC1155ABI, _ = IERC1155MetaData.GetAbi()
 )
 
 // IERC1155 is an auto generated Go binding around an Ethereum contract.
@@ -80,10 +82,8 @@ func (o *IERC1155) ParseLog(vLog *types.Log) (bool, error) {
 	_id := vLog.Topics[0]
 	if parse, exist := o.parsers[_id]; exist {
 		return true, parse(vLog)
-	} else {
-		return false, nil
 	}
-	return true, nil
+	return false, nil
 }
 
 // RegisterApprovalForAll, the ApprovalForAll event ID is 0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31.
@@ -94,6 +94,7 @@ func (o *IERC1155) RegisterApprovalForAll(handler func(vLog *types.Log, data *IE
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "ApprovalForAll", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "ApprovalForAll"
@@ -107,6 +108,7 @@ func (o *IERC1155) RegisterTransferBatch(handler func(vLog *types.Log, data *IER
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "TransferBatch", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "TransferBatch"
@@ -120,6 +122,7 @@ func (o *IERC1155) RegisterTransferSingle(handler func(vLog *types.Log, data *IE
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "TransferSingle", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "TransferSingle"
@@ -133,6 +136,7 @@ func (o *IERC1155) RegisterURI(handler func(vLog *types.Log, data *IERC1155URIEv
 		if err := o.IERC1155Caller.contract.UnpackLog(event, "URI", *log); err != nil {
 			return err
 		}
+		event.Log = log
 		return handler(log, event)
 	}
 	o.topics[_id] = "URI"
@@ -293,6 +297,8 @@ func (_IERC1155 *IERC1155Transactor) SetApprovalForAll(opts *bind.TransactOpts, 
 
 // IERC1155ApprovalForAll represents a ApprovalForAll event raised by the IERC1155 contract.
 type IERC1155ApprovalForAllEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Account  common.Address
 	Operator common.Address
 	Approved bool
@@ -300,6 +306,8 @@ type IERC1155ApprovalForAllEvent struct {
 
 // IERC1155TransferBatch represents a TransferBatch event raised by the IERC1155 contract.
 type IERC1155TransferBatchEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Operator common.Address
 	From     common.Address
 	To       common.Address
@@ -309,6 +317,8 @@ type IERC1155TransferBatchEvent struct {
 
 // IERC1155TransferSingle represents a TransferSingle event raised by the IERC1155 contract.
 type IERC1155TransferSingleEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Operator common.Address
 	From     common.Address
 	To       common.Address
@@ -318,6 +328,8 @@ type IERC1155TransferSingleEvent struct {
 
 // IERC1155URI represents a URI event raised by the IERC1155 contract.
 type IERC1155URIEvent struct {
+	Log *types.Log `json:"-" gorm:"-"`
+
 	Value string
 	Id    *big.Int
 }

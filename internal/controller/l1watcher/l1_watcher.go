@@ -45,7 +45,7 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 		return nil, err
 	}
 
-	l2Filter, err := newL1Contracts(client, cfg.L1Gateways)
+	l2Filter, err := newL1Contracts(client, cfg.L1Contracts)
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +83,11 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		log.Error("failed to get l1Chain start and end number", "err", err)
 		return
 	}
-	if end > l1.SafeNumber() {
+	safeNumber := l1.SafeNumber()
+	if end > safeNumber {
 		return
 	}
+	l1.filter.checkBalance = (safeNumber - end) <= 50
 
 	var count int
 	// If we sync events one by one.

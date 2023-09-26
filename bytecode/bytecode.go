@@ -28,13 +28,12 @@ type ContractAPI interface {
 
 // ContractsFilter contracts filter struct.
 type ContractsFilter struct {
-	name         string
 	query        *geth.FilterQuery
 	contractAPIs map[common.Address]ContractAPI
 }
 
 // NewContractsFilter return a contracts filter instance.
-func NewContractsFilter(name string, cAPIs ...ContractAPI) *ContractsFilter {
+func NewContractsFilter(topics [][]common.Hash, cAPIs ...ContractAPI) *ContractsFilter {
 	contractAPIs := make(map[common.Address]ContractAPI)
 	for _, cABI := range cAPIs {
 		addr := cABI.GetAddress()
@@ -44,23 +43,23 @@ func NewContractsFilter(name string, cAPIs ...ContractAPI) *ContractsFilter {
 		}
 		contractAPIs[addr] = cABI
 	}
-	addrList := make([]common.Address, 0, len(contractAPIs))
+	var addrList []common.Address
 	for addr := range contractAPIs {
 		addrList = append(addrList, addr)
 	}
 	return &ContractsFilter{
-		name: name,
 		query: &geth.FilterQuery{
 			FromBlock: big.NewInt(0),
 			ToBlock:   big.NewInt(0),
 			Addresses: addrList,
+			Topics:    topics,
 		},
 		contractAPIs: contractAPIs,
 	}
 }
 
-// ParseLogs parse logs.
-func (c *ContractsFilter) ParseLogs(ctx context.Context, client *ethclient.Client, start, end uint64) (int, error) {
+// GetLogs parse logs.
+func (c *ContractsFilter) GetLogs(ctx context.Context, client *ethclient.Client, start, end uint64, parseLogs func(logs []types.Log) error) (int, error) {
 	c.query.FromBlock.SetUint64(start)
 	c.query.ToBlock.SetUint64(end)
 
@@ -78,18 +77,27 @@ func (c *ContractsFilter) ParseLogs(ctx context.Context, client *ethclient.Clien
 		return 0, err
 	}
 
+	if err = parseLogs(logs); err != nil {
+		return 0, err
+	}
+
+	return len(logs), nil
+}
+
+// ParseLogs parse logs.
+func (c *ContractsFilter) ParseLogs(logs []types.Log) error {
 	for i := range logs {
 		vLog := &logs[i]
 		cAPI := c.contractAPIs[vLog.Address]
 		exist, err := cAPI.ParseLog(vLog)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		if !exist {
 			log.Debug("unsupported event", "tx_hash", vLog.TxHash.String(), "event_name", cAPI.GetEventName(vLog.Topics[0]))
 		}
 	}
-	return len(logs), nil
+	return nil
 }
 
 type commitBatchArgs struct {

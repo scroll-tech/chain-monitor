@@ -23,7 +23,7 @@ l2_gateway=("L2ETHGateway" "L2ERC20Gateway" "L2DAIGateway" "L2WETHGateway" "L2St
 l2_predeploys=("L1BlockContainer" "L1GasPriceOracle" "L2MessageQueue")
 
 # token list
-token_list=("IERC20" "IERC721" "IERC721" "IERC1155")
+token_list=("IERC20" "IERC721" "IERC1155")
 
 # The first parameter is scroll path(github.com:scroll-tech/scroll).
 scroll_path=$1

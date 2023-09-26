@@ -38,21 +38,11 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 }
 
 func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint64) error {
-	if len(l2.msgSentEvents) == 0 {
-		return nil
-	}
-
 	// Calculate withdraw root.
-	var (
-		chainMonitors = make([]*orm.L2ChainConfirm, 0, end-start+1)
-		msgSentEvents []*orm.L2MessengerEvent
-	)
+	var msgSentEvents []*orm.L2MessengerEvent
 	for number := start; number <= end; number++ {
 		if l2.msgSentEvents[number] == nil {
-			chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
-				Number:             number,
-				WithdrawRootStatus: true,
-			})
+			l2.l2Confirms[number].WithdrawRootStatus = true
 			continue
 		}
 		msgs := l2.msgSentEvents[number]
@@ -64,54 +54,61 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 			}
 			msgSentEvents = append(msgSentEvents, msgs[i])
 		}
-		chainMonitors = append(chainMonitors, &orm.L2ChainConfirm{
-			Number:       number,
-			WithdrawRoot: l2.withdraw.MessageRoot(),
-		})
-	}
-
-	// Check withdraw root and store confirm monitor.
-	if err := l2.storeWithdrawRoots(ctx, chainMonitors); err != nil {
-		return err
+		l2.l2Confirms[number].WithdrawRoot = l2.withdraw.MessageRoot()
 	}
 
 	// Store messenger events.
-	if err := l2.tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*orm.L2ChainConfirm) error {
-	var (
-		numbers       []uint64
-		withdrawRoots []common.Hash
-		err           error
-	)
-	for _, monitor := range chainMonitors {
-		if !monitor.WithdrawRootStatus {
-			numbers = append(numbers, monitor.Number)
+	if len(msgSentEvents) > 0 {
+		tx := l2.tx.WithContext(ctx)
+		if err := tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
+	var (
+		numbers       []uint64
+		withdrawRoots = map[uint64]common.Hash{}
+		l2Confirms    = make([]*orm.L2ChainConfirm, 0, len(l2.l2Confirms))
+		err           error
+	)
+	for i, monitor := range l2.l2Confirms {
+		if !monitor.WithdrawRootStatus {
+			numbers = append(numbers, monitor.Number)
+		}
+		l2Confirms = append(l2Confirms, l2.l2Confirms[i])
+	}
+
 	utils.TryTimes(3, func() bool {
+		if len(numbers) > 0 {
+			return true
+		}
 		// get withdraw root by batch.
-		withdrawRoots, err = utils.GetBatchWithdrawRoots(ctx, l2.rpcCli, l2.MessageQueue.Address, numbers)
-		return err == nil
+		var roots []common.Hash
+		roots, err = utils.GetBatchWithdrawRoots(ctx, l2.rpcCli, l2.MessageQueue.Address, numbers)
+		if err != nil {
+			return false
+		}
+		for i, number := range numbers {
+			withdrawRoots[number] = roots[i]
+		}
+		return true
 	})
 	if err != nil {
 		return err
 	}
 
-	for _, monitor := range chainMonitors {
+	for _, monitor := range l2Confirms {
 		if len(withdrawRoots) == 0 {
 			break
 		}
 		if monitor.WithdrawRootStatus {
 			continue
 		}
-		expectRoot := withdrawRoots[0]
-		withdrawRoots = withdrawRoots[1:]
+		expectRoot := withdrawRoots[monitor.Number]
 		monitor.WithdrawRootStatus = monitor.WithdrawRoot == expectRoot
 		// If the withdraw root doesn't match, alert it.
 		if !monitor.WithdrawRootStatus {
@@ -122,11 +119,11 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context, chainMonitors []*
 				expectRoot.String(),
 				monitor.WithdrawRoot.String(),
 			)
-			log.Error("withdraw root doesn't match", "number", monitor.Number, "expect_root", expectRoot.String(), "actual_root", monitor.WithdrawRoot.String())
-			go l2.monitorAPI.SlackNotify(msg)
+			log.Error("withdraw root doesn't match", "Number", monitor.Number, "expect_root", expectRoot.String(), "actual_root", monitor.WithdrawRoot.String())
+			go controller.SlackNotify(msg)
 		}
 	}
-	if err = l2.tx.Model(&orm.L2ChainConfirm{}).Save(chainMonitors).Error; err != nil {
+	if err = l2.tx.Model(&orm.L2ChainConfirm{}).Save(l2Confirms).Error; err != nil {
 		return err
 	}
 	return nil
