@@ -1,7 +1,9 @@
 -- +goose Up
 -- +goose AddCheckBalanceBegin
-alter table l1_chain_confirms add balance_status boolean;
-alter table l2_chain_confirms add balance_status boolean;
+alter table l2_chain_confirms
+    add balance_status boolean default true;
+alter table l1_chain_confirms
+    add balance_status boolean default true;
 -- +goose AddCheckBalanceEnd
 
 -- +goose Down
