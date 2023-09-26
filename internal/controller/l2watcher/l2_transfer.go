@@ -50,7 +50,7 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, end uint64) (uint64,
 		events []*ethEvent
 	)
 
-	for i, event := range l2.ethEvents {
+	for _, event := range l2.ethEvents {
 		if event.Type == orm.L2FinalizeDepositETH {
 			total.Sub(total, event.Amount)
 		}
