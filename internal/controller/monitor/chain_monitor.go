@@ -30,11 +30,11 @@ type ChainMonitor struct {
 
 // NewChainMonitor initializes a new instance of the ChainMonitor.
 func NewChainMonitor(db *gorm.DB, l1Watcher controller.L1WatcherAPI, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
-	depositStartNumber, err := orm.GetL2DepositNumber(db)
+	depositStartNumber, err := orm.GetL2ConfirmNumber(db)
 	if err != nil {
 		return nil, err
 	}
-	withdrawStartNumber, err := orm.GetL1WithdrawNumber(db)
+	withdrawStartNumber, err := orm.GetL1ConfirmNumber(db)
 	if err != nil {
 		return nil, err
 	}

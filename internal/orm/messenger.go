@@ -6,20 +6,20 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
+const (
 	// L1SentMessage l1 sent message.
-	L1SentMessage EventType = 1
+	L1SentMessage EventType = 201
 	// L1RelayedMessage l1 relayed message.
-	L1RelayedMessage EventType = 2
+	L1RelayedMessage EventType = 202
 	// L1FailedRelayedMessage l1 failed relayed message.
-	L1FailedRelayedMessage EventType = 3
+	L1FailedRelayedMessage EventType = 203
 
 	// L2SentMessage l2 sent message.
-	L2SentMessage EventType = 1
+	L2SentMessage EventType = 201
 	// L2RelayedMessage l2 relayed message.
-	L2RelayedMessage EventType = 2
+	L2RelayedMessage EventType = 202
 	// L2FailedRelayedMessage l2 failed relayed message.
-	L2FailedRelayedMessage EventType = 3
+	L2FailedRelayedMessage EventType = 203
 )
 
 // L1MessengerEvent represents an event related to L1 messenger activities.

@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -21,6 +23,13 @@ func NewMetricsController(db *gorm.DB) *ChainConfirm {
 }
 
 func (m *ChainConfirm) confirmBlocksStatus(start, end uint64) (bool, error) {
+	confirmNumber, err := orm.GetL2ConfirmNumber(m.db)
+	if err != nil {
+		return false, err
+	}
+	if confirmNumber < end {
+		return false, fmt.Errorf("l2 confirm is not ready, current confirm number: %d", confirmNumber)
+	}
 	l2FailedConfirms, err := orm.GetL2FailedConfirmMsgByNumber(m.db, start, end)
 	if err != nil {
 		return false, err
