@@ -22,55 +22,55 @@ const (
 	L2WithdrawETH EventType = 102
 
 	// L1DepositWETH represents the event for depositing Wrapped ETH on Layer 1.
-	L1DepositWETH EventType = 1
+	L1DepositWETH EventType = 11
 	// L1FinalizeWithdrawWETH represents the event for finalizing Wrapped ETH withdrawal on Layer 1.
-	L1FinalizeWithdrawWETH EventType = 2
+	L1FinalizeWithdrawWETH EventType = 12
 	// L1DepositDAI represents the event for depositing DAI on Layer 1.
-	L1DepositDAI EventType = 3
+	L1DepositDAI EventType = 13
 	// L1FinalizeWithdrawDAI represents the event for finalizing DAI withdrawal on Layer 1.
-	L1FinalizeWithdrawDAI EventType = 4
+	L1FinalizeWithdrawDAI EventType = 14
 	// L1DepositStandardERC20 represents the event for depositing standard ERC20 tokens on Layer 1.
-	L1DepositStandardERC20 EventType = 5
+	L1DepositStandardERC20 EventType = 15
 	// L1FinalizeWithdrawStandardERC20 represents the event for finalizing standard ERC20 token withdrawal on Layer 1.
-	L1FinalizeWithdrawStandardERC20 EventType = 6
+	L1FinalizeWithdrawStandardERC20 EventType = 16
 	// L1DepositCustomERC20 represents the event for depositing custom ERC20 tokens on Layer 1.
-	L1DepositCustomERC20 EventType = 7
+	L1DepositCustomERC20 EventType = 17
 	// L1FinalizeWithdrawCustomERC20 represents the event for finalizing custom ERC20 token withdrawal on Layer 1.
-	L1FinalizeWithdrawCustomERC20 EventType = 8
+	L1FinalizeWithdrawCustomERC20 EventType = 18
 	// L2FinalizeDepositWETH represents the event for finalizing Wrapped ETH deposit on Layer 2.
-	L2FinalizeDepositWETH EventType = 101
+	L2FinalizeDepositWETH EventType = 111
 	// L2WithdrawWETH represents the event for withdrawing Wrapped ETH on Layer 2.
-	L2WithdrawWETH EventType = 102
+	L2WithdrawWETH EventType = 112
 	// L2FinalizeDepositDAI represents the event for finalizing DAI deposit on Layer 2.
-	L2FinalizeDepositDAI EventType = 103
+	L2FinalizeDepositDAI EventType = 113
 	// L2WithdrawDAI represents the event for withdrawing DAI on Layer 2.
-	L2WithdrawDAI EventType = 104
+	L2WithdrawDAI EventType = 114
 	// L2FinalizeDepositStandardERC20 represents the event for finalizing standard ERC20 token deposit on Layer 2.
-	L2FinalizeDepositStandardERC20 EventType = 105
+	L2FinalizeDepositStandardERC20 EventType = 115
 	// L2WithdrawStandardERC20 represents the event for withdrawing standard ERC20 tokens on Layer 2.
-	L2WithdrawStandardERC20 EventType = 106
+	L2WithdrawStandardERC20 EventType = 116
 	// L2FinalizeDepositCustomERC20 represents the event for finalizing custom ERC20 token deposit on Layer 2.
-	L2FinalizeDepositCustomERC20 EventType = 107
+	L2FinalizeDepositCustomERC20 EventType = 117
 	// L2WithdrawCustomERC20 represents the event for withdrawing custom ERC20 tokens on Layer 2.
-	L2WithdrawCustomERC20 EventType = 108
+	L2WithdrawCustomERC20 EventType = 118
 
 	// L1DepositERC721 represents the event for depositing ERC721 tokens on Layer 1.
-	L1DepositERC721 EventType = 1
+	L1DepositERC721 EventType = 21
 	// L1FinalizeWithdrawERC721 represents the event for finalizing ERC721 token withdrawal on Layer 1.
-	L1FinalizeWithdrawERC721 EventType = 2
+	L1FinalizeWithdrawERC721 EventType = 22
 	// L2FinalizeDepositERC721 represents the event for finalizing ERC721 token deposit on Layer 2.
-	L2FinalizeDepositERC721 EventType = 101
+	L2FinalizeDepositERC721 EventType = 121
 	// L2WithdrawERC721 represents the event for withdrawing ERC721 tokens on Layer 2.
-	L2WithdrawERC721 EventType = 102
+	L2WithdrawERC721 EventType = 122
 
 	// L1DepositERC1155 represents the event for depositing ERC1155 tokens on Layer 1.
-	L1DepositERC1155 EventType = 1
+	L1DepositERC1155 EventType = 31
 	// L1FinalizeWithdrawERC1155 represents the event for finalizing ERC1155 token withdrawal on Layer 1.
-	L1FinalizeWithdrawERC1155 EventType = 2
+	L1FinalizeWithdrawERC1155 EventType = 32
 	// L2FinalizeDepositERC1155 represents the event for finalizing ERC1155 token deposit on Layer 2.
-	L2FinalizeDepositERC1155 EventType = 101
+	L2FinalizeDepositERC1155 EventType = 131
 	// L2WithdrawERC1155 represents the event for withdrawing ERC1155 tokens on Layer 2.
-	L2WithdrawERC1155 EventType = 102
+	L2WithdrawERC1155 EventType = 132
 )
 
 // TxHead represents the essential attributes of a transaction.
