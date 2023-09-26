@@ -3,7 +3,6 @@ package l2watcher
 import (
 	"context"
 	"fmt"
-
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -38,10 +37,6 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 }
 
 func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint64) error {
-	if len(l2.msgSentEvents) == 0 {
-		return nil
-	}
-
 	// Calculate withdraw root.
 	var msgSentEvents []*orm.L2MessengerEvent
 	for number := start; number <= end; number++ {
@@ -62,17 +57,20 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	}
 
 	// Store messenger events.
-	tx := l2.tx.WithContext(ctx)
-	if err := tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
-		return err
+	if len(msgSentEvents) > 0 {
+		tx := l2.tx.WithContext(ctx)
+		if err := tx.Model(&orm.L2MessengerEvent{}).Save(msgSentEvents).Error; err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
 func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 	var (
 		numbers       []uint64
-		withdrawRoots []common.Hash
+		withdrawRoots = map[uint64]common.Hash{}
 		l2Confirms    = make([]*orm.L2ChainConfirm, 0, len(l2.l2Confirms))
 		err           error
 	)
@@ -84,9 +82,18 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 	}
 
 	utils.TryTimes(3, func() bool {
+		if len(numbers) > 0 {
+			return true
+		}
 		// get withdraw root by batch.
-		withdrawRoots, err = utils.GetBatchWithdrawRoots(ctx, l2.rpcCli, l2.MessageQueue.Address, numbers)
-		return err == nil
+		roots, err := utils.GetBatchWithdrawRoots(ctx, l2.rpcCli, l2.MessageQueue.Address, numbers)
+		if err != nil {
+			return false
+		}
+		for i, number := range numbers {
+			withdrawRoots[number] = roots[i]
+		}
+		return true
 	})
 	if err != nil {
 		return err
@@ -99,8 +106,7 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 		if monitor.WithdrawRootStatus {
 			continue
 		}
-		expectRoot := withdrawRoots[0]
-		withdrawRoots = withdrawRoots[1:]
+		expectRoot := withdrawRoots[monitor.Number]
 		monitor.WithdrawRootStatus = monitor.WithdrawRoot == expectRoot
 		// If the withdraw root doesn't match, alert it.
 		if !monitor.WithdrawRootStatus {

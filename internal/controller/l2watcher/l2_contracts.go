@@ -231,14 +231,14 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		return 0, err
 	}
 
-	// store l2Messenger sentMessenger events.
-	if err = l2.storeMessengerEvents(ctx, start, end); err != nil {
+	// Check eth balance.
+	if err = l2.storeGatewayEvents(); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}
 
-	// Check eth balance.
-	if err = l2.storeGatewayEvents(); err != nil {
+	// store l2Messenger sentMessenger events.
+	if err = l2.storeMessengerEvents(ctx, start, end); err != nil {
 		l2.tx.Rollback()
 		return 0, err
 	}
