@@ -193,15 +193,6 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	l2.clean()
 	l2.tx = db.Begin().WithContext(ctx)
 
-	// init eth balance.
-	if l2.latestETHBalance == nil {
-		balance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
-		if err != nil {
-			return 0, err
-		}
-		l2.latestETHBalance = balance
-	}
-
 	// Parse gateway logs
 	count, err := l2.gatewayFilter.GetLogs(ctx, l2.client, start, end, l2.gatewayFilter.ParseLogs)
 	if err != nil {

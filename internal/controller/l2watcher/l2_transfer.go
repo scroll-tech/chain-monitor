@@ -152,6 +152,15 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, end uint64) (uint64,
 }
 
 func (l2 *l2Contracts) checkL2Balance(ctx context.Context, start, end uint64) error {
+	// init eth balance.
+	if l2.latestETHBalance == nil {
+		balance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
+		if err != nil {
+			return err
+		}
+		l2.latestETHBalance = balance
+	}
+
 	var failedNumbers = map[uint64]bool{}
 	for _, event := range l2.erc20Events {
 		failedNumber, ok := l2.transferNormalCheck(event.Type, event.TxHash, event.Amount)
