@@ -125,15 +125,13 @@ func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) er
 
 	var failedNumbers = map[uint64]bool{}
 	for _, event := range l1.erc20Events {
-		failedNumber, ok := l1.transferNormalCheck(event.Type, event.TxHash, event.Amount)
-		if !ok {
-			failedNumbers[failedNumber] = true
+		if !l1.transferNormalCheck(event.Type, event.TxHash, event.Amount) {
+			failedNumbers[event.Number] = true
 		}
 	}
 	for _, event := range l1.erc721Events {
-		failedNumber, ok := l1.transferNormalCheck(event.Type, event.TxHash, event.TokenID)
-		if !ok {
-			failedNumbers[failedNumber] = true
+		if !l1.transferNormalCheck(event.Type, event.TxHash, event.TokenID) {
+			failedNumbers[event.Number] = true
 		}
 	}
 	// check the remain log events.
@@ -154,25 +152,21 @@ func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) er
 	return nil
 }
 
-func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) (uint64, bool) {
+func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) bool {
 	event, exist := l1.transferEvents[txHash]
 	if !exist {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
-		go controller.SlackNotify(
-			fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s", tp.String(), txHash),
-		)
+		go controller.SlackNotify(fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s", tp.String(), txHash))
+		return false
 	} else if event.Value.Cmp(amount) != 0 {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
 		data, _ := json.Marshal(event)
-		go controller.SlackNotify(
-			fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
-				tp.String(), txHash, amount.String(), event.Value.String(), string(data),
-			),
-		)
-		return event.Log.BlockNumber, false
+		go controller.SlackNotify(fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
+			tp.String(), txHash, amount.String(), event.Value.String(), string(data)))
+		return false
 	}
 	delete(l1.transferEvents, txHash)
-	return 0, true
+	return true
 }
 
 func (l1 *l1Contracts) transferAbnormalCheck() []uint64 {

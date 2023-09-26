@@ -163,15 +163,13 @@ func (l2 *l2Contracts) checkL2Balance(ctx context.Context, start, end uint64) er
 
 	var failedNumbers = map[uint64]bool{}
 	for _, event := range l2.erc20Events {
-		failedNumber, ok := l2.transferNormalCheck(event.Type, event.TxHash, event.Amount)
-		if !ok {
-			failedNumbers[failedNumber] = true
+		if !l2.transferNormalCheck(event.Type, event.TxHash, event.Amount) {
+			failedNumbers[event.Number] = true
 		}
 	}
 	for _, event := range l2.erc721Events {
-		failedNumber, ok := l2.transferNormalCheck(event.Type, event.TxHash, event.TokenID)
-		if !ok {
-			failedNumbers[failedNumber] = true
+		if !l2.transferNormalCheck(event.Type, event.TxHash, event.TokenID) {
+			failedNumbers[event.Number] = true
 		}
 	}
 	// check the remain log events.
@@ -194,19 +192,20 @@ func (l2 *l2Contracts) checkL2Balance(ctx context.Context, start, end uint64) er
 	return nil
 }
 
-func (l2 *l2Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) (uint64, bool) {
+func (l2 *l2Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) bool {
 	event, exist := l2.transferEvents[txHash]
 	if !exist {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l2.chainName, tp.String()).Inc()
 		go controller.SlackNotify(fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s", tp.String(), txHash))
+		return false
 	} else if event.Value.Cmp(amount) != 0 {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l2.chainName, tp.String()).Inc()
 		go controller.SlackNotify(fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s", tp.String(), txHash, amount.String(), event.Value.String()))
-		return event.Log.BlockNumber, false
+		return false
 	}
 	delete(l2.transferEvents, txHash)
 
-	return 0, true
+	return true
 }
 
 func (l2 *l2Contracts) transferAbnormalCheck() []uint64 {
