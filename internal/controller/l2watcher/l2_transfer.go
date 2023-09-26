@@ -2,13 +2,11 @@ package l2watcher
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
 
-	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
 
@@ -19,18 +17,7 @@ import (
 
 func (l2 *l2Contracts) registerTransfer() {
 	l2.iERC20.RegisterTransfer(func(vLog *types.Log, data *token.IERC20TransferEvent) error {
-		// TODO: Temporary code for chaos testing.
-		id, _ := rand.Int(rand.Reader, big.NewInt(20))
-		if id.Int64() < 5 {
-			l2.transferEvents[common.BigToHash(id).String()] = &token.IERC20TransferEvent{
-				From:  l2.cfg.WETHGateway,
-				To:    common.BigToAddress(id),
-				Value: id,
-				Log:   vLog,
-			}
-		} else {
-			l2.transferEvents[vLog.TxHash.String()] = data
-		}
+		l2.transferEvents[vLog.TxHash.String()] = data
 		return nil
 	})
 }
@@ -63,15 +50,7 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, end uint64) (uint64,
 		events []*ethEvent
 	)
 
-	// TODO: Temporary code for chaos testing.
-	id, _ := rand.Int(rand.Reader, big.NewInt(int64(len(l2.ethEvents)*2)))
-
 	for i, event := range l2.ethEvents {
-		// TODO: Temporary code for chaos testing.
-		if id != nil && int64(i) == id.Int64() {
-			event.Amount.Add(event.Amount, big.NewInt(1))
-		}
-
 		if event.Type == orm.L2FinalizeDepositETH {
 			total.Sub(total, event.Amount)
 		}
