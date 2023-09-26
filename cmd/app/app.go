@@ -66,9 +66,6 @@ func action(ctx *cli.Context) error {
 		if ctx.IsSet(utils.DBRollBackFlag.Name) {
 			return migrate.Rollback(db, ctx.Int64(utils.DBRollBackFlag.Name))
 		}
-		if ctx.IsSet(utils.DBUpFlag.Name) {
-			return migrate.Up(db)
-		}
 	}
 
 	// Init metrics.

@@ -7,11 +7,9 @@ import (
 
 	"github.com/pressly/goose/v3"
 	"gorm.io/gorm"
-
-	_ "chain-monitor/internal/orm/migrate/migrations" //nolint:golint
 )
 
-//go:embed migrations/*
+//go:embed migrations/*.sql
 var embedMigrations embed.FS
 
 // MigrationsDir migration dir
@@ -42,13 +40,4 @@ func Rollback(db *gorm.DB, version int64) error {
 		return err
 	}
 	return goose.DownTo(tx, MigrationsDir, version)
-}
-
-// Up up to the given version.
-func Up(db *gorm.DB) error {
-	tx, err := db.DB()
-	if err != nil {
-		return err
-	}
-	return goose.Up(tx, MigrationsDir)
 }
