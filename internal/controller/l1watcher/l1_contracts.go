@@ -126,6 +126,8 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 		cts.ERC1155Gateway,
 		cts.ScrollChain,
 	}...)
+	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+	// The Topic[2] should be gateway hash(address).
 	cts.depositFilter = bytecode.NewContractsFilter([][]common.Hash{
 		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
 		{},
@@ -137,6 +139,8 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 			common.BytesToHash(cfg.ERC721Gateway[:]),
 		},
 	})
+	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+	// The Topic[1] should be gateway hash(address).
 	cts.fWithdrawFilter = bytecode.NewContractsFilter([][]common.Hash{
 		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
 		{

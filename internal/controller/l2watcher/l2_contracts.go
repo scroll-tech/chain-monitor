@@ -13,7 +13,6 @@ import (
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L2"
 	"chain-monitor/bytecode/scroll/L2/gateway"
-	"chain-monitor/bytecode/scroll/L2/predeploys"
 	"chain-monitor/bytecode/scroll/token"
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
@@ -47,7 +46,7 @@ type l2Contracts struct {
 	ERC1155Gateway       *gateway.L2ERC1155Gateway
 
 	ScrollMessenger *L2.L2ScrollMessenger
-	MessageQueue    *predeploys.L2MessageQueue
+	//MessageQueue    *predeploys.L2MessageQueue
 
 	// this fields are used check balance.
 	latestETHBalance *big.Int
@@ -111,10 +110,6 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 	if err != nil {
 		return nil, err
 	}
-	cts.MessageQueue, err = predeploys.NewL2MessageQueue(cfg.MessageQueue, client)
-	if err != nil {
-		return nil, err
-	}
 	cts.iERC20, err = token.NewIERC20(common.Address{}, client)
 	if err != nil {
 		return nil, err
@@ -132,10 +127,14 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 		cts.ERC721Gateway,
 		cts.ERC1155Gateway,
 	}...)
+	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+	// The Topic[1] value should be 0x000000.
 	cts.fDepositFilter = bytecode.NewContractsFilter([][]common.Hash{
 		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
 		{common.BigToHash(big.NewInt(0))},
 	})
+	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+	// The Topic[2] value should be 0x000000.
 	cts.withdrawFilter = bytecode.NewContractsFilter([][]common.Hash{
 		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
 		{},
