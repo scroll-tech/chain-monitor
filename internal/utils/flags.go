@@ -32,7 +32,6 @@ var (
 		&DBMigrateFlag,
 		&DBRollBackFlag,
 		&DBResetFlag,
-		&DBUpFlag,
 	}
 	// ConfigFileFlag load json type config file.
 	ConfigFileFlag = cli.StringFlag{
@@ -143,12 +142,6 @@ var (
 	// DBResetFlag reset db.
 	DBResetFlag = cli.BoolFlag{
 		Name:  "db.reset",
-		Usage: "Clean and reset database.",
-		Value: false,
-	}
-	// DBUpFlag reset db.
-	DBUpFlag = cli.BoolFlag{
-		Name:  "db.up",
 		Usage: "Clean and reset database.",
 		Value: false,
 	}
