@@ -3,6 +3,7 @@ package l2watcher
 import (
 	"context"
 	"fmt"
+
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -86,7 +87,8 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 			return true
 		}
 		// get withdraw root by batch.
-		roots, err := utils.GetBatchWithdrawRoots(ctx, l2.rpcCli, l2.MessageQueue.Address, numbers)
+		var roots []common.Hash
+		roots, err = utils.GetBatchWithdrawRoots(ctx, l2.rpcCli, l2.MessageQueue.Address, numbers)
 		if err != nil {
 			return false
 		}
