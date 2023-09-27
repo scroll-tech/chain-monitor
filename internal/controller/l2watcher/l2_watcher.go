@@ -171,7 +171,6 @@ func (l2 *L2Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 			break
 		}
 		// reorg appeared.
-		log.Warn("L2 chain reorg", "number", latestHeader.Number.Uint64())
 		reorgNumbers = append(reorgNumbers, latestHeader.Number.Uint64())
 		l2.headerCache = l2.headerCache[:len(l2.headerCache)-1]
 		header, err = l2.client.HeaderByNumber(ctx, latestHeader.Number)
@@ -186,6 +185,7 @@ func (l2 *L2Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	}
 	// Record reorg times.
 	if len(reorgNumbers) > 0 {
+		log.Warn("L2 chain reorg", "reorg numbers", reorgNumbers)
 		controller.ReorgTotal.WithLabelValues(l2.filter.chainName).Inc()
 	}
 
