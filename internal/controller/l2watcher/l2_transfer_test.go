@@ -1,7 +1,6 @@
 package l2watcher
 
 import (
-	"chain-monitor/internal/config"
 	"context"
 	"encoding/json"
 	"math/big"
@@ -10,6 +9,8 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/stretchr/testify/assert"
+
+	"chain-monitor/internal/config"
 )
 
 func TestBalance(t *testing.T) {
