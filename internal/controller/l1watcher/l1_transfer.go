@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"sort"
 
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -60,7 +59,7 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 
 	var (
 		total  = big.NewInt(0).Set(sBalance)
-		events = make([]*ethEvent, 0, len(l1.ethEvents))
+		events = make(map[uint64][]*ethEvent)
 	)
 	for _, event := range l1.ethEvents {
 		var amount = big.NewInt(0).Set(event.Amount)
@@ -69,7 +68,7 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 			amount.Mul(amount, big.NewInt(-1))
 		}
 		total.Add(total, amount)
-		events = append(events, &ethEvent{
+		events[event.Number] = append(events[event.Number], &ethEvent{
 			Number: event.Number,
 			TxHash: event.TxHash,
 			Type:   event.Type,
@@ -80,9 +79,6 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 		return 0, nil
 	}
 
-	sort.Slice(events, func(i, j int) bool {
-		return events[i].Number < events[j].Number
-	})
 	var amount = big.NewInt(0).Set(sBalance)
 	for number := start; number <= end; number++ {
 		// Get eth balance by height.
@@ -90,9 +86,7 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 		if err != nil {
 			return 0, err
 		}
-		for len(events) > 0 && events[0].Number == number {
-			event := events[0]
-			events = events[1:]
+		for _, event := range events[number] {
 			amount.Add(amount, event.Amount)
 		}
 		if amount.Cmp(balance) != 0 {
