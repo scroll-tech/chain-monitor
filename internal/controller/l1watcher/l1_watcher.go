@@ -179,6 +179,7 @@ func (l1 *L1Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 			break
 		}
 		// reorg appeared.
+		log.Warn("L1 chain reorg", "number", latestHeader.Number.Uint64())
 		reorgNumbers = append(reorgNumbers, latestHeader.Number.Uint64())
 		l1.headerCache = l1.headerCache[:len(l1.headerCache)-1]
 		header, err = l1.client.HeaderByNumber(ctx, latestHeader.Number)
