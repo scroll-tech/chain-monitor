@@ -109,7 +109,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 		}
 		// append block header
 		if len(l1.headerCache) >= l1.cacheLen {
-			l1.headerCache = l1.headerCache[:l1.cacheLen-1]
+			l1.headerCache = l1.headerCache[1:]
 		}
 		l1.headerCache = append(l1.headerCache, header)
 	} else {
