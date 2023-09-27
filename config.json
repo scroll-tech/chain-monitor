@@ -21,6 +21,7 @@
   "l2_config": {
     "l2_url": "http://10.5.11.195:8545",
     "confirm": "0x4",
+    "start_number": 1086520,
     "l2_contracts": {
       "l2_gateways": {
         "eth_gateway": "0x91e8ADDFe1358aCa5314c644312d38237fC1101C",
@@ -38,7 +39,7 @@
   "slack_webhook_config": {
     "channel": "#chain_monitor_test",
     "user_name": "chain_monitor_balance",
-    "webhook_url": "https://hooks.slack.com/services/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"
+    "webhook_url": "https://hooks.slack.com/services/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"
   },
   "db_config": {
     "driver_name": "postgres",

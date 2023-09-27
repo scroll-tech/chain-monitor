@@ -2,8 +2,6 @@ package l1watcher
 
 import (
 	"context"
-	"math/big"
-
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"gorm.io/gorm"
@@ -43,10 +41,9 @@ type l1Contracts struct {
 	// MessageQueue    *rollup.L1MessageQueue
 
 	// this fields are used check balance.
-	checkBalance     bool
-	latestETHBalance *big.Int
-	transferEvents   map[string]*token.IERC20TransferEvent
-	iERC20           *token.IERC20
+	checkBalance   bool
+	transferEvents map[string]*token.IERC20TransferEvent
+	iERC20         *token.IERC20
 
 	l1Confirms []*orm.L1ChainConfirm
 

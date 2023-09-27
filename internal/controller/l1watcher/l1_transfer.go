@@ -36,11 +36,24 @@ func (l1 *l1Contracts) parseTransferLogs(logs []types.Log) error {
 //
 //}
 
-func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) (uint64, error) {
+func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (uint64, error) {
 	if len(l1.ethEvents) == 0 {
 		return 0, nil
 	}
-	var total = big.NewInt(0).Set(l1.latestETHBalance)
+
+	// Get balance at start number.
+	sBalance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
+	if err != nil {
+		return 0, err
+	}
+
+	// Get latest eth balance.
+	eBalance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(end))
+	if err != nil {
+		return 0, err
+	}
+
+	var total = big.NewInt(0).Set(sBalance)
 
 	for _, event := range l1.ethEvents {
 		if event.Type == orm.L1FinalizeWithdrawETH {
@@ -51,16 +64,10 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) (uint64,
 		}
 	}
 
-	// Get latest eth balance.
-	eBalance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(end))
-	if err != nil {
-		return 0, err
-	}
-
 	if total.Cmp(eBalance) != 0 {
 		var (
 			//ethBalances []*ethBalance
-			amount = big.NewInt(0).Set(l1.latestETHBalance)
+			amount = big.NewInt(0).Set(sBalance)
 			height = l1.ethEvents[0].Number
 		)
 		for i, event := range append(l1.ethEvents, &orm.L1ETHEvent{TxHead: &orm.TxHead{}}) {
@@ -69,15 +76,15 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) (uint64,
 				preEvent := l1.ethEvents[i-1]
 
 				// Get eth balance by height.
-				eBalance, err = l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(preEvent.Number))
+				balance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(preEvent.Number))
 				if err != nil {
 					return 0, err
 				}
-				if amount.Cmp(eBalance) != 0 {
+				if amount.Cmp(balance) != 0 {
 					controller.ETHBalanceFailedTotal.WithLabelValues(l1.chainName, event.Type.String()).Inc()
 					go controller.SlackNotify(
 						fmt.Sprintf("the l1scrollMessenger eth balance mismatch, tx_hash: %s, event_type: %s, expect_balance: %s, actual_balance: %s",
-							preEvent.TxHash, preEvent.Type.String(), eBalance.String(), amount.String()))
+							preEvent.TxHash, preEvent.Type.String(), balance.String(), amount.String()))
 					return event.Number, nil
 				}
 			}
@@ -89,22 +96,11 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, end uint64) (uint64,
 			}
 		}
 	}
-	l1.latestETHBalance = eBalance
 
 	return 0, nil
 }
 
 func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) error {
-	// init eth balance.
-	if l1.latestETHBalance == nil {
-		balance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
-		if err != nil {
-			l1.tx.Rollback()
-			return err
-		}
-		l1.latestETHBalance = balance
-	}
-
 	var failedNumbers = map[uint64]bool{}
 	for _, event := range l1.erc20Events {
 		if !l1.transferNormalCheck(event.Type, event.TxHash, event.Amount) {
@@ -121,7 +117,7 @@ func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) er
 		failedNumbers[failedNumber] = true
 	}
 
-	failedNumber, err := l1.checkETHBalance(ctx, end)
+	failedNumber, err := l1.checkETHBalance(ctx, start, end)
 	if err != nil {
 		return err
 	}
