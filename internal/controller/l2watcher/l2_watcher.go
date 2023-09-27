@@ -183,23 +183,22 @@ func (l2 *L2Watcher) checkReorg(ctx context.Context) (*types.Header, error) {
 	if len(l2.headerCache) == 0 {
 		panic(fmt.Errorf("l2chain reorged too deep"))
 	}
-	// Record reorg times.
-	if len(reorgNumbers) > 0 {
-		controller.ReorgTotal.WithLabelValues(l2.filter.chainName).Inc()
-	}
 
 	// Reorg stored events if the reorg headers is not empty.
-	if err = deleteReorgEvents(ctx, l2.db, reorgNumbers); err != nil {
+	if err = deleteReorgEvents(ctx, l2.db, reorgNumbers, l2.filter.chainName); err != nil {
 		return nil, err
 	}
 
 	return header, nil
 }
 
-func deleteReorgEvents(ctx context.Context, db *gorm.DB, numbers []uint64) error {
+func deleteReorgEvents(ctx context.Context, db *gorm.DB, numbers []uint64, chainName string) error {
 	if len(numbers) == 0 {
 		return nil
 	}
+
+	log.Warn("L2 chain reorg", "reorg numbers", numbers)
+	controller.ReorgTotal.WithLabelValues(chainName).Inc()
 
 	var (
 		start  = numbers[0]
