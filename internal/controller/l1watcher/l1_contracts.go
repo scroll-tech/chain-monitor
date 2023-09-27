@@ -2,6 +2,7 @@ package l1watcher
 
 import (
 	"context"
+
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"gorm.io/gorm"
