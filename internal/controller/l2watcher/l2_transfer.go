@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"sort"
 
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -45,13 +44,11 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	if len(l2.ethEvents) == 0 && len(l2.erc20Events) == 0 {
 		return 0, nil
 	}
-
 	// Get balance at start number.
 	sBalance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
 	if err != nil {
 		return 0, err
 	}
-
 	// Get latest eth balance.
 	eBalance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(end))
 	if err != nil {
@@ -59,8 +56,9 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	}
 
 	var (
-		total  = big.NewInt(0).Set(sBalance)
-		events = make([]*ethEvent, 0, len(l2.ethEvents)+len(l2.erc20Events))
+		total    = big.NewInt(0).Set(sBalance)
+		events   = make(map[uint64][]*ethEvent)
+		txHashes = make(map[string]bool)
 	)
 	for _, event := range l2.ethEvents {
 		var amount = big.NewInt(0).Set(event.Amount)
@@ -69,12 +67,13 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 			amount.Mul(amount, big.NewInt(-1))
 		}
 		total.Add(total, amount)
-		events = append(events, &ethEvent{
+		events[event.Number] = append(events[event.Number], &ethEvent{
 			Number: event.Number,
 			TxHash: event.TxHash,
 			Type:   event.Type,
 			Amount: amount,
 		})
+		txHashes[event.TxHash] = true
 	}
 	for _, event := range l2.erc20Events {
 		var amount = big.NewInt(0).Set(event.Amount)
@@ -83,20 +82,33 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 			amount.Mul(amount, big.NewInt(-1))
 		}
 		total.Add(total, amount)
-		events = append(events, &ethEvent{
+		events[event.Number] = append(events[event.Number], &ethEvent{
 			Number: event.Number,
 			TxHash: event.TxHash,
 			Type:   event.Type,
 			Amount: amount,
 		})
+		txHashes[event.TxHash] = true
+	}
+	for _, msgList := range l2.msgSentEvents {
+		for _, msg := range msgList {
+			txHash := msg.Log.TxHash.String()
+			if !txHashes[txHash] {
+				txHashes[txHash] = true
+				total.Add(total, msg.Value)
+				events[msg.Number] = append(events[msg.Number], &ethEvent{
+					Number: msg.Number,
+					TxHash: txHash,
+					Type:   msg.Type,
+					Amount: big.NewInt(0).Set(msg.Value),
+				})
+			}
+		}
 	}
 	if total.Cmp(eBalance) == 0 {
 		return 0, nil
 	}
 
-	sort.Slice(events, func(i, j int) bool {
-		return events[i].Number < events[j].Number
-	})
 	var amount = big.NewInt(0).Set(sBalance)
 	for number := start; number <= end; number++ {
 		// Get eth balance by height.
@@ -104,9 +116,7 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 		if err != nil {
 			return 0, err
 		}
-		for len(events) > 0 && events[0].Number == number {
-			event := events[0]
-			events = events[1:]
+		for _, event := range events[number] {
 			amount.Add(amount, event.Amount)
 		}
 		if amount.Cmp(balance) != 0 {

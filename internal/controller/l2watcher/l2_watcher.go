@@ -106,7 +106,7 @@ func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 		}
 		// append block header
 		if len(l2.headerCache) >= l2.cacheLen {
-			l2.headerCache = l2.headerCache[:l2.cacheLen-1]
+			l2.headerCache = l2.headerCache[1:]
 		}
 		l2.headerCache = append(l2.headerCache, header)
 	} else {

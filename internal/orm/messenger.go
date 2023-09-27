@@ -4,6 +4,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"gorm.io/gorm"
+	"math/big"
 )
 
 const (
@@ -38,6 +39,9 @@ func SaveL1Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash 
 
 // L2MessengerEvent represents an event related to L2 messenger activities.
 type L2MessengerEvent struct {
+	Log   *types.Log `json:"-" gorm:"-"`
+	Value *big.Int   `json:"-" gorm:"-"`
+
 	Number   uint64    `gorm:"index; comment: block number"`
 	Type     EventType `gorm:"index; comment: tx type"`
 	MsgNonce uint64    `gorm:"type: msg_nonce"`
