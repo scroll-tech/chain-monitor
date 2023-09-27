@@ -60,76 +60,59 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 
 	var (
 		total  = big.NewInt(0).Set(sBalance)
-		events []*ethEvent
+		events = make([]*ethEvent, 0, len(l2.ethEvents)+len(l2.erc20Events))
 	)
-
 	for _, event := range l2.ethEvents {
+		var amount = big.NewInt(0).Set(event.Amount)
+		// L2WithdrawETH: +amount, L2FinalizeDepositETH: -amount
 		if event.Type == orm.L2FinalizeDepositETH {
-			total.Sub(total, event.Amount)
+			amount.Mul(amount, big.NewInt(-1))
 		}
-		if event.Type == orm.L2WithdrawETH {
-			total.Add(total, event.Amount)
-		}
+		total.Add(total, amount)
 		events = append(events, &ethEvent{
 			Number: event.Number,
 			TxHash: event.TxHash,
 			Type:   event.Type,
-			Amount: event.Amount,
+			Amount: amount,
 		})
 	}
 	for _, event := range l2.erc20Events {
+		var amount = big.NewInt(0).Set(event.Amount)
+		// L2WithdrawWETH: +amount, L2FinalizeDepositWETH: -amount
 		if event.Type == orm.L2FinalizeDepositWETH {
-			total.Sub(total, event.Amount)
+			amount.Mul(amount, big.NewInt(-1))
 		}
-		if event.Type == orm.L2WithdrawWETH {
-			total.Add(total, event.Amount)
-		}
+		total.Add(total, amount)
 		events = append(events, &ethEvent{
 			Number: event.Number,
 			TxHash: event.TxHash,
 			Type:   event.Type,
-			Amount: event.Amount,
+			Amount: amount,
 		})
 	}
+	if total.Cmp(eBalance) == 0 {
+		return 0, nil
+	}
 
-	if total.Cmp(eBalance) != 0 {
-		sort.Slice(events, func(i, j int) bool {
-			return events[i].Number < events[j].Number
-		})
-		var (
-			//ethBalances []*ethBalance
-			amount = big.NewInt(0).Set(sBalance)
-			height = events[0].Number
-		)
-		for i, event := range append(events, &ethEvent{Amount: big.NewInt(0)}) {
-			if height != event.Number {
-				height = event.Number
-				preEvent := events[i-1]
-
-				// Get eth balance by height.
-				balance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(preEvent.Number))
-				if err != nil {
-					return 0, err
-				}
-				if amount.Cmp(balance) != 0 {
-					controller.ETHBalanceFailedTotal.WithLabelValues(l2.chainName, event.Type.String()).Inc()
-					go controller.SlackNotify(fmt.Sprintf("the l2scrollMessenger eth balance mismatch, tx_hash: %s, event_type: %s, expect_balance: %s, actual_balance: %s",
-						preEvent.TxHash, preEvent.Type.String(), balance.String(), amount.String()))
-					return event.Number, nil
-				}
-			}
-			if event.Type == orm.L2FinalizeDepositETH {
-				amount.Sub(amount, event.Amount)
-			}
-			if event.Type == orm.L2WithdrawETH {
-				amount.Add(amount, event.Amount)
-			}
-			if event.Type == orm.L2FinalizeDepositWETH {
-				amount.Sub(amount, event.Amount)
-			}
-			if event.Type == orm.L2WithdrawWETH {
-				amount.Add(amount, event.Amount)
-			}
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].Number < events[j].Number
+	})
+	var amount = big.NewInt(0).Set(sBalance)
+	for number := start; number <= end; number++ {
+		// Get eth balance by height.
+		balance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(number))
+		if err != nil {
+			return 0, err
+		}
+		for len(events) > 0 && events[0].Number == number {
+			event := events[0]
+			events = events[1:]
+			amount.Add(amount, event.Amount)
+		}
+		if amount.Cmp(balance) != 0 {
+			controller.ETHBalanceFailedTotal.WithLabelValues(l2.chainName).Inc()
+			go controller.SlackNotify(fmt.Sprintf("l2ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), amount.String()))
+			return number, nil
 		}
 	}
 

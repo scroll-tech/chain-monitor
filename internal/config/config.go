@@ -48,6 +48,7 @@ type L2Config struct {
 	L2Contracts *L2Contracts `json:"l2_contracts"`
 	L2URL       string       `json:"l2_url"`
 	Confirm     rpc.BlockNumber
+	StartNumber uint64 `json:"start_number,omitempty"`
 }
 
 // DBConfig db config

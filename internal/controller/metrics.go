@@ -114,7 +114,7 @@ func InitChainMonitorMetrics() {
 	ETHBalanceFailedTotal = factory.NewCounterVec(prometheus.CounterOpts{
 		Name: "eth_mismatch_balance_total",
 		Help: "The count of mismatched eth balance",
-	}, []string{chainName, eventName})
+	}, []string{chainName})
 	ERC20BalanceFailedTotal = factory.NewCounterVec(prometheus.CounterOpts{
 		Name: "erc20_mismatch_balance_total",
 		Help: "The count of mismatched erc20 balance",

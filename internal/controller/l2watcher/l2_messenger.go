@@ -83,7 +83,7 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 	}
 
 	utils.TryTimes(3, func() bool {
-		if len(numbers) > 0 {
+		if len(numbers) == 0 {
 			return true
 		}
 		// get withdraw root by batch.
