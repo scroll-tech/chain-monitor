@@ -161,8 +161,8 @@ func GetBatchWithdrawRoots(ctx context.Context, cli *rpc.Client, queueAddr commo
 	return withdrawRoots, eg.Wait()
 }
 
-// GetBatchBalance get batch account balances at given block numbers.
-func GetBatchBalance(ctx context.Context, cli *rpc.Client, addr common.Address, numbers []uint64) ([]*big.Int, error) {
+// GetBatchBalances get batch account balances at given block numbers.
+func GetBatchBalances(ctx context.Context, cli *rpc.Client, addr common.Address, numbers []uint64) ([]*big.Int, error) {
 	if len(numbers) == 1 {
 		client := ethclient.NewClient(cli)
 		bls, err := client.BalanceAt(ctx, addr, big.NewInt(0).SetUint64(numbers[0]))

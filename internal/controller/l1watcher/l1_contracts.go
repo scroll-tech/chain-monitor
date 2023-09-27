@@ -5,6 +5,7 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/scroll-tech/go-ethereum/rpc"
 	"gorm.io/gorm"
 
 	"chain-monitor/bytecode"
@@ -20,6 +21,7 @@ import (
 type l1Contracts struct {
 	cfg       *config.L1Contracts
 	tx        *gorm.DB
+	rpcCli    *rpc.Client
 	client    *ethclient.Client
 	chainName string
 
@@ -53,10 +55,17 @@ type l1Contracts struct {
 	fWithdrawFilter *bytecode.ContractsFilter
 }
 
-func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contracts, error) {
+func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, error) {
+	rpcCli, err := rpc.Dial(l1chainURL)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
-		cts = &l1Contracts{
+		client = ethclient.NewClient(rpcCli)
+		cts    = &l1Contracts{
 			cfg:           cfg,
+			rpcCli:        rpcCli,
 			client:        client,
 			chainName:     "l1_chain",
 			txHashMsgHash: map[string]common.Hash{},
@@ -65,7 +74,6 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 			erc721Events:  []*orm.L1ERC721Event{},
 			erc1155Events: []*orm.L1ERC1155Event{},
 		}
-		err error
 	)
 	cts.ScrollMessenger, err = L1.NewL1ScrollMessenger(cfg.ScrollMessenger, client)
 	if err != nil {
