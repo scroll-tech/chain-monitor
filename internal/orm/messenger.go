@@ -1,8 +1,6 @@
 package orm
 
 import (
-	"math/big"
-
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"gorm.io/gorm"
