@@ -1,12 +1,14 @@
 package l1watcher
 
 import (
-	"chain-monitor/internal/config"
-	"chain-monitor/internal/utils"
 	"context"
+	"testing"
+
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/stretchr/testify/assert"
-	"testing"
+
+	"chain-monitor/internal/config"
+	"chain-monitor/internal/utils"
 )
 
 func TestL1ScrollMessenger(t *testing.T) {
