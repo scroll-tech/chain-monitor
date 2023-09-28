@@ -172,26 +172,18 @@ func GetBatchBalances(ctx context.Context, cli *rpc.Client, addr common.Address,
 		return []*big.Int{bls}, nil
 	}
 
-	balances := make([]*big.Int, len(numbers))
+	stringResults := make([]string, len(numbers))
 	reqs := make([]rpc.BatchElem, len(numbers))
 	for i, number := range numbers {
-		//balances[i] = big.NewInt(0)
 		nb := big.NewInt(0).SetUint64(number)
 		reqs[i] = rpc.BatchElem{
 			Method: "eth_getBalance",
 			Args:   []interface{}{addr, toBlockNumArg(nb)},
-			Result: &balances[i],
+			Result: &stringResults[i],
 		}
 	}
 
 	parallels := 8
-	if len(numbers) <= parallels {
-		if err := cli.BatchCallContext(ctx, reqs); err != nil {
-			return nil, err
-		}
-		return balances, nil
-	}
-
 	eg := errgroup.Group{}
 	eg.SetLimit(parallels)
 	for i := 0; i < len(numbers); i += parallels {
@@ -200,5 +192,19 @@ func GetBatchBalances(ctx context.Context, cli *rpc.Client, addr common.Address,
 			return cli.BatchCallContext(ctx, reqs[start:mathutil.Min(start+parallels, len(reqs))])
 		})
 	}
-	return balances, eg.Wait()
+
+	err := eg.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	balances := make([]*big.Int, len(numbers))
+	for i, str := range stringResults {
+		value, ok := new(big.Int).SetString(str[2:], 16)
+		if !ok {
+			return nil, fmt.Errorf("failed to parse big integer: %s", str)
+		}
+		balances[i] = value
+	}
+	return balances, nil
 }
