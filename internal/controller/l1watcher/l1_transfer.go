@@ -58,8 +58,9 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	}
 
 	var (
-		total  = big.NewInt(0).Set(sBalance)
-		events = make(map[uint64][]*ethEvent)
+		total    = big.NewInt(0).Set(sBalance)
+		events   = make(map[uint64][]*ethEvent)
+		txHashes = make(map[string]bool)
 	)
 	for _, event := range l1.ethEvents {
 		var amount = big.NewInt(0).Set(event.Amount)
@@ -74,6 +75,22 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 			Type:   event.Type,
 			Amount: amount,
 		})
+		txHashes[event.TxHash] = true
+	}
+	for _, msgList := range l1.msgSentEvents {
+		for _, msg := range msgList {
+			txHash := msg.Data.Log.TxHash.String()
+			if !txHashes[txHash] {
+				txHashes[txHash] = true
+				total.Add(total, msg.Data.Value)
+				events[msg.Data.Log.BlockNumber] = append(events[msg.Data.Log.BlockNumber], &ethEvent{
+					Number: msg.Data.Log.BlockNumber,
+					TxHash: txHash,
+					Type:   msg.Type,
+					Amount: big.NewInt(0).Set(msg.Data.Value),
+				})
+			}
+		}
 	}
 	if total.Cmp(eBalance) == 0 {
 		return 0, nil
