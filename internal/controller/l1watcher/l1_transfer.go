@@ -77,6 +77,25 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 		})
 		txHashes[event.TxHash] = true
 	}
+	for _, event := range l1.erc20Events {
+		if !(event.Type == orm.L1DepositWETH || event.Type == orm.L1FinalizeWithdrawWETH) {
+			continue
+		}
+		var amount = big.NewInt(0).Set(event.Amount)
+		// L1DepositWETH: +amount, L1FinalizeWithdrawWETH: -amount
+		if event.Type == orm.L1FinalizeWithdrawWETH {
+			amount.Mul(amount, big.NewInt(-1))
+		}
+		total.Add(total, amount)
+		events[event.Number] = append(events[event.Number], &ethEvent{
+			Number: event.Number,
+			TxHash: event.TxHash,
+			Type:   event.Type,
+			Amount: amount,
+		})
+		txHashes[event.TxHash] = true
+	}
+
 	for _, msgList := range l1.msgSentEvents {
 		for _, msg := range msgList {
 			txHash := msg.Data.Log.TxHash.String()

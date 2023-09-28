@@ -41,10 +41,10 @@ func TestL1ETHBalance(t *testing.T) {
 
 	balance0, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4373879-1))
 	assert.NoError(t, err)
-	balance1, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4373879))
+	balance1, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4380522))
 	assert.NoError(t, err)
 
-	tx, _, err := client.TransactionByHash(ctx, common.HexToHash("0x6d8666447cf9901ef2b703659b363a0b778622c5a11f8e7a0a91b5cfb5c9a2d2"))
+	tx, _, err := client.TransactionByHash(ctx, common.HexToHash("0xed21cfcfe011d9eb8d65175bce3f342cee72155a3102e0f607bac7026d52da6a"))
 	assert.NoError(t, err)
 	data, _ := json.MarshalIndent(tx, " ", "	")
 	t.Log(string(data))
