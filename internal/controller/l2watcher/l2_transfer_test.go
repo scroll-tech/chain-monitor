@@ -39,13 +39,12 @@ func TestL1ETHBalance(t *testing.T) {
 	assert.NoError(t, err)
 	ctx := context.Background()
 
-	balance0, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4368319))
+	balance0, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4373879-1))
 	assert.NoError(t, err)
-	balance1, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4368320))
+	balance1, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4373879))
 	assert.NoError(t, err)
-	t.Log(balance0.Cmp(balance1))
 
-	tx, _, err := client.TransactionByHash(ctx, common.HexToHash("0x191e4f409fa5f5e67ded656765d2d2d23d021b8bfa71d90bde5f0c8c107bd4c1"))
+	tx, _, err := client.TransactionByHash(ctx, common.HexToHash("0x6d8666447cf9901ef2b703659b363a0b778622c5a11f8e7a0a91b5cfb5c9a2d2"))
 	assert.NoError(t, err)
 	data, _ := json.MarshalIndent(tx, " ", "	")
 	t.Log(string(data))
@@ -60,13 +59,13 @@ func TestL2ETHBalance(t *testing.T) {
 	assert.NoError(t, err)
 	ctx := context.Background()
 
-	balance0, err := client.BalanceAt(ctx, cfg.L2Config.L2Contracts.ScrollMessenger, big.NewInt(1083713))
+	balance0, err := client.BalanceAt(ctx, cfg.L2Config.L2Contracts.ScrollMessenger, big.NewInt(12506))
 	assert.NoError(t, err)
-	balance1, err := client.BalanceAt(ctx, cfg.L2Config.L2Contracts.ScrollMessenger, big.NewInt(1083714))
+	balance1, err := client.BalanceAt(ctx, cfg.L2Config.L2Contracts.ScrollMessenger, big.NewInt(12507))
 	assert.NoError(t, err)
 	t.Log(balance0.Cmp(balance1))
 
-	tx, _, err := client.TransactionByHash(ctx, common.HexToHash("0xfa4f52dd77c15cbd647dae0b939ebe95b43c789e3a4dfb12b078d69ea3223497"))
+	tx, _, err := client.TransactionByHash(ctx, common.HexToHash("0x000d5a2101ab305a24b2ff939688eae4c73b9db22ae58739fbb3035e20b4c437"))
 	assert.NoError(t, err)
 	data, _ := json.MarshalIndent(tx, " ", "	")
 	t.Log(string(data))

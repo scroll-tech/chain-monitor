@@ -26,6 +26,7 @@ type l1Contracts struct {
 	chainName string
 
 	txHashMsgHash map[string]common.Hash
+	msgSentEvents map[uint64][]*orm.L1MessengerEvent
 	ethEvents     []*orm.L1ETHEvent
 	erc20Events   []*orm.L1ERC20Event
 	erc721Events  []*orm.L1ERC721Event
@@ -69,6 +70,7 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 			client:        client,
 			chainName:     "l1_chain",
 			txHashMsgHash: map[string]common.Hash{},
+			msgSentEvents: map[uint64][]*orm.L1MessengerEvent{},
 			ethEvents:     []*orm.L1ETHEvent{},
 			erc20Events:   []*orm.L1ERC20Event{},
 			erc721Events:  []*orm.L1ERC721Event{},
@@ -168,6 +170,7 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 
 func (l1 *l1Contracts) clean() {
 	l1.txHashMsgHash = map[string]common.Hash{}
+	l1.msgSentEvents = map[uint64][]*orm.L1MessengerEvent{}
 	l1.transferEvents = map[string]*token.IERC20TransferEvent{}
 	l1.l1Confirms = l1.l1Confirms[:0]
 	l1.ethEvents = l1.ethEvents[:0]
