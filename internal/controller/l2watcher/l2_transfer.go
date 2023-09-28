@@ -124,9 +124,6 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 			amount.Add(amount, event.Amount)
 		}
 		if amount.Cmp(balance) != 0 {
-			bls := big.NewInt(0).Set(amount)
-			bls.Sub(bls, balance)
-			fmt.Println("--------", bls.String())
 			controller.ETHBalanceFailedTotal.WithLabelValues(l2.chainName).Inc()
 			go controller.SlackNotify(fmt.Sprintf("l2ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), amount.String()))
 			return number, nil
