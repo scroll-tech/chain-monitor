@@ -12,6 +12,7 @@ import (
 	"chain-monitor/bytecode/scroll/token"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
+	"chain-monitor/internal/utils"
 )
 
 func (l1 *l1Contracts) registerTransfer() {
@@ -96,16 +97,23 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 		return 0, nil
 	}
 
-	var amount = big.NewInt(0).Set(sBalance)
+	// Get eth batch balances.
+	numbers := make([]uint64, 0, end-start+1)
 	for number := start; number <= end; number++ {
-		// Get eth balance by height.
-		balance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(number))
-		if err != nil {
-			return 0, err
-		}
+		numbers = append(numbers, number)
+	}
+	balances, err := utils.GetBatchBalances(ctx, l1.rpcCli, l1.cfg.ScrollMessenger, numbers)
+	if err != nil {
+		return 0, err
+	}
+
+	var amount = big.NewInt(0).Set(sBalance)
+	for idx, number := range numbers {
 		for _, event := range events[number] {
 			amount.Add(amount, event.Amount)
 		}
+
+		balance := balances[idx]
 		if amount.Cmp(balance) != 0 {
 			controller.ETHBalanceFailedTotal.WithLabelValues(l1.chainName).Inc()
 			go controller.SlackNotify(fmt.Sprintf("l1ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), amount.String()))

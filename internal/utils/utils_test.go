@@ -9,11 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetBatchBalance(t *testing.T) {
+func TestGetBatchBalances(t *testing.T) {
 	ctx := context.Background()
-	cli, err := rpc.DialContext(ctx, "http://127.0.0.1:8545")
+	cli, err := rpc.DialContext(ctx, "http://10.5.11.195:8545")
 	assert.NoError(t, err)
-	balances, err := GetBatchBalance(ctx, cli, common.HexToAddress("0xBa50f5340FB9F3Bd074bD638c9BE13eCB36E603d"), []uint64{11318, 11322})
+	blocks := []uint64{11318, 11322}
+	balances, err := GetBatchBalances(ctx, cli, common.HexToAddress("0xBa50f5340FB9F3Bd074bD638c9BE13eCB36E603d"), blocks)
 	assert.NoError(t, err)
+	assert.Len(t, balances, len(blocks))
 	t.Log(balances)
 }

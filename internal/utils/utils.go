@@ -161,8 +161,8 @@ func GetBatchWithdrawRoots(ctx context.Context, cli *rpc.Client, queueAddr commo
 	return withdrawRoots, eg.Wait()
 }
 
-// GetBatchBalance get batch account balances at given block numbers.
-func GetBatchBalance(ctx context.Context, cli *rpc.Client, addr common.Address, numbers []uint64) ([]*big.Int, error) {
+// GetBatchBalances get batch account balances at given block numbers.
+func GetBatchBalances(ctx context.Context, cli *rpc.Client, addr common.Address, numbers []uint64) ([]*big.Int, error) {
 	if len(numbers) == 1 {
 		client := ethclient.NewClient(cli)
 		bls, err := client.BalanceAt(ctx, addr, big.NewInt(0).SetUint64(numbers[0]))
@@ -172,26 +172,18 @@ func GetBatchBalance(ctx context.Context, cli *rpc.Client, addr common.Address, 
 		return []*big.Int{bls}, nil
 	}
 
-	balances := make([]*big.Int, len(numbers))
+	stringResults := make([]string, len(numbers))
 	reqs := make([]rpc.BatchElem, len(numbers))
 	for i, number := range numbers {
-		//balances[i] = big.NewInt(0)
 		nb := big.NewInt(0).SetUint64(number)
 		reqs[i] = rpc.BatchElem{
 			Method: "eth_getBalance",
 			Args:   []interface{}{addr, toBlockNumArg(nb)},
-			Result: &balances[i],
+			Result: &stringResults[i],
 		}
 	}
 
 	parallels := 8
-	if len(numbers) <= parallels {
-		if err := cli.BatchCallContext(ctx, reqs); err != nil {
-			return nil, err
-		}
-		return balances, nil
-	}
-
 	eg := errgroup.Group{}
 	eg.SetLimit(parallels)
 	for i := 0; i < len(numbers); i += parallels {
@@ -200,5 +192,19 @@ func GetBatchBalance(ctx context.Context, cli *rpc.Client, addr common.Address, 
 			return cli.BatchCallContext(ctx, reqs[start:mathutil.Min(start+parallels, len(reqs))])
 		})
 	}
-	return balances, eg.Wait()
+
+	err := eg.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	balances := make([]*big.Int, len(numbers))
+	for i, str := range stringResults {
+		data, err := hexutil.Decode(str)
+		if err != nil {
+			return nil, err
+		}
+		balances[i] = big.NewInt(0).SetBytes(data)
+	}
+	return balances, nil
 }

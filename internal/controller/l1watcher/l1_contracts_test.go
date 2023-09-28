@@ -23,7 +23,7 @@ func TestL1ScrollMessenger(t *testing.T) {
 	assert.NoError(t, err)
 	defer utils.CloseDB(db)
 
-	filter, err := newL1Contracts(client, cfg.L1Config.L1Contracts)
+	filter, err := newL1Contracts(cfg.L1Config.L1URL, cfg.L1Config.L1Contracts)
 	assert.NoError(t, err)
 	filter.registerMessengerHandlers()
 

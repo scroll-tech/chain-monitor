@@ -45,7 +45,7 @@ func NewL1Watcher(cfg *config.L1Config, db *gorm.DB) (*L1Watcher, error) {
 		return nil, err
 	}
 
-	l2Filter, err := newL1Contracts(client, cfg.L1Contracts)
+	l2Filter, err := newL1Contracts(cfg.L1URL, cfg.L1Contracts)
 	if err != nil {
 		return nil, err
 	}
