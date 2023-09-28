@@ -20,6 +20,7 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 		number := vLog.BlockNumber
 		l2.txHashMsgHash[vLog.TxHash.String()] = msgHash
 		l2.msgSentEvents[number] = append(l2.msgSentEvents[number], &orm.L2MessengerEvent{
+			Data:     data,
 			Number:   number,
 			MsgHash:  msgHash.String(),
 			Type:     orm.L2SentMessage,
@@ -83,7 +84,7 @@ func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 	}
 
 	utils.TryTimes(3, func() bool {
-		if len(numbers) > 0 {
+		if len(numbers) == 0 {
 			return true
 		}
 		// get withdraw root by batch.

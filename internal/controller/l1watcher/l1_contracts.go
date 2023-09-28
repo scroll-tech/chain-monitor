@@ -2,7 +2,6 @@ package l1watcher
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -25,6 +24,7 @@ type l1Contracts struct {
 	chainName string
 
 	txHashMsgHash map[string]common.Hash
+	msgSentEvents map[uint64][]*orm.L1MessengerEvent
 	ethEvents     []*orm.L1ETHEvent
 	erc20Events   []*orm.L1ERC20Event
 	erc721Events  []*orm.L1ERC721Event
@@ -43,10 +43,9 @@ type l1Contracts struct {
 	// MessageQueue    *rollup.L1MessageQueue
 
 	// this fields are used check balance.
-	checkBalance     bool
-	latestETHBalance *big.Int
-	transferEvents   map[string]*token.IERC20TransferEvent
-	iERC20           *token.IERC20
+	checkBalance   bool
+	transferEvents map[string]*token.IERC20TransferEvent
+	iERC20         *token.IERC20
 
 	l1Confirms []*orm.L1ChainConfirm
 
@@ -62,6 +61,7 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 			client:        client,
 			chainName:     "l1_chain",
 			txHashMsgHash: map[string]common.Hash{},
+			msgSentEvents: map[uint64][]*orm.L1MessengerEvent{},
 			ethEvents:     []*orm.L1ETHEvent{},
 			erc20Events:   []*orm.L1ERC20Event{},
 			erc721Events:  []*orm.L1ERC721Event{},
@@ -162,6 +162,7 @@ func newL1Contracts(client *ethclient.Client, cfg *config.L1Contracts) (*l1Contr
 
 func (l1 *l1Contracts) clean() {
 	l1.txHashMsgHash = map[string]common.Hash{}
+	l1.msgSentEvents = map[uint64][]*orm.L1MessengerEvent{}
 	l1.transferEvents = map[string]*token.IERC20TransferEvent{}
 	l1.l1Confirms = l1.l1Confirms[:0]
 	l1.ethEvents = l1.ethEvents[:0]

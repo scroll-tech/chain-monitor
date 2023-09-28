@@ -17,6 +17,10 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 	l1.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerSentMessageEvent) error {
 		msgHash := utils.ComputeMessageHash(data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
 		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
+		l1.msgSentEvents[vLog.BlockNumber] = append(l1.msgSentEvents[vLog.BlockNumber], &orm.L1MessengerEvent{
+			TxHead: orm.NewTxHead(vLog, orm.L1SentMessage),
+			Data:   data,
+		})
 		return orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
 	})
 	l1.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerRelayedMessageEvent) error {

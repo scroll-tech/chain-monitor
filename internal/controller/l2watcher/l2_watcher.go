@@ -70,7 +70,7 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 		cacheLen:    32,
 		headerCache: make([]*types.Header, 0, 32),
 		curTime:     time.Now(),
-		currNumber:  l2Block.Number,
+		currNumber:  mathutil.MaxUint64(l2Block.Number, cfg.StartNumber),
 		safeNumber:  number,
 	}
 

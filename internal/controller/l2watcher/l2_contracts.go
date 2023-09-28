@@ -50,9 +50,8 @@ type l2Contracts struct {
 	MessageQueue    *predeploys.L2MessageQueue
 
 	// this fields are used check balance.
-	latestETHBalance *big.Int
-	transferEvents   map[string]*token.IERC20TransferEvent
-	iERC20           *token.IERC20
+	transferEvents map[string]*token.IERC20TransferEvent
+	iERC20         *token.IERC20
 
 	l2Confirms map[uint64]*orm.L2ChainConfirm
 

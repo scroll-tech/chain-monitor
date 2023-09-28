@@ -2,12 +2,15 @@ package l2watcher
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"testing"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/stretchr/testify/assert"
+
+	"chain-monitor/internal/config"
 )
 
 func TestBalance(t *testing.T) {
@@ -27,4 +30,45 @@ func TestBalance(t *testing.T) {
 			break
 		}
 	}
+}
+
+func TestL1ETHBalance(t *testing.T) {
+	cfg, err := config.NewConfig("../../../config.json")
+	assert.NoError(t, err)
+	client, err := ethclient.Dial(cfg.L1Config.L1URL)
+	assert.NoError(t, err)
+	ctx := context.Background()
+
+	balance0, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4373879-1))
+	assert.NoError(t, err)
+	balance1, err := client.BalanceAt(ctx, cfg.L1Config.L1Contracts.ScrollMessenger, big.NewInt(4373879))
+	assert.NoError(t, err)
+
+	tx, _, err := client.TransactionByHash(ctx, common.HexToHash("0x6d8666447cf9901ef2b703659b363a0b778622c5a11f8e7a0a91b5cfb5c9a2d2"))
+	assert.NoError(t, err)
+	data, _ := json.MarshalIndent(tx, " ", "	")
+	t.Log(string(data))
+	var bb = balance1.Sub(balance1, balance0)
+	t.Log(tx.Value().String(), bb.String())
+}
+
+func TestL2ETHBalance(t *testing.T) {
+	cfg, err := config.NewConfig("../../../config.json")
+	assert.NoError(t, err)
+	client, err := ethclient.Dial(cfg.L2Config.L2URL)
+	assert.NoError(t, err)
+	ctx := context.Background()
+
+	balance0, err := client.BalanceAt(ctx, cfg.L2Config.L2Contracts.ScrollMessenger, big.NewInt(12506))
+	assert.NoError(t, err)
+	balance1, err := client.BalanceAt(ctx, cfg.L2Config.L2Contracts.ScrollMessenger, big.NewInt(12507))
+	assert.NoError(t, err)
+	t.Log(balance0.Cmp(balance1))
+
+	tx, _, err := client.TransactionByHash(ctx, common.HexToHash("0x000d5a2101ab305a24b2ff939688eae4c73b9db22ae58739fbb3035e20b4c437"))
+	assert.NoError(t, err)
+	data, _ := json.MarshalIndent(tx, " ", "	")
+	t.Log(string(data))
+	var bb = balance1.Sub(balance1, balance0)
+	t.Log(tx.Value().String(), bb.String())
 }
