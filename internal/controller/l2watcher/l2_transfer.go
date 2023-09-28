@@ -114,31 +114,23 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 		return 0, nil
 	}
 
-	var amount = big.NewInt(0).Set(sBalance)
-	numbers := make([]uint64, end-start+1)
-	for i := range numbers {
-		numbers[i] = start + uint64(i)
+	// Get eth batch balances.
+	numbers := make([]uint64, 0, end-start+1)
+	for number := start; number <= end; number++ {
+		numbers = append(numbers, number)
 	}
-
 	balances, err := utils.GetBatchBalances(ctx, l2.rpcCli, l2.cfg.ScrollMessenger, numbers)
 	if err != nil {
 		return 0, err
 	}
 
-	if len(numbers) != len(balances) {
-		return 0, fmt.Errorf("get batch balances failed, numbers len: %v, balances len: %v", len(numbers), len(balances))
-	}
-
+	var amount = big.NewInt(0).Set(sBalance)
 	for idx, number := range numbers {
-		balance := balances[idx]
-		if balance == nil {
-			return number, fmt.Errorf("balance is nil for block number %d", number)
-		}
-
 		for _, event := range events[number] {
 			amount.Add(amount, event.Amount)
 		}
 
+		balance := balances[idx]
 		if amount.Cmp(balance) != 0 {
 			controller.ETHBalanceFailedTotal.WithLabelValues(l2.chainName).Inc()
 			go controller.SlackNotify(fmt.Sprintf("l2ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), amount.String()))

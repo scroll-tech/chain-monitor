@@ -200,15 +200,11 @@ func GetBatchBalances(ctx context.Context, cli *rpc.Client, addr common.Address,
 
 	balances := make([]*big.Int, len(numbers))
 	for i, str := range stringResults {
-		if len(str) < 3 {
-			return nil, fmt.Errorf("invalid string length: %s", str)
+		data, err := hexutil.Decode(str)
+		if err != nil {
+			return nil, err
 		}
-
-		value, ok := new(big.Int).SetString(str[2:], 16)
-		if !ok {
-			return nil, fmt.Errorf("failed to parse big integer: %s", str)
-		}
-		balances[i] = value
+		balances[i] = big.NewInt(0).SetBytes(data)
 	}
 	return balances, nil
 }
