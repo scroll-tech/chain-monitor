@@ -193,14 +193,31 @@ func (l2 *l2Contracts) clean() {
 }
 
 func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
-	l2.clean()
 	l2.tx = db.Begin().WithContext(ctx)
+
+	// parse l2 event logs.
+	count, err := l2.parseL2Events(ctx, start, end)
+	if err != nil {
+		l2.tx.Rollback()
+		return 0, err
+	}
+
+	// commit db.
+	if err = l2.tx.Commit().Error; err != nil {
+		l2.tx.Rollback()
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (l2 *l2Contracts) parseL2Events(ctx context.Context, start, end uint64) (int, error) {
+	l2.clean()
 
 	// Parse gateway logs
 	count, err := l2.gatewayFilter.GetLogs(ctx, l2.client, start, end, l2.gatewayFilter.ParseLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
-		l2.tx.Rollback()
 		return 0, err
 	}
 
@@ -208,7 +225,6 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	_, err = l2.fDepositFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
-		l2.tx.Rollback()
 		return 0, err
 	}
 
@@ -216,7 +232,6 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 	_, err = l2.withdrawFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
-		l2.tx.Rollback()
 		return 0, err
 	}
 
@@ -230,19 +245,16 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 
 	// Check balance.
 	if err = l2.checkL2Balance(ctx, start, end); err != nil {
-		l2.tx.Rollback()
 		return 0, err
 	}
 
 	// Check eth balance.
 	if err = l2.storeGatewayEvents(); err != nil {
-		l2.tx.Rollback()
 		return 0, err
 	}
 
 	// store l2Messenger sentMessenger events.
 	if err = l2.storeMessengerEvents(ctx, start, end); err != nil {
-		l2.tx.Rollback()
 		return 0, err
 	}
 
@@ -256,12 +268,6 @@ func (l2 *l2Contracts) ParseL2Events(ctx context.Context, db *gorm.DB, start, en
 		EventCount: count,
 	}).Error
 	if err != nil {
-		l2.tx.Rollback()
-		return 0, err
-	}
-
-	if err = l2.tx.Commit().Error; err != nil {
-		l2.tx.Rollback()
 		return 0, err
 	}
 

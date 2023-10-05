@@ -124,7 +124,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 	// Metrics records current goroutine.
 	controller.WorkerStartedTotal.WithLabelValues("l1_watcher").Inc()
 
-	log.Info("scan l1chain successful", "start", start, "end", end, "event_count", count)
+	log.Info("scan l1chain successful", "start", start, "end", end, "check_balance", l1.filter.checkBalance, "event_count", count)
 }
 
 func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, error) {
