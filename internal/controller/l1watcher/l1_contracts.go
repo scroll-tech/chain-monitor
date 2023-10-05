@@ -180,14 +180,30 @@ func (l1 *l1Contracts) clean() {
 }
 
 func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, end uint64) (int, error) {
-	l1.clean()
 	l1.tx = db.Begin().WithContext(ctx)
+
+	// parse l1 event logs.
+	count, err := l1.parseL1Events(ctx, start, end)
+	if err != nil {
+		l1.tx.Rollback()
+		return 0, err
+	}
+
+	// commit db.
+	if err = l1.tx.Commit().Error; err != nil {
+		l1.tx.Rollback()
+		return 0, err
+	}
+	return count, nil
+}
+
+func (l1 *l1Contracts) parseL1Events(ctx context.Context, start, end uint64) (int, error) {
+	l1.clean()
 
 	// Parse gateway logs.
 	count, err := l1.gatewayFilter.GetLogs(ctx, l1.client, start, end, l1.gatewayFilter.ParseLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
-		l1.tx.Rollback()
 		return 0, err
 	}
 
@@ -195,7 +211,6 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	_, err = l1.fWithdrawFilter.GetLogs(ctx, l1.client, start, end, l1.parseTransferLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
-		l1.tx.Rollback()
 		return 0, err
 	}
 
@@ -203,7 +218,6 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 	_, err = l1.depositFilter.GetLogs(ctx, l1.client, start, end, l1.parseTransferLogs)
 	if err != nil {
 		controller.ParseLogsFailureTotal.WithLabelValues(l1.chainName).Inc()
-		l1.tx.Rollback()
 		return 0, err
 	}
 
@@ -224,12 +238,10 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 
 	// store l1chain gateway events.
 	if err = l1.storeGatewayEvents(); err != nil {
-		l1.tx.Rollback()
 		return 0, err
 	}
 
 	if err = l1.tx.Save(l1.l1Confirms).Error; err != nil {
-		l1.tx.Rollback()
 		return 0, err
 	}
 
@@ -239,13 +251,8 @@ func (l1 *l1Contracts) ParseL1Events(ctx context.Context, db *gorm.DB, start, en
 		EventCount: count,
 	}).Error
 	if err != nil {
-		l1.tx.Rollback()
 		return 0, err
 	}
 
-	if err = l1.tx.Commit().Error; err != nil {
-		l1.tx.Rollback()
-		return 0, err
-	}
 	return count, nil
 }
