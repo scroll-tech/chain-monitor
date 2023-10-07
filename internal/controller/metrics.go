@@ -19,6 +19,10 @@ var (
 	StandardERC20EventsTotal *prometheus.CounterVec
 	// CustomERC20EventsTotal Prometheus counter vector for tracking total custom ERC-20 events.
 	CustomERC20EventsTotal *prometheus.CounterVec
+	// USDCERC20EventsTotal Prometheus counter vector for tracking total USDC ERC-20 events.
+	USDCERC20EventsTotal *prometheus.CounterVec
+	// LIDOERC20EventsTotal Prometheus counter vector for tracking total LIDO ERC-20 events.
+	LIDOERC20EventsTotal *prometheus.CounterVec
 	// ERC721EventsTotal Prometheus counter vector for tracking total ERC-721 events.
 	ERC721EventsTotal *prometheus.CounterVec
 	// ERC1155EventsTotal Prometheus counter vector for tracking total ERC-1155 events.
@@ -76,6 +80,14 @@ func InitChainMonitorMetrics() {
 	CustomERC20EventsTotal = factory.NewCounterVec(prometheus.CounterOpts{
 		Name: "custom_erc20_gateway_event_total",
 		Help: "Four types of custom_erc20 events on l1chain or l2chain.",
+	}, []string{chainName, eventName})
+	USDCERC20EventsTotal = factory.NewCounterVec(prometheus.CounterOpts{
+		Name: "usdc_erc20_gateway_event_total",
+		Help: "Four types of usdc_erc20 events on l1chain or l2chain.",
+	}, []string{chainName, eventName})
+	LIDOERC20EventsTotal = factory.NewCounterVec(prometheus.CounterOpts{
+		Name: "lido_erc20_gateway_event_total",
+		Help: "Four types of lido_erc20 events on l1chain or l2chain.",
 	}, []string{chainName, eventName})
 	ERC721EventsTotal = factory.NewCounterVec(prometheus.CounterOpts{
 		Name: "erc721_gateway_event_total",

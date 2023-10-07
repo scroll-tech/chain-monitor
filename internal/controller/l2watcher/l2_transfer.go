@@ -202,6 +202,10 @@ func (l2 *l2Contracts) transferAbnormalCheck() []uint64 {
 			fallthrough
 		case l2.cfg.CustomERC20Gateway:
 			fallthrough
+		case l2.cfg.USDCGateway:
+			fallthrough
+		case l2.cfg.LIDOGateway:
+			fallthrough
 		case l2.cfg.ERC721Gateway:
 			failedNumbers = append(failedNumbers, event.Log.BlockNumber)
 			controller.ERC20UnexpectTotal.WithLabelValues(l2.chainName).Inc()
@@ -219,6 +223,10 @@ func (l2 *l2Contracts) transferAbnormalCheck() []uint64 {
 		case l2.cfg.StandardERC20Gateway:
 			fallthrough
 		case l2.cfg.CustomERC20Gateway:
+			fallthrough
+		case l2.cfg.USDCGateway:
+			fallthrough
+		case l2.cfg.LIDOGateway:
 			fallthrough
 		case l2.cfg.ERC721Gateway:
 			failedNumbers = append(failedNumbers, event.Log.BlockNumber)
