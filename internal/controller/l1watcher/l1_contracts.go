@@ -37,6 +37,8 @@ type l1Contracts struct {
 	DAIGateway           *gateway.L1DAIGateway
 	StandardERC20Gateway *gateway.L1StandardERC20Gateway
 	CustomERC20Gateway   *gateway.L1CustomERC20Gateway
+	USDCERC20Gateway     *gateway.L1CustomERC20Gateway
+	LIDOERC20Gateway     *gateway.L1CustomERC20Gateway
 	ERC721Gateway        *gateway.L1ERC721Gateway
 	ERC1155Gateway       *gateway.L1ERC1155Gateway
 
@@ -101,6 +103,14 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 	if err != nil {
 		return nil, err
 	}
+	cts.USDCERC20Gateway, err = gateway.NewL1CustomERC20Gateway(cfg.USDCGateway, client)
+	if err != nil {
+		return nil, err
+	}
+	cts.LIDOERC20Gateway, err = gateway.NewL1CustomERC20Gateway(cfg.LIDOGateway, client)
+	if err != nil {
+		return nil, err
+	}
 	cts.ERC721Gateway, err = gateway.NewL1ERC721Gateway(cfg.ERC721Gateway, client)
 	if err != nil {
 		return nil, err
@@ -122,18 +132,28 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 		return nil, err
 	}
 
-	cts.gatewayFilter = bytecode.NewContractsFilter(nil, []bytecode.ContractAPI{
+	apis := []bytecode.ContractAPI{
 		cts.ScrollMessenger,
 		// cts.MessageQueue,
 		cts.ETHGateway,
-		cts.DAIGateway,
 		cts.WETHGateway,
 		cts.StandardERC20Gateway,
 		cts.CustomERC20Gateway,
 		cts.ERC721Gateway,
 		cts.ERC1155Gateway,
 		cts.ScrollChain,
-	}...)
+	}
+	if cfg.USDCGateway != (common.Address{}) {
+		apis = append(apis, cts.USDCERC20Gateway)
+	}
+	if cfg.LIDOGateway != (common.Address{}) {
+		apis = append(apis, cts.LIDOERC20Gateway)
+	}
+	if cfg.DAIGateway != (common.Address{}) {
+		apis = append(apis, cts.DAIGateway)
+	}
+	cts.gatewayFilter = bytecode.NewContractsFilter(nil, apis...)
+
 	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 	// The Topic[2] should be gateway hash(address).
 	cts.depositFilter = bytecode.NewContractsFilter([][]common.Hash{

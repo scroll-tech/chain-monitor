@@ -16,6 +16,8 @@ type Gateway struct {
 	WETHGateway          common.Address `json:"weth_gateway"`
 	StandardERC20Gateway common.Address `json:"standard_erc20_gateway"`
 	CustomERC20Gateway   common.Address `json:"custom_erc20_gateway"`
+	USDCGateway          common.Address `json:"usdc_gateway"`
+	LIDOGateway          common.Address `json:"lido_gateway"`
 	ERC721Gateway        common.Address `json:"erc721_gateway"`
 	ERC1155Gateway       common.Address `json:"erc1155_gateway"`
 }
