@@ -52,6 +52,8 @@ type l2Contracts struct {
 	// this fields are used check balance.
 	transferEvents map[string]*token.IERC20TransferEvent
 	iERC20         *token.IERC20
+	iERC721        *token.IERC721
+	iERC1155       *token.IERC1155
 
 	l2Confirms map[uint64]*orm.L2ChainConfirm
 
@@ -131,17 +133,28 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 		cts.ERC721Gateway,
 		cts.ERC1155Gateway,
 	}...)
-	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
-	// The Topic[1] value should be 0x000000.
 	cts.fDepositFilter = bytecode.NewContractsFilter([][]common.Hash{
-		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+		{
+			// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+			common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
+			// Filter the TransferSingle event ID is 0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62.
+			common.HexToHash("0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62"),
+			// Filter the TransferBatch event ID is 0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb.
+			common.HexToHash("0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb"),
+		},
+		// The Topic[1] value should be 0x000000.
 		{common.BigToHash(big.NewInt(0))},
 	})
-	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
-	// The Topic[2] value should be 0x000000.
 	cts.withdrawFilter = bytecode.NewContractsFilter([][]common.Hash{
-		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+		{
+			// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+			common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
+			// Filter the TransferSingle event ID is 0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62.
+			common.HexToHash("0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62"),
+			// Filter the TransferBatch event ID is 0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb.
+			common.HexToHash("0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb")},
 		{},
+		// The Topic[2] value should be 0x000000.
 		{common.BigToHash(big.NewInt(0))},
 	})
 

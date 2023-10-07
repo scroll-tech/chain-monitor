@@ -20,6 +20,14 @@ func (l2 *l2Contracts) registerTransfer() {
 		l2.transferEvents[vLog.TxHash.String()] = data
 		return nil
 	})
+	l2.iERC721.RegisterTransfer(func(vLog *types.Log, data *token.IERC721TransferEvent) error {
+		// TODO
+		return nil
+	})
+	l2.iERC1155.RegisterTransferSingle(func(vLog *types.Log, data *token.IERC1155TransferSingleEvent) error {
+		// TODO
+		return nil
+	})
 }
 
 func (l2 *l2Contracts) parseTransferLogs(logs []types.Log) error {
