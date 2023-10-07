@@ -136,7 +136,6 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 		cts.ScrollMessenger,
 		// cts.MessageQueue,
 		cts.ETHGateway,
-		cts.DAIGateway,
 		cts.WETHGateway,
 		cts.StandardERC20Gateway,
 		cts.CustomERC20Gateway,
@@ -149,6 +148,9 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 	}
 	if cfg.LIDOGateway != (common.Address{}) {
 		apis = append(apis, cts.LIDOERC20Gateway)
+	}
+	if cfg.DAIGateway != (common.Address{}) {
+		apis = append(apis, cts.DAIGateway)
 	}
 	cts.gatewayFilter = bytecode.NewContractsFilter(nil, apis...)
 

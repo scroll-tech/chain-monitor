@@ -134,7 +134,6 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 		// cts.MessageQueue,
 		cts.ETHGateway,
 		cts.WETHGateway,
-		cts.DAIGateway,
 		cts.StandardERC20Gateway,
 		cts.CustomERC20Gateway,
 		cts.ERC721Gateway,
@@ -145,6 +144,9 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 	}
 	if cfg.LIDOGateway != (common.Address{}) {
 		apis = append(apis, cts.LIDOERC20Gateway)
+	}
+	if cfg.DAIGateway != (common.Address{}) {
+		apis = append(apis, cts.DAIGateway)
 	}
 	cts.gatewayFilter = bytecode.NewContractsFilter(nil, apis...)
 
