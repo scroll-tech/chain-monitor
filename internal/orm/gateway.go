@@ -74,19 +74,35 @@ const (
 	L1DepositERC721 EventType = 51
 	// L1FinalizeWithdrawERC721 represents the event for finalizing ERC721 token withdrawal on Layer 1.
 	L1FinalizeWithdrawERC721 EventType = 52
+	// L1BatchDepositERC721 represents the event for batch ERC721 deposit token withdrawal on Layer 1.
+	L1BatchDepositERC721 EventType = 53
+	// L1BatchFinalizeWithdrawERC721 represents the event for batch ERC721 finalize withdraw token withdrawal on Layer 1.
+	L1BatchFinalizeWithdrawERC721 EventType = 54
 	// L2FinalizeDepositERC721 represents the event for finalizing ERC721 token deposit on Layer 2.
 	L2FinalizeDepositERC721 EventType = 151
 	// L2WithdrawERC721 represents the event for withdrawing ERC721 tokens on Layer 2.
 	L2WithdrawERC721 EventType = 152
+	// L2BatchFinalizeDepositERC721 represents the event for batch finalize deposit ERC721 tokens on Layer 2.
+	L2BatchFinalizeDepositERC721 EventType = 153
+	// L2BatchWithdrawERC721 represents the event for batch withdraw ERC721 tokens on Layer 2.
+	L2BatchWithdrawERC721 EventType = 154
 
 	// L1DepositERC1155 represents the event for depositing ERC1155 tokens on Layer 1.
 	L1DepositERC1155 EventType = 71
 	// L1FinalizeWithdrawERC1155 represents the event for finalizing ERC1155 token withdrawal on Layer 1.
 	L1FinalizeWithdrawERC1155 EventType = 72
+	// L1BatchDepositERC1155 represents the event for batch deposit ERC1155 token withdrawal on Layer 1.
+	L1BatchDepositERC1155 EventType = 73
+	// L1BatchFinalizeWithdrawERC1155 represents the event for batch finalize withdraw ERC1155 token withdrawal on Layer 1.
+	L1BatchFinalizeWithdrawERC1155 EventType = 74
 	// L2FinalizeDepositERC1155 represents the event for finalizing ERC1155 token deposit on Layer 2.
 	L2FinalizeDepositERC1155 EventType = 171
 	// L2WithdrawERC1155 represents the event for withdrawing ERC1155 tokens on Layer 2.
 	L2WithdrawERC1155 EventType = 172
+	// L2BatchFinalizeDepositERC1155 represents the event for batch finalize deposit ERC1155 tokens on Layer 2.
+	L2BatchFinalizeDepositERC1155 EventType = 173
+	// L2BatchWithdrawERC1155 represents the event for batch withdraw ERC1155 tokens on Layer 2.
+	L2BatchWithdrawERC1155 EventType = 174
 )
 
 // TxHead represents the essential attributes of a transaction.
