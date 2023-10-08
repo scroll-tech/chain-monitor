@@ -32,11 +32,14 @@ type l1Contracts struct {
 	erc721Events  []*orm.L1ERC721Event
 	erc1155Events []*orm.L1ERC1155Event
 
+	gatewayAPIs          []bytecode.ContractAPI
 	ETHGateway           *gateway.L1ETHGateway
 	WETHGateway          *gateway.L1WETHGateway
 	DAIGateway           *gateway.L1DAIGateway
 	StandardERC20Gateway *gateway.L1StandardERC20Gateway
 	CustomERC20Gateway   *gateway.L1CustomERC20Gateway
+	USDCERC20Gateway     *gateway.L1CustomERC20Gateway
+	LIDOERC20Gateway     *gateway.L1CustomERC20Gateway
 	ERC721Gateway        *gateway.L1ERC721Gateway
 	ERC1155Gateway       *gateway.L1ERC1155Gateway
 
@@ -101,6 +104,14 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 	if err != nil {
 		return nil, err
 	}
+	cts.USDCERC20Gateway, err = gateway.NewL1CustomERC20Gateway(cfg.USDCGateway, client)
+	if err != nil {
+		return nil, err
+	}
+	cts.LIDOERC20Gateway, err = gateway.NewL1CustomERC20Gateway(cfg.LIDOGateway, client)
+	if err != nil {
+		return nil, err
+	}
 	cts.ERC721Gateway, err = gateway.NewL1ERC721Gateway(cfg.ERC721Gateway, client)
 	if err != nil {
 		return nil, err
@@ -122,18 +133,29 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 		return nil, err
 	}
 
-	cts.gatewayFilter = bytecode.NewContractsFilter(nil, []bytecode.ContractAPI{
-		cts.ScrollMessenger,
-		// cts.MessageQueue,
+	cts.gatewayAPIs = []bytecode.ContractAPI{
 		cts.ETHGateway,
-		cts.DAIGateway,
 		cts.WETHGateway,
 		cts.StandardERC20Gateway,
 		cts.CustomERC20Gateway,
 		cts.ERC721Gateway,
 		cts.ERC1155Gateway,
+	}
+	if cfg.USDCGateway != (common.Address{}) {
+		cts.gatewayAPIs = append(cts.gatewayAPIs, cts.USDCERC20Gateway)
+	}
+	if cfg.LIDOGateway != (common.Address{}) {
+		cts.gatewayAPIs = append(cts.gatewayAPIs, cts.LIDOERC20Gateway)
+	}
+	if cfg.DAIGateway != (common.Address{}) {
+		cts.gatewayAPIs = append(cts.gatewayAPIs, cts.DAIGateway)
+	}
+	cts.gatewayFilter = bytecode.NewContractsFilter(nil, append(cts.gatewayAPIs, []bytecode.ContractAPI{
+		cts.ScrollMessenger,
+		// cts.MessageQueue,
 		cts.ScrollChain,
-	}...)
+	}...)...)
+
 	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 	// The Topic[2] should be gateway hash(address).
 	cts.depositFilter = bytecode.NewContractsFilter([][]common.Hash{

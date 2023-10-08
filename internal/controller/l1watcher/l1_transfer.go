@@ -193,37 +193,15 @@ func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amou
 func (l1 *l1Contracts) transferAbnormalCheck() []uint64 {
 	var failedNumbers []uint64
 	for txHash, event := range l1.transferEvents {
-		switch event.To {
-		case l1.cfg.WETHGateway:
-			fallthrough
-		case l1.cfg.DAIGateway:
-			fallthrough
-		case l1.cfg.StandardERC20Gateway:
-			fallthrough
-		case l1.cfg.CustomERC20Gateway:
-			fallthrough
-		case l1.cfg.ERC721Gateway:
-			failedNumbers = append(failedNumbers, event.Log.BlockNumber)
-			controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
-			data, _ := json.Marshal(event)
-			go controller.SlackNotify(
-				fmt.Sprintf("unexpect deposit event appear, tx_hash: %s, content: %s", txHash, string(data)))
-		}
-		switch event.From {
-		case l1.cfg.WETHGateway:
-			fallthrough
-		case l1.cfg.DAIGateway:
-			fallthrough
-		case l1.cfg.StandardERC20Gateway:
-			fallthrough
-		case l1.cfg.CustomERC20Gateway:
-			fallthrough
-		case l1.cfg.ERC721Gateway:
-			failedNumbers = append(failedNumbers, event.Log.BlockNumber)
-			controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
-			data, _ := json.Marshal(event)
-			go controller.SlackNotify(
-				fmt.Sprintf("unexpect finalizeWithdraw event appear, tx_hash: %s, content: %s", txHash, string(data)))
+		for _, api := range l1.gatewayAPIs {
+			addr := api.GetAddress()
+			if event.To == addr || event.From == addr {
+				failedNumbers = append(failedNumbers, event.Log.BlockNumber)
+				controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
+				data, _ := json.Marshal(event)
+				go controller.SlackNotify(
+					fmt.Sprintf("l1chain unexpect tx.From or tx.To address used gateway, tx_hash: %s, content: %s", txHash, string(data)))
+			}
 		}
 	}
 

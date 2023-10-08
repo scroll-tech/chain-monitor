@@ -20,6 +20,10 @@ func _() {
 	_ = x[L1FinalizeWithdrawStandardERC20-16]
 	_ = x[L1DepositCustomERC20-17]
 	_ = x[L1FinalizeWithdrawCustomERC20-18]
+	_ = x[L1USDCDepositERC20-19]
+	_ = x[L1USDCFinalizeWithdrawERC20-20]
+	_ = x[L1LIDODepositERC20-21]
+	_ = x[L1LIDOFinalizeWithdrawERC20-22]
 	_ = x[L2FinalizeDepositWETH-111]
 	_ = x[L2WithdrawWETH-112]
 	_ = x[L2FinalizeDepositDAI-113]
@@ -28,14 +32,18 @@ func _() {
 	_ = x[L2WithdrawStandardERC20-116]
 	_ = x[L2FinalizeDepositCustomERC20-117]
 	_ = x[L2WithdrawCustomERC20-118]
-	_ = x[L1DepositERC721-21]
-	_ = x[L1FinalizeWithdrawERC721-22]
-	_ = x[L2FinalizeDepositERC721-121]
-	_ = x[L2WithdrawERC721-122]
-	_ = x[L1DepositERC1155-31]
-	_ = x[L1FinalizeWithdrawERC1155-32]
-	_ = x[L2FinalizeDepositERC1155-131]
-	_ = x[L2WithdrawERC1155-132]
+	_ = x[L2USDCWithdrawERC20-119]
+	_ = x[L2USDCFinalizeDepositERC20-120]
+	_ = x[L2LIDOWithdrawERC20-121]
+	_ = x[L2LIDOFinalizeDepositERC20-122]
+	_ = x[L1DepositERC721-51]
+	_ = x[L1FinalizeWithdrawERC721-52]
+	_ = x[L2FinalizeDepositERC721-151]
+	_ = x[L2WithdrawERC721-152]
+	_ = x[L1DepositERC1155-71]
+	_ = x[L1FinalizeWithdrawERC1155-72]
+	_ = x[L2FinalizeDepositERC1155-171]
+	_ = x[L2WithdrawERC1155-172]
 	_ = x[L1SentMessage-201]
 	_ = x[L1RelayedMessage-202]
 	_ = x[L1FailedRelayedMessage-203]
@@ -46,11 +54,11 @@ func _() {
 
 const (
 	_EventType_name_0 = "L1DepositETHL1FinalizeWithdrawETH"
-	_EventType_name_1 = "L1DepositWETHL1FinalizeWithdrawWETHL1DepositDAIL1FinalizeWithdrawDAIL1DepositStandardERC20L1FinalizeWithdrawStandardERC20L1DepositCustomERC20L1FinalizeWithdrawCustomERC20"
+	_EventType_name_1 = "L1DepositWETHL1FinalizeWithdrawWETHL1DepositDAIL1FinalizeWithdrawDAIL1DepositStandardERC20L1FinalizeWithdrawStandardERC20L1DepositCustomERC20L1FinalizeWithdrawCustomERC20L1USDCDepositERC20L1USDCFinalizeWithdrawERC20L1LIDODepositERC20L1LIDOFinalizeWithdrawERC20"
 	_EventType_name_2 = "L1DepositERC721L1FinalizeWithdrawERC721"
 	_EventType_name_3 = "L1DepositERC1155L1FinalizeWithdrawERC1155"
 	_EventType_name_4 = "L2FinalizeDepositETHL2WithdrawETH"
-	_EventType_name_5 = "L2FinalizeDepositWETHL2WithdrawWETHL2FinalizeDepositDAIL2WithdrawDAIL2FinalizeDepositStandardERC20L2WithdrawStandardERC20L2FinalizeDepositCustomERC20L2WithdrawCustomERC20"
+	_EventType_name_5 = "L2FinalizeDepositWETHL2WithdrawWETHL2FinalizeDepositDAIL2WithdrawDAIL2FinalizeDepositStandardERC20L2WithdrawStandardERC20L2FinalizeDepositCustomERC20L2WithdrawCustomERC20L2USDCWithdrawERC20L2USDCFinalizeDepositERC20L2LIDOWithdrawERC20L2LIDOFinalizeDepositERC20"
 	_EventType_name_6 = "L2FinalizeDepositERC721L2WithdrawERC721"
 	_EventType_name_7 = "L2FinalizeDepositERC1155L2WithdrawERC1155"
 	_EventType_name_8 = "L1SentMessageL1RelayedMessageL1FailedRelayedMessage"
@@ -58,11 +66,11 @@ const (
 
 var (
 	_EventType_index_0 = [...]uint8{0, 12, 33}
-	_EventType_index_1 = [...]uint8{0, 13, 35, 47, 68, 90, 121, 141, 170}
+	_EventType_index_1 = [...]uint16{0, 13, 35, 47, 68, 90, 121, 141, 170, 188, 215, 233, 260}
 	_EventType_index_2 = [...]uint8{0, 15, 39}
 	_EventType_index_3 = [...]uint8{0, 16, 41}
 	_EventType_index_4 = [...]uint8{0, 20, 33}
-	_EventType_index_5 = [...]uint8{0, 21, 35, 55, 68, 98, 121, 149, 170}
+	_EventType_index_5 = [...]uint16{0, 21, 35, 55, 68, 98, 121, 149, 170, 189, 215, 234, 260}
 	_EventType_index_6 = [...]uint8{0, 23, 39}
 	_EventType_index_7 = [...]uint8{0, 24, 41}
 	_EventType_index_8 = [...]uint8{0, 13, 29, 51}
@@ -73,26 +81,26 @@ func (i EventType) String() string {
 	case 1 <= i && i <= 2:
 		i -= 1
 		return _EventType_name_0[_EventType_index_0[i]:_EventType_index_0[i+1]]
-	case 11 <= i && i <= 18:
+	case 11 <= i && i <= 22:
 		i -= 11
 		return _EventType_name_1[_EventType_index_1[i]:_EventType_index_1[i+1]]
-	case 21 <= i && i <= 22:
-		i -= 21
+	case 51 <= i && i <= 52:
+		i -= 51
 		return _EventType_name_2[_EventType_index_2[i]:_EventType_index_2[i+1]]
-	case 31 <= i && i <= 32:
-		i -= 31
+	case 71 <= i && i <= 72:
+		i -= 71
 		return _EventType_name_3[_EventType_index_3[i]:_EventType_index_3[i+1]]
 	case 101 <= i && i <= 102:
 		i -= 101
 		return _EventType_name_4[_EventType_index_4[i]:_EventType_index_4[i+1]]
-	case 111 <= i && i <= 118:
+	case 111 <= i && i <= 122:
 		i -= 111
 		return _EventType_name_5[_EventType_index_5[i]:_EventType_index_5[i+1]]
-	case 121 <= i && i <= 122:
-		i -= 121
+	case 151 <= i && i <= 152:
+		i -= 151
 		return _EventType_name_6[_EventType_index_6[i]:_EventType_index_6[i+1]]
-	case 131 <= i && i <= 132:
-		i -= 131
+	case 171 <= i && i <= 172:
+		i -= 171
 		return _EventType_name_7[_EventType_index_7[i]:_EventType_index_7[i+1]]
 	case 201 <= i && i <= 203:
 		i -= 201

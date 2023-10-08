@@ -193,41 +193,18 @@ func (l2 *l2Contracts) transferAbnormalCheck() []uint64 {
 	var failedNumbers []uint64
 	// unexpect mint or burn operation.
 	for txHash, event := range l2.transferEvents {
-		switch event.To {
-		case l2.cfg.WETHGateway:
-			fallthrough
-		case l2.cfg.DAIGateway:
-			fallthrough
-		case l2.cfg.StandardERC20Gateway:
-			fallthrough
-		case l2.cfg.CustomERC20Gateway:
-			fallthrough
-		case l2.cfg.ERC721Gateway:
-			failedNumbers = append(failedNumbers, event.Log.BlockNumber)
-			controller.ERC20UnexpectTotal.WithLabelValues(l2.chainName).Inc()
-			data, _ := json.Marshal(event)
-			go controller.SlackNotify(
-				fmt.Sprintf("l2chain unexpect transfer used to(gateway) address, tx_hash: %x, content: %s",
-					txHash, string(data)),
-			)
-		}
-		switch event.From {
-		case l2.cfg.WETHGateway:
-			fallthrough
-		case l2.cfg.DAIGateway:
-			fallthrough
-		case l2.cfg.StandardERC20Gateway:
-			fallthrough
-		case l2.cfg.CustomERC20Gateway:
-			fallthrough
-		case l2.cfg.ERC721Gateway:
-			failedNumbers = append(failedNumbers, event.Log.BlockNumber)
-			controller.ERC20UnexpectTotal.WithLabelValues(l2.chainName).Inc()
-			data, _ := json.Marshal(event)
-			go controller.SlackNotify(
-				fmt.Sprintf("l2chain unexpect transfer used from(gateway) address, tx_hash: %x, content: %s",
-					txHash, string(data)),
-			)
+		// check to address
+		for _, api := range l2.gatewayAPIs {
+			addr := api.GetAddress()
+			if event.To == addr || event.From == addr {
+				failedNumbers = append(failedNumbers, event.Log.BlockNumber)
+				controller.ERC20UnexpectTotal.WithLabelValues(l2.chainName).Inc()
+				data, _ := json.Marshal(event)
+				go controller.SlackNotify(
+					fmt.Sprintf("l2chain unexpect tx.From or tx.To address used gateway, tx_hash: %x, content: %s",
+						txHash, string(data)),
+				)
+			}
 		}
 	}
 	return failedNumbers
