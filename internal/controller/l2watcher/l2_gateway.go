@@ -63,6 +63,26 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2FinalizeDepositCustomERC20, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
+	l2.USDCERC20Gateway.RegisterWithdrawERC20(func(vLog *types.Log, data *gateway.L2CustomERC20GatewayWithdrawERC20Event) error {
+		controller.USDCERC20EventsTotal.WithLabelValues(l2.chainName, orm.L2USDCWithdrawERC20.String()).Inc()
+		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2USDCWithdrawERC20, vLog, data.L1Token, data.L2Token, data.Amount))
+		return nil
+	})
+	l2.USDCERC20Gateway.RegisterFinalizeDepositERC20(func(vLog *types.Log, data *gateway.L2CustomERC20GatewayFinalizeDepositERC20Event) error {
+		controller.USDCERC20EventsTotal.WithLabelValues(l2.chainName, orm.L2USDCFinalizeDepositERC20.String()).Inc()
+		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2USDCFinalizeDepositERC20, vLog, data.L1Token, data.L2Token, data.Amount))
+		return nil
+	})
+	l2.LIDOERC20Gateway.RegisterWithdrawERC20(func(vLog *types.Log, data *gateway.L2CustomERC20GatewayWithdrawERC20Event) error {
+		controller.LIDOERC20EventsTotal.WithLabelValues(l2.chainName, orm.L2LIDOWithdrawERC20.String()).Inc()
+		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2LIDOWithdrawERC20, vLog, data.L1Token, data.L2Token, data.Amount))
+		return nil
+	})
+	l2.LIDOERC20Gateway.RegisterFinalizeDepositERC20(func(vLog *types.Log, data *gateway.L2CustomERC20GatewayFinalizeDepositERC20Event) error {
+		controller.LIDOERC20EventsTotal.WithLabelValues(l2.chainName, orm.L2LIDOFinalizeDepositERC20.String()).Inc()
+		l2.erc20Events = append(l2.erc20Events, newL2ETH20Event(orm.L2LIDOFinalizeDepositERC20, vLog, data.L1Token, data.L2Token, data.Amount))
+		return nil
+	})
 
 	l2.ERC721Gateway.RegisterWithdrawERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayWithdrawERC721Event) error {
 		controller.ERC721EventsTotal.WithLabelValues(l2.chainName, orm.L2WithdrawERC721.String()).Inc()
