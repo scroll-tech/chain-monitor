@@ -65,8 +65,8 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	)
 	for _, event := range l1.ethEvents {
 		var amount = big.NewInt(0).Set(event.Amount)
-		// L1DepositETH: +amount, L1FinalizeWithdrawETH: -amount
-		if event.Type == orm.L1FinalizeWithdrawETH {
+		// L1DepositETH: +amount, L1FinalizeWithdrawETH: -amount, L1RefundETH: -amount
+		if event.Type == orm.L1FinalizeWithdrawETH || event.Type == orm.L1RefundETH {
 			amount.Mul(amount, big.NewInt(-1))
 		}
 		total.Add(total, amount)
@@ -79,12 +79,14 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 		txHashes[event.TxHash] = true
 	}
 	for _, event := range l1.erc20Events {
-		if !(event.Type == orm.L1DepositWETH || event.Type == orm.L1FinalizeWithdrawWETH) {
+		if !(event.Type == orm.L1DepositWETH ||
+			event.Type == orm.L1FinalizeWithdrawWETH ||
+			event.Type == orm.L1RefundWETH) {
 			continue
 		}
 		var amount = big.NewInt(0).Set(event.Amount)
 		// L1DepositWETH: +amount, L1FinalizeWithdrawWETH: -amount
-		if event.Type == orm.L1FinalizeWithdrawWETH {
+		if event.Type == orm.L1FinalizeWithdrawWETH || event.Type == orm.L1RefundWETH {
 			amount.Mul(amount, big.NewInt(-1))
 		}
 		total.Add(total, amount)

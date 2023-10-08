@@ -45,6 +45,17 @@ const (
 	L1LIDODepositERC20 EventType = 21
 	// L1LIDOFinalizeWithdrawERC20 represents the event for finalizing LIDO ERC20 token withdrawal on Layer 1.
 	L1LIDOFinalizeWithdrawERC20 EventType = 22
+
+	L1RefundETH      EventType = 41
+	L1RefundWETH     EventType = 42
+	L1RefundDAI      EventType = 43
+	L1RefundStandard EventType = 44
+	L1RefundCustom   EventType = 45
+	L1RefundUSDC     EventType = 46
+	L1RefundLIDO     EventType = 47
+	L1RefundERC721   EventType = 48
+	L1RefundERC1155  EventType = 49
+
 	// L2FinalizeDepositWETH represents the event for finalizing Wrapped ETH deposit on Layer 2.
 	L2FinalizeDepositWETH EventType = 111
 	// L2WithdrawWETH represents the event for withdrawing Wrapped ETH on Layer 2.
@@ -71,13 +82,13 @@ const (
 	L2LIDOFinalizeDepositERC20 EventType = 122
 
 	// L1DepositERC721 represents the event for depositing ERC721 tokens on Layer 1.
-	L1DepositERC721 EventType = 51
+	L1DepositERC721 EventType = 61
 	// L1FinalizeWithdrawERC721 represents the event for finalizing ERC721 token withdrawal on Layer 1.
-	L1FinalizeWithdrawERC721 EventType = 52
+	L1FinalizeWithdrawERC721 EventType = 62
 	// L2FinalizeDepositERC721 represents the event for finalizing ERC721 token deposit on Layer 2.
-	L2FinalizeDepositERC721 EventType = 151
+	L2FinalizeDepositERC721 EventType = 161
 	// L2WithdrawERC721 represents the event for withdrawing ERC721 tokens on Layer 2.
-	L2WithdrawERC721 EventType = 152
+	L2WithdrawERC721 EventType = 162
 
 	// L1DepositERC1155 represents the event for depositing ERC1155 tokens on Layer 1.
 	L1DepositERC1155 EventType = 71

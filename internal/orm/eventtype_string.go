@@ -24,6 +24,15 @@ func _() {
 	_ = x[L1USDCFinalizeWithdrawERC20-20]
 	_ = x[L1LIDODepositERC20-21]
 	_ = x[L1LIDOFinalizeWithdrawERC20-22]
+	_ = x[L1RefundETH-41]
+	_ = x[L1RefundWETH-42]
+	_ = x[L1RefundDAI-43]
+	_ = x[L1RefundStandard-44]
+	_ = x[L1RefundCustom-45]
+	_ = x[L1RefundUSDC-46]
+	_ = x[L1RefundLIDO-47]
+	_ = x[L1RefundERC721-48]
+	_ = x[L1RefundERC1155-49]
 	_ = x[L2FinalizeDepositWETH-111]
 	_ = x[L2WithdrawWETH-112]
 	_ = x[L2FinalizeDepositDAI-113]
@@ -36,10 +45,10 @@ func _() {
 	_ = x[L2USDCFinalizeDepositERC20-120]
 	_ = x[L2LIDOWithdrawERC20-121]
 	_ = x[L2LIDOFinalizeDepositERC20-122]
-	_ = x[L1DepositERC721-51]
-	_ = x[L1FinalizeWithdrawERC721-52]
-	_ = x[L2FinalizeDepositERC721-151]
-	_ = x[L2WithdrawERC721-152]
+	_ = x[L1DepositERC721-61]
+	_ = x[L1FinalizeWithdrawERC721-62]
+	_ = x[L2FinalizeDepositERC721-161]
+	_ = x[L2WithdrawERC721-162]
 	_ = x[L1DepositERC1155-71]
 	_ = x[L1FinalizeWithdrawERC1155-72]
 	_ = x[L2FinalizeDepositERC1155-171]
@@ -55,25 +64,27 @@ func _() {
 const (
 	_EventType_name_0 = "L1DepositETHL1FinalizeWithdrawETH"
 	_EventType_name_1 = "L1DepositWETHL1FinalizeWithdrawWETHL1DepositDAIL1FinalizeWithdrawDAIL1DepositStandardERC20L1FinalizeWithdrawStandardERC20L1DepositCustomERC20L1FinalizeWithdrawCustomERC20L1USDCDepositERC20L1USDCFinalizeWithdrawERC20L1LIDODepositERC20L1LIDOFinalizeWithdrawERC20"
-	_EventType_name_2 = "L1DepositERC721L1FinalizeWithdrawERC721"
-	_EventType_name_3 = "L1DepositERC1155L1FinalizeWithdrawERC1155"
-	_EventType_name_4 = "L2FinalizeDepositETHL2WithdrawETH"
-	_EventType_name_5 = "L2FinalizeDepositWETHL2WithdrawWETHL2FinalizeDepositDAIL2WithdrawDAIL2FinalizeDepositStandardERC20L2WithdrawStandardERC20L2FinalizeDepositCustomERC20L2WithdrawCustomERC20L2USDCWithdrawERC20L2USDCFinalizeDepositERC20L2LIDOWithdrawERC20L2LIDOFinalizeDepositERC20"
-	_EventType_name_6 = "L2FinalizeDepositERC721L2WithdrawERC721"
-	_EventType_name_7 = "L2FinalizeDepositERC1155L2WithdrawERC1155"
-	_EventType_name_8 = "L1SentMessageL1RelayedMessageL1FailedRelayedMessage"
+	_EventType_name_2 = "L1RefundETHL1RefundWETHL1RefundDAIL1RefundStandardL1RefundCustomL1RefundUSDCL1RefundLIDOL1RefundERC721L1RefundERC1155"
+	_EventType_name_3 = "L1DepositERC721L1FinalizeWithdrawERC721"
+	_EventType_name_4 = "L1DepositERC1155L1FinalizeWithdrawERC1155"
+	_EventType_name_5 = "L2FinalizeDepositETHL2WithdrawETH"
+	_EventType_name_6 = "L2FinalizeDepositWETHL2WithdrawWETHL2FinalizeDepositDAIL2WithdrawDAIL2FinalizeDepositStandardERC20L2WithdrawStandardERC20L2FinalizeDepositCustomERC20L2WithdrawCustomERC20L2USDCWithdrawERC20L2USDCFinalizeDepositERC20L2LIDOWithdrawERC20L2LIDOFinalizeDepositERC20"
+	_EventType_name_7 = "L2FinalizeDepositERC721L2WithdrawERC721"
+	_EventType_name_8 = "L2FinalizeDepositERC1155L2WithdrawERC1155"
+	_EventType_name_9 = "L1SentMessageL1RelayedMessageL1FailedRelayedMessage"
 )
 
 var (
 	_EventType_index_0 = [...]uint8{0, 12, 33}
 	_EventType_index_1 = [...]uint16{0, 13, 35, 47, 68, 90, 121, 141, 170, 188, 215, 233, 260}
-	_EventType_index_2 = [...]uint8{0, 15, 39}
-	_EventType_index_3 = [...]uint8{0, 16, 41}
-	_EventType_index_4 = [...]uint8{0, 20, 33}
-	_EventType_index_5 = [...]uint16{0, 21, 35, 55, 68, 98, 121, 149, 170, 189, 215, 234, 260}
-	_EventType_index_6 = [...]uint8{0, 23, 39}
-	_EventType_index_7 = [...]uint8{0, 24, 41}
-	_EventType_index_8 = [...]uint8{0, 13, 29, 51}
+	_EventType_index_2 = [...]uint8{0, 11, 23, 34, 50, 64, 76, 88, 102, 117}
+	_EventType_index_3 = [...]uint8{0, 15, 39}
+	_EventType_index_4 = [...]uint8{0, 16, 41}
+	_EventType_index_5 = [...]uint8{0, 20, 33}
+	_EventType_index_6 = [...]uint16{0, 21, 35, 55, 68, 98, 121, 149, 170, 189, 215, 234, 260}
+	_EventType_index_7 = [...]uint8{0, 23, 39}
+	_EventType_index_8 = [...]uint8{0, 24, 41}
+	_EventType_index_9 = [...]uint8{0, 13, 29, 51}
 )
 
 func (i EventType) String() string {
@@ -84,27 +95,30 @@ func (i EventType) String() string {
 	case 11 <= i && i <= 22:
 		i -= 11
 		return _EventType_name_1[_EventType_index_1[i]:_EventType_index_1[i+1]]
-	case 51 <= i && i <= 52:
-		i -= 51
+	case 41 <= i && i <= 49:
+		i -= 41
 		return _EventType_name_2[_EventType_index_2[i]:_EventType_index_2[i+1]]
+	case 61 <= i && i <= 62:
+		i -= 61
+		return _EventType_name_3[_EventType_index_3[i]:_EventType_index_3[i+1]]
 	case 71 <= i && i <= 72:
 		i -= 71
-		return _EventType_name_3[_EventType_index_3[i]:_EventType_index_3[i+1]]
+		return _EventType_name_4[_EventType_index_4[i]:_EventType_index_4[i+1]]
 	case 101 <= i && i <= 102:
 		i -= 101
-		return _EventType_name_4[_EventType_index_4[i]:_EventType_index_4[i+1]]
+		return _EventType_name_5[_EventType_index_5[i]:_EventType_index_5[i+1]]
 	case 111 <= i && i <= 122:
 		i -= 111
-		return _EventType_name_5[_EventType_index_5[i]:_EventType_index_5[i+1]]
-	case 151 <= i && i <= 152:
-		i -= 151
 		return _EventType_name_6[_EventType_index_6[i]:_EventType_index_6[i+1]]
+	case 161 <= i && i <= 162:
+		i -= 161
+		return _EventType_name_7[_EventType_index_7[i]:_EventType_index_7[i+1]]
 	case 171 <= i && i <= 172:
 		i -= 171
-		return _EventType_name_7[_EventType_index_7[i]:_EventType_index_7[i+1]]
+		return _EventType_name_8[_EventType_index_8[i]:_EventType_index_8[i+1]]
 	case 201 <= i && i <= 203:
 		i -= 201
-		return _EventType_name_8[_EventType_index_8[i]:_EventType_index_8[i+1]]
+		return _EventType_name_9[_EventType_index_9[i]:_EventType_index_9[i+1]]
 	default:
 		return "EventType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
