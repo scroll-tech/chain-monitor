@@ -87,7 +87,7 @@ func (l1 *L1Watcher) ScanL1Chain(ctx context.Context) {
 	if end > safeNumber {
 		return
 	}
-	l1.filter.checkBalance = (safeNumber - end) <= 50
+	l1.filter.checkBalance = (safeNumber - start) <= 10
 
 	var count int
 	// If we sync events one by one.
@@ -132,9 +132,6 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		start = l1.CurrentNumber() + 1
 		end   = mathutil.MinUint64(start+l1BatchSize-1, l1.SafeNumber())
 	)
-	if start <= end {
-		return start, end, nil
-	}
 
 	// update latest number
 	curTime := time.Now()
@@ -147,6 +144,10 @@ func (l1 *L1Watcher) getStartAndEndNumber(ctx context.Context) (uint64, uint64, 
 		l1.setSafeNumber(number)
 		l1.curTime = curTime
 		controller.BlockNumber.WithLabelValues(l1.filter.chainName).Set(float64(number))
+	}
+
+	if start <= end {
+		return start, end, nil
 	}
 
 	// Scan l2chain number one by one.

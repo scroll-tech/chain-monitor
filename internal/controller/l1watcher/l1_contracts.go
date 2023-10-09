@@ -32,6 +32,7 @@ type l1Contracts struct {
 	erc721Events  []*orm.L1ERC721Event
 	erc1155Events []*orm.L1ERC1155Event
 
+	gatewayAPIs          []bytecode.ContractAPI
 	ETHGateway           *gateway.L1ETHGateway
 	WETHGateway          *gateway.L1WETHGateway
 	DAIGateway           *gateway.L1DAIGateway
@@ -132,27 +133,28 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 		return nil, err
 	}
 
-	apis := []bytecode.ContractAPI{
-		cts.ScrollMessenger,
-		// cts.MessageQueue,
+	cts.gatewayAPIs = []bytecode.ContractAPI{
 		cts.ETHGateway,
 		cts.WETHGateway,
 		cts.StandardERC20Gateway,
 		cts.CustomERC20Gateway,
 		cts.ERC721Gateway,
 		cts.ERC1155Gateway,
-		cts.ScrollChain,
 	}
 	if cfg.USDCGateway != (common.Address{}) {
-		apis = append(apis, cts.USDCERC20Gateway)
+		cts.gatewayAPIs = append(cts.gatewayAPIs, cts.USDCERC20Gateway)
 	}
 	if cfg.LIDOGateway != (common.Address{}) {
-		apis = append(apis, cts.LIDOERC20Gateway)
+		cts.gatewayAPIs = append(cts.gatewayAPIs, cts.LIDOERC20Gateway)
 	}
 	if cfg.DAIGateway != (common.Address{}) {
-		apis = append(apis, cts.DAIGateway)
+		cts.gatewayAPIs = append(cts.gatewayAPIs, cts.DAIGateway)
 	}
-	cts.gatewayFilter = bytecode.NewContractsFilter(nil, apis...)
+	cts.gatewayFilter = bytecode.NewContractsFilter(nil, append(cts.gatewayAPIs, []bytecode.ContractAPI{
+		cts.ScrollMessenger,
+		// cts.MessageQueue,
+		cts.ScrollChain,
+	}...)...)
 
 	// Filter the Transfer event ID is 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 	// The Topic[2] should be gateway hash(address).
