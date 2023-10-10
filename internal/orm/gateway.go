@@ -46,15 +46,24 @@ const (
 	// L1LIDOFinalizeWithdrawERC20 represents the event for finalizing LIDO ERC20 token withdrawal on Layer 1.
 	L1LIDOFinalizeWithdrawERC20 EventType = 22
 
-	L1RefundETH      EventType = 41
-	L1RefundWETH     EventType = 42
-	L1RefundDAI      EventType = 43
+	// L1RefundETH l1chain eth_gateway RefundETH event.
+	L1RefundETH EventType = 41
+	// L1RefundWETH l1chain weth_gateway RefundERC20 event.
+	L1RefundWETH EventType = 42
+	// L1RefundDAI l1chain dai_gateway RefundERC20 event.
+	L1RefundDAI EventType = 43
+	// L1RefundStandard l1chain standard_gateway RefundERC20 event.
 	L1RefundStandard EventType = 44
-	L1RefundCustom   EventType = 45
-	L1RefundUSDC     EventType = 46
-	L1RefundLIDO     EventType = 47
-	L1RefundERC721   EventType = 48
-	L1RefundERC1155  EventType = 49
+	// L1RefundCustom l1chain custom_gateway RefundERC20 event.
+	L1RefundCustom EventType = 45
+	// L1RefundUSDC l1chain usdc_gateway RefundERC20 event.
+	L1RefundUSDC EventType = 46
+	// L1RefundLIDO l1chain lido_gateway RefundERC20 event.
+	L1RefundLIDO EventType = 47
+	// L1RefundERC721 l1chain erc721_gateway RefundERC20 event.
+	L1RefundERC721 EventType = 48
+	// L1RefundERC1155 l1chain erc1155_gateway RefundERC20 event.
+	L1RefundERC1155 EventType = 49
 
 	// L2FinalizeDepositWETH represents the event for finalizing Wrapped ETH deposit on Layer 2.
 	L2FinalizeDepositWETH EventType = 111
