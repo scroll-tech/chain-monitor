@@ -1,14 +1,16 @@
 package l1watcher
 
 import (
+	"context"
+
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/core/types"
+
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L1/rollup"
 	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils"
-	"context"
-	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/core/types"
 )
 
 func (l1 *l1Contracts) registerMessengerHandlers() {

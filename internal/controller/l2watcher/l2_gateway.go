@@ -2,11 +2,11 @@ package l2watcher
 
 import (
 	"encoding/json"
-	"github.com/scroll-tech/go-ethereum/log"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
+	"github.com/scroll-tech/go-ethereum/log"
 
 	l1gateway "chain-monitor/bytecode/scroll/L1/gateway"
 	"chain-monitor/bytecode/scroll/L2/gateway"
