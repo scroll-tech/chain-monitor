@@ -1,6 +1,7 @@
 package l1watcher
 
 import (
+	"chain-monitor/internal/config"
 	"sync/atomic"
 )
 
@@ -12,6 +13,11 @@ func (l1 *L1Watcher) L1StartNumber() uint64 {
 // CurrentNumber return l1watcher start number.
 func (l1 *L1Watcher) CurrentNumber() uint64 {
 	return atomic.LoadUint64(&l1.currNumber)
+}
+
+// GetGatewayConfig  return l1 gateway config.
+func (l1 *L1Watcher) GetGatewayConfig() *config.Gateway {
+	return l1.cfg.L1Contracts.Gateway
 }
 
 func (l1 *L1Watcher) setCurrentNumber(number uint64) {

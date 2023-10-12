@@ -95,21 +95,6 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 		txHashes[event.TxHash] = true
 	}
 
-	for _, msgList := range l2.msgSentEvents {
-		for _, msg := range msgList {
-			txHash := msg.Data.Log.TxHash.String()
-			if !txHashes[txHash] {
-				txHashes[txHash] = true
-				total.Add(total, msg.Data.Value)
-				events[msg.Number] = append(events[msg.Number], &ethEvent{
-					Number: msg.Number,
-					TxHash: txHash,
-					Type:   msg.Type,
-					Amount: big.NewInt(0).Set(msg.Data.Value),
-				})
-			}
-		}
-	}
 	if total.Cmp(eBalance) == 0 {
 		return 0, nil
 	}

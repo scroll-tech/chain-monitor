@@ -1,11 +1,14 @@
 package l2watcher
 
 import (
+	"encoding/json"
+	"github.com/scroll-tech/go-ethereum/log"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 
+	l1gateway "chain-monitor/bytecode/scroll/L1/gateway"
 	"chain-monitor/bytecode/scroll/L2/gateway"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
@@ -107,14 +110,207 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 	})
 }
 
+func (l2 *l2Contracts) integrateGatewayEvents() error {
+	for _, event := range l2.ethEvents {
+		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+			event.MsgHash = msgHash.String()
+			delete(l2.txHashMsgHash, event.TxHash)
+		}
+	}
+
+	for _, event := range l2.erc20Events {
+		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+			event.MsgHash = msgHash.String()
+			delete(l2.txHashMsgHash, event.TxHash)
+		}
+	}
+
+	for _, event := range l2.erc721Events {
+		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+			event.MsgHash = msgHash.String()
+			delete(l2.txHashMsgHash, event.TxHash)
+		}
+	}
+
+	for _, event := range l2.erc1155Events {
+		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+			event.MsgHash = msgHash.String()
+			delete(l2.txHashMsgHash, event.TxHash)
+		}
+	}
+
+	for _, msgs := range l2.msgSentEvents {
+		for _, msg := range msgs {
+			if !(msg.Type == orm.L2SentMessage) {
+				continue
+			}
+			if _, exist := l2.txHashMsgHash[msg.Log.TxHash.String()]; !exist {
+				continue
+			}
+			if err := l2.parseFinalizeWithdraw(msg); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (l2 *l2Contracts) parseFinalizeWithdraw(l2msg *orm.L2MessengerEvent) error {
+	_id := common.Bytes2Hex(l2msg.Message[:4])
+	switch _id {
+	case "8eaac8a3": // FinalizeWithdrawETH
+		return l2.parseFinalizeWithdrawETH(l2msg)
+	case "84bd13b0": // FinalizeWithdrawERC20
+		return l2.parseFinalizeWithdrawERC20(l2msg)
+	case "d606b4dc": // FinalizeWithdrawERC721
+		return l2.parseFinalizeWithdrawERC721(l2msg)
+	case "730608b3": // FinalizeWithdrawERC1155
+		return l2.parseFinalizeWithdrawERC155(l2msg)
+	}
+	return nil
+}
+
+func (l2 *l2Contracts) parseFinalizeWithdrawETH(l2msg *orm.L2MessengerEvent) error {
+	method, err := l1gateway.L1ETHGatewayABI.MethodById(l2msg.Message)
+	if err != nil {
+		return err
+	}
+	params, err := method.Inputs.Unpack(l2msg.Message[4:])
+	if err != nil {
+		return err
+	}
+	event := new(l1gateway.L1ETHGatewayFinalizeWithdrawETHEvent)
+	err = method.Inputs.Copy(event, params)
+	if err != nil {
+		return err
+	}
+	l2.ethEvents = append(l2.ethEvents, &orm.L2ETHEvent{
+		TxHead: &orm.TxHead{
+			Number:  l2msg.Number,
+			TxHash:  l2msg.Log.TxHash.String(),
+			MsgHash: l2msg.MsgHash,
+			Type:    orm.L2WithdrawETH,
+		},
+		Amount: event.Amount,
+	})
+	return nil
+}
+
+func (l2 *l2Contracts) parseFinalizeWithdrawERC20(l2msg *orm.L2MessengerEvent) error {
+	method, err := l1gateway.L1ERC20GatewayABI.MethodById(l2msg.Message)
+	if err != nil {
+		return err
+	}
+	params, err := method.Inputs.Unpack(l2msg.Message[4:])
+	if err != nil {
+		return err
+	}
+	event := new(l1gateway.L1ERC20GatewayFinalizeWithdrawERC20Event)
+	err = method.Inputs.Copy(event, params)
+	if err != nil {
+		return err
+	}
+
+	var (
+		_tp        orm.EventType
+		gatewayCfg = l2.l1gatewayCfg
+	)
+	switch l2msg.Target {
+	case gatewayCfg.DAIGateway:
+		_tp = orm.L2WithdrawDAI
+	case gatewayCfg.WETHGateway:
+		_tp = orm.L2WithdrawWETH
+	case gatewayCfg.StandardERC20Gateway:
+		_tp = orm.L2WithdrawStandardERC20
+	case gatewayCfg.CustomERC20Gateway:
+		_tp = orm.L2WithdrawCustomERC20
+	case gatewayCfg.USDCGateway:
+		_tp = orm.L2USDCWithdrawERC20
+	case gatewayCfg.LIDOGateway:
+		_tp = orm.L2LIDOWithdrawERC20
+	default:
+		buf, _ := json.Marshal(event)
+		log.Warn("l1chain unexpect erc20 deposit transfer", "content", string(buf))
+	}
+
+	l2.erc20Events = append(l2.erc20Events, &orm.L2ERC20Event{
+		TxHead: &orm.TxHead{
+			Number:  l2msg.Number,
+			TxHash:  l2msg.Log.TxHash.String(),
+			MsgHash: l2msg.MsgHash,
+			Type:    _tp,
+		},
+		L1Token: event.L1Token.String(),
+		L2Token: event.L2Token.String(),
+		Amount:  event.Amount,
+	})
+
+	return nil
+}
+
+func (l2 *l2Contracts) parseFinalizeWithdrawERC721(l2msg *orm.L2MessengerEvent) error {
+	method, err := l1gateway.L1ERC721GatewayABI.MethodById(l2msg.Message)
+	if err != nil {
+		return err
+	}
+	params, err := method.Inputs.Unpack(l2msg.Message[4:])
+	if err != nil {
+		return err
+	}
+	event := new(l1gateway.L1ERC721GatewayFinalizeWithdrawERC721Event)
+	err = method.Inputs.Copy(event, params)
+	if err != nil {
+		return err
+	}
+	l2.erc721Events = append(l2.erc721Events, &orm.L2ERC721Event{
+		TxHead: &orm.TxHead{
+			Number:  l2msg.Number,
+			TxHash:  l2msg.Log.TxHash.String(),
+			MsgHash: l2msg.MsgHash,
+			Type:    orm.L2WithdrawERC721,
+		},
+		L1Token: event.L1Token.String(),
+		L2Token: event.L2Token.String(),
+		TokenID: event.TokenId,
+	})
+
+	return nil
+}
+
+func (l2 *l2Contracts) parseFinalizeWithdrawERC155(l2msg *orm.L2MessengerEvent) error {
+	method, err := l1gateway.L1ERC1155GatewayABI.MethodById(l2msg.Message)
+	if err != nil {
+		return err
+	}
+	params, err := method.Inputs.Unpack(l2msg.Message[4:])
+	if err != nil {
+		return err
+	}
+	event := new(l1gateway.L1ERC1155GatewayFinalizeWithdrawERC1155Event)
+	err = method.Inputs.Copy(event, params)
+	if err != nil {
+		return err
+	}
+	l2.erc1155Events = append(l2.erc1155Events, &orm.L2ERC1155Event{
+		TxHead: &orm.TxHead{
+			Number:  l2msg.Number,
+			TxHash:  l2msg.Log.TxHash.String(),
+			MsgHash: l2msg.MsgHash,
+			Type:    orm.L2WithdrawERC1155,
+		},
+		L1Token: event.L1Token.String(),
+		L2Token: event.L2Token.String(),
+		TokenID: event.TokenId,
+		Amount:  event.Amount,
+	})
+
+	return nil
+}
+
 func (l2 *l2Contracts) storeGatewayEvents() error {
 	// store l2 eth events.
 	if len(l2.ethEvents) > 0 {
-		for _, event := range l2.ethEvents {
-			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-				event.MsgHash = msgHash.String()
-			}
-		}
 		if err := l2.tx.Save(l2.ethEvents).Error; err != nil {
 			return err
 		}
@@ -122,11 +318,6 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 
 	// store l2 erc20 events.
 	if len(l2.erc20Events) > 0 {
-		for _, event := range l2.erc20Events {
-			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-				event.MsgHash = msgHash.String()
-			}
-		}
 		if err := l2.tx.Save(l2.erc20Events).Error; err != nil {
 			return err
 		}
@@ -134,11 +325,6 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 
 	// store l2 err721 events.
 	if len(l2.erc721Events) > 0 {
-		for _, event := range l2.erc721Events {
-			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-				event.MsgHash = msgHash.String()
-			}
-		}
 		if err := l2.tx.Save(l2.erc721Events).Error; err != nil {
 			return err
 		}
@@ -146,11 +332,6 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 
 	// store l2 erc1155 events.
 	if len(l2.erc1155Events) > 0 {
-		for _, event := range l2.erc1155Events {
-			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-				event.MsgHash = msgHash.String()
-			}
-		}
 		if err := l2.tx.Save(l2.erc1155Events).Error; err != nil {
 			return err
 		}

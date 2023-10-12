@@ -19,14 +19,14 @@ import (
 )
 
 type l1Contracts struct {
-	cfg       *config.L1Contracts
-	tx        *gorm.DB
-	rpcCli    *rpc.Client
-	client    *ethclient.Client
-	chainName string
+	cfg          *config.L1Contracts
+	l2gatewayCfg *config.Gateway
+	tx           *gorm.DB
+	rpcCli       *rpc.Client
+	client       *ethclient.Client
+	chainName    string
 
-	txHashMsgHash map[string]common.Hash
-	msgSentEvents map[uint64][]*orm.L1MessengerEvent
+	msgSentEvents map[string]*orm.L1MessengerEvent
 	ethEvents     []*orm.L1ETHEvent
 	erc20Events   []*orm.L1ERC20Event
 	erc721Events  []*orm.L1ERC721Event
@@ -72,8 +72,7 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 			rpcCli:        rpcCli,
 			client:        client,
 			chainName:     "l1_chain",
-			txHashMsgHash: map[string]common.Hash{},
-			msgSentEvents: map[uint64][]*orm.L1MessengerEvent{},
+			msgSentEvents: map[string]*orm.L1MessengerEvent{},
 			ethEvents:     []*orm.L1ETHEvent{},
 			erc20Events:   []*orm.L1ERC20Event{},
 			erc721Events:  []*orm.L1ERC721Event{},
@@ -191,8 +190,7 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 }
 
 func (l1 *l1Contracts) clean() {
-	l1.txHashMsgHash = map[string]common.Hash{}
-	l1.msgSentEvents = map[uint64][]*orm.L1MessengerEvent{}
+	l1.msgSentEvents = map[string]*orm.L1MessengerEvent{}
 	l1.transferEvents = map[string]*token.IERC20TransferEvent{}
 	l1.l1Confirms = l1.l1Confirms[:0]
 	l1.ethEvents = l1.ethEvents[:0]
@@ -249,6 +247,11 @@ func (l1 *l1Contracts) parseL1Events(ctx context.Context, start, end uint64) (in
 			Number:        number,
 			BalanceStatus: true,
 		})
+	}
+
+	// Integrate gateway events.
+	if err = l1.integrateGatewayEvents(); err != nil {
+		return 0, err
 	}
 
 	// Check balance.

@@ -4,9 +4,6 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"gorm.io/gorm"
-
-	"chain-monitor/bytecode/scroll/L1"
-	"chain-monitor/bytecode/scroll/L2"
 )
 
 const (
@@ -28,7 +25,10 @@ const (
 // L1MessengerEvent represents an event related to L1 messenger activities.
 type L1MessengerEvent struct {
 	*TxHead
-	Data *L1.L1ScrollMessengerSentMessageEvent `json:"-" gorm:"-"`
+	Target  common.Address `gorm:"-"`
+	Message []byte         `gorm:"-"`
+	Log     *types.Log     `gorm:"-"`
+
 	// Make sure cross deposit or withdraw tx successfully confirmed.
 	Confirm bool `gorm:"index"`
 }
@@ -42,11 +42,14 @@ func SaveL1Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash 
 
 // L2MessengerEvent represents an event related to L2 messenger activities.
 type L2MessengerEvent struct {
-	Data     *L2.L2ScrollMessengerSentMessageEvent `json:"-" gorm:"-"`
-	Number   uint64                                `gorm:"index; comment: block number"`
-	Type     EventType                             `gorm:"index; comment: tx type"`
-	MsgNonce uint64                                `gorm:"type: msg_nonce"`
-	MsgHash  string                                `gorm:"primaryKey"`
+	Target  common.Address `gorm:"-"`
+	Message []byte         `gorm:"-"`
+	Log     *types.Log     `gorm:"-"`
+
+	Number   uint64    `gorm:"index; comment: block number"`
+	Type     EventType `gorm:"index; comment: tx type"`
+	MsgNonce uint64    `gorm:"type: msg_nonce"`
+	MsgHash  string    `gorm:"primaryKey"`
 	MsgProof string
 	Confirm  bool `gorm:"index"`
 }

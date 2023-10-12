@@ -77,6 +77,11 @@ func NewL2Watcher(cfg *config.L2Config, db *gorm.DB) (*L2Watcher, error) {
 	return watcher, nil
 }
 
+// SetL1WatcherAPI set l1 watcher api.
+func (l2 *L2Watcher) SetL1WatcherAPI(l1Watcher controller.WatcherAPI) {
+	l2.filter.l1gatewayCfg = l1Watcher.GetGatewayConfig()
+}
+
 // ScanL2Chain scans a range of blocks on the L2 chain for events.
 func (l2 *L2Watcher) ScanL2Chain(ctx context.Context) {
 	start, end, err := l2.getStartAndEndNumber(ctx)

@@ -1,6 +1,7 @@
 package l2watcher
 
 import (
+	"chain-monitor/internal/config"
 	"sync/atomic"
 )
 
@@ -28,4 +29,9 @@ func (l2 *L2Watcher) setSafeNumber(number uint64) {
 // when the starting block number matches the safe block number.
 func (l2 *L2Watcher) IsReady() bool {
 	return l2.CurrentNumber() == l2.SafeNumber()
+}
+
+// GetGatewayConfig return l2 gateway config.
+func (l2 *L2Watcher) GetGatewayConfig() *config.Gateway {
+	return l2.cfg.L2Contracts.Gateway
 }

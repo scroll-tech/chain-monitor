@@ -2,12 +2,11 @@ package app
 
 import (
 	"fmt"
+	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
 	"time"
-
-	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/urfave/cli/v2"
 
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
@@ -114,10 +113,12 @@ func action(ctx *cli.Context) error {
 	}
 	_ = chainMonitor
 
-	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
+	l1Watcher.SetL2WatcherAPI(l2Watcher)
+	l2Watcher.SetL1WatcherAPI(l1Watcher)
+	//go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
-	go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.DepositConfirm)
-	go utils.LoopWithContext(subCtx, time.Millisecond*500, chainMonitor.WithdrawConfirm)
+	//go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.DepositConfirm)
+	//go utils.LoopWithContext(subCtx, time.Millisecond*500, chainMonitor.WithdrawConfirm)
 
 	// Catch CTRL-C to ensure a graceful shutdown.
 	interrupt := make(chan os.Signal, 1)

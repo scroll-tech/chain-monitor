@@ -1,36 +1,52 @@
 package l1watcher
 
 import (
-	"context"
-
-	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/core/types"
-
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L1/rollup"
 	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils"
+	"context"
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/core/types"
 )
 
 func (l1 *l1Contracts) registerMessengerHandlers() {
 	l1.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerSentMessageEvent) error {
 		msgHash := utils.ComputeMessageHash(data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
-		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
-		l1.msgSentEvents[vLog.BlockNumber] = append(l1.msgSentEvents[vLog.BlockNumber], &orm.L1MessengerEvent{
-			TxHead: orm.NewTxHead(vLog, orm.L1SentMessage),
-			Data:   data,
-		})
+		l1.msgSentEvents[vLog.TxHash.String()] = &orm.L1MessengerEvent{
+			TxHead: &orm.TxHead{
+				Number:  vLog.BlockNumber,
+				TxHash:  vLog.TxHash.String(),
+				MsgHash: msgHash.String(),
+				Type:    orm.L1SentMessage,
+			},
+			Target:  data.Target,
+			Message: data.Message,
+			Log:     vLog,
+		}
 		return orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
 	})
 	l1.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerRelayedMessageEvent) error {
 		msgHash := common.BytesToHash(data.MessageHash[:])
-		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
+		l1.msgSentEvents[vLog.TxHash.String()] = &orm.L1MessengerEvent{
+			TxHead: &orm.TxHead{
+				MsgHash: msgHash.String(),
+				Type:    orm.L1RelayedMessage,
+			},
+			Log: vLog,
+		}
 		return orm.SaveL1Messenger(l1.tx, orm.L1RelayedMessage, vLog, msgHash)
 	})
 	l1.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerFailedRelayedMessageEvent) error {
 		msgHash := common.BytesToHash(data.MessageHash[:])
-		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
+		l1.msgSentEvents[vLog.TxHash.String()] = &orm.L1MessengerEvent{
+			TxHead: &orm.TxHead{
+				MsgHash: msgHash.String(),
+				Type:    orm.L1FailedRelayedMessage,
+			},
+			Log: vLog,
+		}
 		return orm.SaveL1Messenger(l1.tx, orm.L1FailedRelayedMessage, vLog, msgHash)
 	})
 }

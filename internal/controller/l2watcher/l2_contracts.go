@@ -22,9 +22,10 @@ import (
 )
 
 type l2Contracts struct {
-	tx        *gorm.DB
-	cfg       *config.L2Contracts
-	chainName string
+	tx           *gorm.DB
+	cfg          *config.L2Contracts
+	l1gatewayCfg *config.Gateway
+	chainName    string
 
 	rpcCli *rpc.Client
 	client *ethclient.Client
@@ -262,6 +263,11 @@ func (l2 *l2Contracts) parseL2Events(ctx context.Context, start, end uint64) (in
 			Number:        number,
 			BalanceStatus: true,
 		}
+	}
+
+	// If cross tx not used gateway contract, then the function can mock a gateway event.
+	if err = l2.integrateGatewayEvents(); err != nil {
+		return 0, err
 	}
 
 	// Check balance.

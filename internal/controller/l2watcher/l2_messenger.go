@@ -20,7 +20,9 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 		number := vLog.BlockNumber
 		l2.txHashMsgHash[vLog.TxHash.String()] = msgHash
 		l2.msgSentEvents[number] = append(l2.msgSentEvents[number], &orm.L2MessengerEvent{
-			Data:     data,
+			Target:   data.Target,
+			Message:  data.Message,
+			Log:      vLog,
 			Number:   number,
 			MsgHash:  msgHash.String(),
 			Type:     orm.L2SentMessage,
