@@ -38,7 +38,7 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 	})
 	l1.DAIGateway.RegisterDepositERC20(func(vLog *types.Log, data *gateway.L1DAIGatewayDepositERC20Event) error {
 		controller.DAIEventTotal.WithLabelValues(l1.chainName, orm.L1DepositDAI.String()).Inc()
-		//l1.erc20Events = append(l1.erc20Events, newL1ETH20Event(orm.L1DepositDAI, vLog, data.L1Token, data.L2Token, data.Amount))
+		l1.erc20Events = append(l1.erc20Events, newL1ETH20Event(orm.L1DepositDAI, vLog, data.L1Token, data.L2Token, data.Amount))
 		return nil
 	})
 	l1.DAIGateway.RegisterFinalizeWithdrawERC20(func(vLog *types.Log, data *gateway.L1DAIGatewayFinalizeWithdrawERC20Event) error {
