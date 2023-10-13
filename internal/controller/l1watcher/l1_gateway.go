@@ -2,6 +2,7 @@ package l1watcher
 
 import (
 	"encoding/json"
+	"errors"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -12,6 +13,10 @@ import (
 	l2gateway "chain-monitor/bytecode/scroll/L2/gateway"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
+)
+
+var (
+	ErrMessenger = errors.New("l1chain sendMessage content is not relate to gateway contract")
 )
 
 func (l1 *l1Contracts) registerGatewayHandlers() {
@@ -146,6 +151,7 @@ func (l1 *l1Contracts) integrateGatewayEvents() error {
 		if !(msg.Type == orm.L1SentMessage) {
 			continue
 		}
+		// TODO
 		if err := l1.parseFinalizeDeposit(msg); err != nil {
 			return err
 		}
@@ -155,6 +161,10 @@ func (l1 *l1Contracts) integrateGatewayEvents() error {
 }
 
 func (l1 *l1Contracts) parseFinalizeDeposit(l1msg *orm.L1MessengerEvent) error {
+	if len(l1msg.Message) < 4 {
+		log.Warn("l1chain sendMessage content less than 4 bytes", "tx_hash", l1msg.TxHash)
+		return ErrMessenger
+	}
 	_id := common.Bytes2Hex(l1msg.Message[:4])
 	switch _id {
 	case "232e8748": // FinalizeDepositETH
@@ -166,7 +176,8 @@ func (l1 *l1Contracts) parseFinalizeDeposit(l1msg *orm.L1MessengerEvent) error {
 	case "4764cc62": // FinalizeDepositERC1155
 		return l1.parseFinalizeDepositERC1155(l1msg.TxHead, l1msg.Message)
 	}
-	return nil
+	log.Warn("l1chain sendMessage unexpect method_id", "tx_hash", l1msg.TxHash, "method_id", _id)
+	return ErrMessenger
 }
 
 func (l1 *l1Contracts) parseFinalizeDepositETH(txHead *orm.TxHead, data []byte) error {
