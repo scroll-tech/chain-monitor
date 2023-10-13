@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrMessenger = errors.New("l1chain sendMessage content is not relate to gateway contract")
+	errMessenger = errors.New("l1chain sendMessage content is not relate to gateway contract")
 )
 
 func (l1 *l1Contracts) registerGatewayHandlers() {
@@ -152,15 +152,14 @@ func (l1 *l1Contracts) integrateGatewayEvents() error {
 			continue
 		}
 		err := l1.parseGatewayDeposit(msg)
-		if errors.Is(err, ErrMessenger) {
+		if errors.Is(err, errMessenger) {
 			continue
 		}
 		if err != nil {
 			log.Error("l1chain failed to parse gateway message", "tx_hash", msg.TxHash, "err", err)
 			return err
-		} else {
-			msg.FromGateway = true
 		}
+		msg.FromGateway = true
 	}
 
 	return nil
@@ -169,7 +168,7 @@ func (l1 *l1Contracts) integrateGatewayEvents() error {
 func (l1 *l1Contracts) parseGatewayDeposit(l1msg *orm.L1MessengerEvent) error {
 	if len(l1msg.Message) < 4 {
 		log.Warn("l1chain sendMessage content less than 4 bytes", "tx_hash", l1msg.TxHash)
-		return ErrMessenger
+		return errMessenger
 	}
 	_id := common.Bytes2Hex(l1msg.Message[:4])
 	switch _id {
@@ -183,7 +182,7 @@ func (l1 *l1Contracts) parseGatewayDeposit(l1msg *orm.L1MessengerEvent) error {
 		return l1.parseGatewayDepositERC1155(l1msg.TxHead, l1msg.Message)
 	}
 	log.Warn("l1chain sendMessage unexpect method_id", "tx_hash", l1msg.TxHash, "method_id", _id)
-	return ErrMessenger
+	return errMessenger
 }
 
 func (l1 *l1Contracts) parseGatewayDepositETH(txHead *orm.TxHead, data []byte) error {

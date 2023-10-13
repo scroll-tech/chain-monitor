@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrMessenger = errors.New("l2chain sendMessage content is not relate to gateway contract")
+	errMessenger = errors.New("l2chain sendMessage content is not relate to gateway contract")
 )
 
 func (l2 *l2Contracts) registerGatewayHandlers() {
@@ -150,7 +150,7 @@ func (l2 *l2Contracts) integrateGatewayEvents() error {
 				continue
 			}
 			err := l2.parseGatewayWithdraw(msg)
-			if errors.Is(err, ErrMessenger) {
+			if errors.Is(err, errMessenger) {
 				msg.FromGateway = false
 				continue
 			}
@@ -167,7 +167,7 @@ func (l2 *l2Contracts) integrateGatewayEvents() error {
 func (l2 *l2Contracts) parseGatewayWithdraw(l2msg *orm.L2MessengerEvent) error {
 	if len(l2msg.Message) < 4 {
 		log.Warn("l2chain sendMessage content less than 4 bytes", "tx_hash", l2msg.Log.TxHash.String())
-		return ErrMessenger
+		return errMessenger
 	}
 	_id := common.Bytes2Hex(l2msg.Message[:4])
 	switch _id {
@@ -181,7 +181,7 @@ func (l2 *l2Contracts) parseGatewayWithdraw(l2msg *orm.L2MessengerEvent) error {
 		return l2.parseGatewayWithdrawERC155(l2msg)
 	}
 	log.Warn("l2chain sendMessage unexpect method_id", "tx_hash", l2msg.Log.TxHash.String(), "method_id", _id)
-	return ErrMessenger
+	return errMessenger
 }
 
 func (l2 *l2Contracts) parseGatewayWithdrawETH(l2msg *orm.L2MessengerEvent) error {
