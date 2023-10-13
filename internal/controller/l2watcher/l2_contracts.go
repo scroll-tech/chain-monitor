@@ -285,8 +285,8 @@ func (l2 *l2Contracts) parseL2Events(ctx context.Context, start, end uint64) (in
 		return 0, err
 	}
 
-	// Check withdraw root and store confirm monitor.
-	if err = l2.storeWithdrawRoots(ctx); err != nil {
+	// Check l2chain confirms.
+	if err = l2.storeL1ChainConfirms(ctx); err != nil {
 		return 0, err
 	}
 

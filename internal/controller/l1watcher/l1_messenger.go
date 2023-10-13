@@ -23,11 +23,12 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 				MsgHash: msgHash.String(),
 				Type:    orm.L1SentMessage,
 			},
-			Target:  data.Target,
-			Message: data.Message,
-			Log:     vLog,
+			Target:      data.Target,
+			Message:     data.Message,
+			Log:         vLog,
+			FromGateway: false,
 		}
-		return orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
+		return nil
 	})
 	l1.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerRelayedMessageEvent) error {
 		msgHash := common.BytesToHash(data.MessageHash[:])

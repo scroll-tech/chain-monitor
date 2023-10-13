@@ -20,13 +20,15 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 		number := vLog.BlockNumber
 		l2.txHashMsgHash[vLog.TxHash.String()] = msgHash
 		l2.msgSentEvents[number] = append(l2.msgSentEvents[number], &orm.L2MessengerEvent{
-			Target:   data.Target,
-			Message:  data.Message,
-			Log:      vLog,
-			Number:   number,
-			MsgHash:  msgHash.String(),
-			Type:     orm.L2SentMessage,
-			MsgNonce: data.MessageNonce.Uint64(),
+			Target:  data.Target,
+			Message: data.Message,
+			Log:     vLog,
+
+			Number:      number,
+			MsgHash:     msgHash.String(),
+			Type:        orm.L2SentMessage,
+			MsgNonce:    data.MessageNonce.Uint64(),
+			FromGateway: true,
 		})
 		return nil
 	})
@@ -71,7 +73,7 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	return nil
 }
 
-func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
+func (l2 *l2Contracts) storeL1ChainConfirms(ctx context.Context) error {
 	var (
 		numbers       []uint64
 		withdrawRoots = map[uint64]common.Hash{}

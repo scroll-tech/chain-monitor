@@ -262,7 +262,7 @@ func (l1 *l1Contracts) parseL1Events(ctx context.Context, start, end uint64) (in
 	}
 
 	// store l1chain gateway events.
-	if err = l1.storeGatewayEvents(); err != nil {
+	if err = l1.storeL1WatcherEvents(); err != nil {
 		return 0, err
 	}
 

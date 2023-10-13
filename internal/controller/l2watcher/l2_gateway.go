@@ -146,13 +146,16 @@ func (l2 *l2Contracts) integrateGatewayEvents() error {
 
 	for _, msgs := range l2.msgSentEvents {
 		for _, msg := range msgs {
-			if !(msg.Type == orm.L2SentMessage) {
-				continue
-			}
 			if _, exist := l2.txHashMsgHash[msg.Log.TxHash.String()]; !exist {
 				continue
 			}
-			if err := l2.parseFinalizeWithdraw(msg); err != nil {
+			err := l2.parseGatewayWithdraw(msg)
+			if errors.Is(err, ErrMessenger) {
+				msg.FromGateway = false
+				continue
+			}
+			if err != nil {
+				log.Error("l2chain failed to parse gateway message", "tx_hash", msg.Log.TxHash.String(), "err", err)
 				return err
 			}
 		}
@@ -161,7 +164,7 @@ func (l2 *l2Contracts) integrateGatewayEvents() error {
 	return nil
 }
 
-func (l2 *l2Contracts) parseFinalizeWithdraw(l2msg *orm.L2MessengerEvent) error {
+func (l2 *l2Contracts) parseGatewayWithdraw(l2msg *orm.L2MessengerEvent) error {
 	if len(l2msg.Message) < 4 {
 		log.Warn("l2chain sendMessage content less than 4 bytes", "tx_hash", l2msg.Log.TxHash.String())
 		return ErrMessenger
@@ -169,19 +172,19 @@ func (l2 *l2Contracts) parseFinalizeWithdraw(l2msg *orm.L2MessengerEvent) error 
 	_id := common.Bytes2Hex(l2msg.Message[:4])
 	switch _id {
 	case "8eaac8a3": // FinalizeWithdrawETH
-		return l2.parseFinalizeWithdrawETH(l2msg)
+		return l2.parseGatewayWithdrawETH(l2msg)
 	case "84bd13b0": // FinalizeWithdrawERC20
-		return l2.parseFinalizeWithdrawERC20(l2msg)
+		return l2.parseGatewayWithdrawERC20(l2msg)
 	case "d606b4dc": // FinalizeWithdrawERC721
-		return l2.parseFinalizeWithdrawERC721(l2msg)
+		return l2.parseGatewayWithdrawERC721(l2msg)
 	case "730608b3": // FinalizeWithdrawERC1155
-		return l2.parseFinalizeWithdrawERC155(l2msg)
+		return l2.parseGatewayWithdrawERC155(l2msg)
 	}
 	log.Warn("l2chain sendMessage unexpect method_id", "tx_hash", l2msg.Log.TxHash.String(), "method_id", _id)
 	return ErrMessenger
 }
 
-func (l2 *l2Contracts) parseFinalizeWithdrawETH(l2msg *orm.L2MessengerEvent) error {
+func (l2 *l2Contracts) parseGatewayWithdrawETH(l2msg *orm.L2MessengerEvent) error {
 	method, err := l1gateway.L1ETHGatewayABI.MethodById(l2msg.Message)
 	if err != nil {
 		return err
@@ -207,7 +210,7 @@ func (l2 *l2Contracts) parseFinalizeWithdrawETH(l2msg *orm.L2MessengerEvent) err
 	return nil
 }
 
-func (l2 *l2Contracts) parseFinalizeWithdrawERC20(l2msg *orm.L2MessengerEvent) error {
+func (l2 *l2Contracts) parseGatewayWithdrawERC20(l2msg *orm.L2MessengerEvent) error {
 	method, err := l1gateway.L1ERC20GatewayABI.MethodById(l2msg.Message)
 	if err != nil {
 		return err
@@ -259,7 +262,7 @@ func (l2 *l2Contracts) parseFinalizeWithdrawERC20(l2msg *orm.L2MessengerEvent) e
 	return nil
 }
 
-func (l2 *l2Contracts) parseFinalizeWithdrawERC721(l2msg *orm.L2MessengerEvent) error {
+func (l2 *l2Contracts) parseGatewayWithdrawERC721(l2msg *orm.L2MessengerEvent) error {
 	method, err := l1gateway.L1ERC721GatewayABI.MethodById(l2msg.Message)
 	if err != nil {
 		return err
@@ -288,7 +291,7 @@ func (l2 *l2Contracts) parseFinalizeWithdrawERC721(l2msg *orm.L2MessengerEvent) 
 	return nil
 }
 
-func (l2 *l2Contracts) parseFinalizeWithdrawERC155(l2msg *orm.L2MessengerEvent) error {
+func (l2 *l2Contracts) parseGatewayWithdrawERC155(l2msg *orm.L2MessengerEvent) error {
 	method, err := l1gateway.L1ERC1155GatewayABI.MethodById(l2msg.Message)
 	if err != nil {
 		return err

@@ -30,13 +30,19 @@ type L1MessengerEvent struct {
 	Log     *types.Log     `gorm:"-"`
 
 	// Make sure cross deposit or withdraw tx successfully confirmed.
-	Confirm bool `gorm:"index"`
+	Confirm     bool `gorm:"index"`
+	FromGateway bool `gorm:"from_gateway"`
 }
 
 // SaveL1Messenger saves an L1 messenger event into the database.
 func SaveL1Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash common.Hash) error {
 	return db.Save(&L1MessengerEvent{
-		TxHead: NewTxHead(vLog, eventType),
+		TxHead: &TxHead{
+			Number:  vLog.BlockNumber,
+			TxHash:  vLog.TxHash.String(),
+			MsgHash: msgHash.String(),
+			Type:    eventType,
+		},
 	}).Error
 }
 
@@ -46,12 +52,13 @@ type L2MessengerEvent struct {
 	Message []byte         `gorm:"-"`
 	Log     *types.Log     `gorm:"-"`
 
-	Number   uint64    `gorm:"index; comment: block number"`
-	Type     EventType `gorm:"index; comment: tx type"`
-	MsgNonce uint64    `gorm:"type: msg_nonce"`
-	MsgHash  string    `gorm:"primaryKey"`
-	MsgProof string
-	Confirm  bool `gorm:"index"`
+	Number      uint64    `gorm:"index; comment: block number"`
+	Type        EventType `gorm:"index; comment: tx type"`
+	MsgNonce    uint64    `gorm:"type: msg_nonce"`
+	MsgHash     string    `gorm:"primaryKey"`
+	MsgProof    string
+	Confirm     bool `gorm:"index"`
+	FromGateway bool `gorm:"from_gateway"`
 }
 
 // SaveL2Messenger saves an L2 messenger event into the database.

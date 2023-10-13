@@ -117,50 +117,56 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 func (l1 *l1Contracts) integrateGatewayEvents() error {
 	for i := 0; i < len(l1.ethEvents); i++ {
 		event := l1.ethEvents[i]
-		if msgHash, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msgHash.MsgHash
-			delete(l1.msgSentEvents, event.TxHash)
+		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+			event.MsgHash = msg.MsgHash
+			msg.FromGateway = true
 		}
 	}
 
 	for i := 0; i < len(l1.erc20Events); i++ {
 		event := l1.erc20Events[i]
-		if msgHash, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msgHash.MsgHash
-			delete(l1.msgSentEvents, event.TxHash)
+		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+			event.MsgHash = msg.MsgHash
+			msg.FromGateway = true
 		}
 	}
 
 	for i := 0; i < len(l1.erc721Events); i++ {
 		event := l1.erc721Events[i]
-		if msgHash, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msgHash.MsgHash
-			delete(l1.msgSentEvents, event.TxHash)
+		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+			event.MsgHash = msg.MsgHash
+			msg.FromGateway = true
 		}
 	}
 
 	for i := 0; i < len(l1.erc1155Events); i++ {
 		event := l1.erc1155Events[i]
-		if msgHash, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msgHash.MsgHash
-			delete(l1.msgSentEvents, event.TxHash)
+		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+			event.MsgHash = msg.MsgHash
+			msg.FromGateway = true
 		}
 	}
 
 	for _, msg := range l1.msgSentEvents {
-		if !(msg.Type == orm.L1SentMessage) {
+		if !(msg.Type == orm.L1SentMessage) || msg.FromGateway {
 			continue
 		}
-		// TODO
-		if err := l1.parseFinalizeDeposit(msg); err != nil {
+		err := l1.parseGatewayDeposit(msg)
+		if errors.Is(err, ErrMessenger) {
+			continue
+		}
+		if err != nil {
+			log.Error("l1chain failed to parse gateway message", "tx_hash", msg.TxHash, "err", err)
 			return err
+		} else {
+			msg.FromGateway = true
 		}
 	}
 
 	return nil
 }
 
-func (l1 *l1Contracts) parseFinalizeDeposit(l1msg *orm.L1MessengerEvent) error {
+func (l1 *l1Contracts) parseGatewayDeposit(l1msg *orm.L1MessengerEvent) error {
 	if len(l1msg.Message) < 4 {
 		log.Warn("l1chain sendMessage content less than 4 bytes", "tx_hash", l1msg.TxHash)
 		return ErrMessenger
@@ -168,19 +174,19 @@ func (l1 *l1Contracts) parseFinalizeDeposit(l1msg *orm.L1MessengerEvent) error {
 	_id := common.Bytes2Hex(l1msg.Message[:4])
 	switch _id {
 	case "232e8748": // FinalizeDepositETH
-		return l1.parseFinalizeDepositETH(l1msg.TxHead, l1msg.Message)
+		return l1.parseGatewayDepositETH(l1msg.TxHead, l1msg.Message)
 	case "8431f5c1": // FinalizeDepositERC20
-		return l1.parseFinalizeDepositERC20(l1msg.TxHead, l1msg.Target, l1msg.Message)
+		return l1.parseGatewayDepositERC20(l1msg.TxHead, l1msg.Target, l1msg.Message)
 	case "982b151f": // FinalizeBatchDepositERC721
-		return l1.parseFinalizeDepositERC721(l1msg.TxHead, l1msg.Message)
+		return l1.parseGatewayDepositERC721(l1msg.TxHead, l1msg.Message)
 	case "4764cc62": // FinalizeDepositERC1155
-		return l1.parseFinalizeDepositERC1155(l1msg.TxHead, l1msg.Message)
+		return l1.parseGatewayDepositERC1155(l1msg.TxHead, l1msg.Message)
 	}
 	log.Warn("l1chain sendMessage unexpect method_id", "tx_hash", l1msg.TxHash, "method_id", _id)
 	return ErrMessenger
 }
 
-func (l1 *l1Contracts) parseFinalizeDepositETH(txHead *orm.TxHead, data []byte) error {
+func (l1 *l1Contracts) parseGatewayDepositETH(txHead *orm.TxHead, data []byte) error {
 	method, err := l2gateway.L2ETHGatewayABI.MethodById(data)
 	if err != nil {
 		return err
@@ -206,7 +212,7 @@ func (l1 *l1Contracts) parseFinalizeDepositETH(txHead *orm.TxHead, data []byte) 
 	return nil
 }
 
-func (l1 *l1Contracts) parseFinalizeDepositERC20(txHead *orm.TxHead, target common.Address, data []byte) error {
+func (l1 *l1Contracts) parseGatewayDepositERC20(txHead *orm.TxHead, target common.Address, data []byte) error {
 	method, err := l2gateway.L2ERC20GatewayABI.MethodById(data)
 	if err != nil {
 		return err
@@ -258,7 +264,7 @@ func (l1 *l1Contracts) parseFinalizeDepositERC20(txHead *orm.TxHead, target comm
 	return nil
 }
 
-func (l1 *l1Contracts) parseFinalizeDepositERC721(txHead *orm.TxHead, data []byte) error {
+func (l1 *l1Contracts) parseGatewayDepositERC721(txHead *orm.TxHead, data []byte) error {
 	method, err := l2gateway.L2ERC721GatewayABI.MethodById(data)
 	if err != nil {
 		return err
@@ -287,7 +293,7 @@ func (l1 *l1Contracts) parseFinalizeDepositERC721(txHead *orm.TxHead, data []byt
 	return nil
 }
 
-func (l1 *l1Contracts) parseFinalizeDepositERC1155(txHead *orm.TxHead, data []byte) error {
+func (l1 *l1Contracts) parseGatewayDepositERC1155(txHead *orm.TxHead, data []byte) error {
 	method, err := l2gateway.L2ERC1155GatewayABI.MethodById(data)
 	if err != nil {
 		return err
@@ -316,7 +322,7 @@ func (l1 *l1Contracts) parseFinalizeDepositERC1155(txHead *orm.TxHead, data []by
 	return nil
 }
 
-func (l1 *l1Contracts) storeGatewayEvents() error {
+func (l1 *l1Contracts) storeL1WatcherEvents() error {
 	// store l1 eth events.
 	if len(l1.ethEvents) > 0 {
 		if err := l1.tx.Save(l1.ethEvents).Error; err != nil {
@@ -341,6 +347,22 @@ func (l1 *l1Contracts) storeGatewayEvents() error {
 	// store l1 erc1155 events.
 	if len(l1.erc1155Events) > 0 {
 		if err := l1.tx.Save(l1.erc1155Events).Error; err != nil {
+			return err
+		}
+	}
+
+	// store l1 scroll_messenger sentMessage events.
+	if length := len(l1.msgSentEvents); length > 0 {
+		var msgs = make([]*orm.L1MessengerEvent, 0, length)
+		for i := 0; i < length; i++ {
+			for k, v := range l1.msgSentEvents {
+				// Only store sentMessage events.
+				if v.Type == orm.L1SentMessage {
+					msgs = append(msgs, l1.msgSentEvents[k])
+				}
+			}
+		}
+		if err := l1.tx.Save(msgs).Error; err != nil {
 			return err
 		}
 	}
