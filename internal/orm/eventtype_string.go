@@ -47,9 +47,9 @@ func _() {
 	_ = x[L1SentMessage-201]
 	_ = x[L1RelayedMessage-202]
 	_ = x[L1FailedRelayedMessage-203]
-	_ = x[L2SentMessage-201]
-	_ = x[L2RelayedMessage-202]
-	_ = x[L2FailedRelayedMessage-203]
+	_ = x[L2SentMessage-211]
+	_ = x[L2RelayedMessage-212]
+	_ = x[L2FailedRelayedMessage-213]
 }
 
 const (
@@ -62,6 +62,7 @@ const (
 	_EventType_name_6 = "L2FinalizeDepositERC721L2WithdrawERC721"
 	_EventType_name_7 = "L2FinalizeDepositERC1155L2WithdrawERC1155"
 	_EventType_name_8 = "L1SentMessageL1RelayedMessageL1FailedRelayedMessage"
+	_EventType_name_9 = "L2SentMessageL2RelayedMessageL2FailedRelayedMessage"
 )
 
 var (
@@ -74,6 +75,7 @@ var (
 	_EventType_index_6 = [...]uint8{0, 23, 39}
 	_EventType_index_7 = [...]uint8{0, 24, 41}
 	_EventType_index_8 = [...]uint8{0, 13, 29, 51}
+	_EventType_index_9 = [...]uint8{0, 13, 29, 51}
 )
 
 func (i EventType) String() string {
@@ -105,6 +107,9 @@ func (i EventType) String() string {
 	case 201 <= i && i <= 203:
 		i -= 201
 		return _EventType_name_8[_EventType_index_8[i]:_EventType_index_8[i+1]]
+	case 211 <= i && i <= 213:
+		i -= 211
+		return _EventType_name_9[_EventType_index_9[i]:_EventType_index_9[i+1]]
 	default:
 		return "EventType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

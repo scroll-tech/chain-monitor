@@ -4,6 +4,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"gorm.io/gorm"
+	"math/big"
 )
 
 const (
@@ -15,11 +16,11 @@ const (
 	L1FailedRelayedMessage EventType = 203
 
 	// L2SentMessage l2 sent message.
-	L2SentMessage EventType = 201
+	L2SentMessage EventType = 211
 	// L2RelayedMessage l2 relayed message.
-	L2RelayedMessage EventType = 202
+	L2RelayedMessage EventType = 212
 	// L2FailedRelayedMessage l2 failed relayed message.
-	L2FailedRelayedMessage EventType = 203
+	L2FailedRelayedMessage EventType = 213
 )
 
 // L1MessengerEvent represents an event related to L1 messenger activities.
@@ -28,9 +29,8 @@ type L1MessengerEvent struct {
 	Target  common.Address `gorm:"-"`
 	Message []byte         `gorm:"-"`
 	Log     *types.Log     `gorm:"-"`
+	Value   *big.Int       `gorm:"-"`
 
-	// Make sure cross deposit or withdraw tx successfully confirmed.
-	Confirm     bool `gorm:"index"`
 	FromGateway bool `gorm:"from_gateway"`
 }
 
@@ -51,13 +51,13 @@ type L2MessengerEvent struct {
 	Target  common.Address `gorm:"-"`
 	Message []byte         `gorm:"-"`
 	Log     *types.Log     `gorm:"-"`
+	Value   *big.Int       `gorm:"-"`
 
 	Number      uint64    `gorm:"index; comment: block number"`
 	Type        EventType `gorm:"index; comment: tx type"`
 	MsgNonce    uint64    `gorm:"type: msg_nonce"`
 	MsgHash     string    `gorm:"primaryKey"`
 	MsgProof    string
-	Confirm     bool `gorm:"index"`
 	FromGateway bool `gorm:"from_gateway"`
 }
 

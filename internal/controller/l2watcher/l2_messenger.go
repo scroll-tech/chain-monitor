@@ -23,6 +23,7 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 			Target:  data.Target,
 			Message: data.Message,
 			Log:     vLog,
+			Value:   data.Value,
 
 			Number:      number,
 			MsgHash:     msgHash.String(),

@@ -23,6 +23,7 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 				MsgHash: msgHash.String(),
 				Type:    orm.L1SentMessage,
 			},
+			Value:       data.Value,
 			Target:      data.Target,
 			Message:     data.Message,
 			Log:         vLog,
@@ -37,7 +38,8 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 				MsgHash: msgHash.String(),
 				Type:    orm.L1RelayedMessage,
 			},
-			Log: vLog,
+			Log:         vLog,
+			FromGateway: true,
 		}
 		return orm.SaveL1Messenger(l1.tx, orm.L1RelayedMessage, vLog, msgHash)
 	})
@@ -48,7 +50,8 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 				MsgHash: msgHash.String(),
 				Type:    orm.L1FailedRelayedMessage,
 			},
-			Log: vLog,
+			Log:         vLog,
+			FromGateway: true,
 		}
 		return orm.SaveL1Messenger(l1.tx, orm.L1FailedRelayedMessage, vLog, msgHash)
 	})
