@@ -170,8 +170,8 @@ func (l1 *l1Contracts) parseGatewayDeposit(l1msg *orm.L1MessengerEvent) error {
 		log.Warn("l1chain sendMessage content less than 4 bytes", "tx_hash", l1msg.TxHash)
 		return errMessenger
 	}
-	_id := common.Bytes2Hex(l1msg.Message[:4])
-	switch _id {
+	id := common.Bytes2Hex(l1msg.Message[:4])
+	switch id {
 	case "232e8748": // FinalizeDepositETH
 		return l1.parseGatewayDepositETH(l1msg.TxHead, l1msg.Message)
 	case "8431f5c1": // FinalizeDepositERC20
@@ -181,7 +181,7 @@ func (l1 *l1Contracts) parseGatewayDeposit(l1msg *orm.L1MessengerEvent) error {
 	case "4764cc62": // FinalizeDepositERC1155
 		return l1.parseGatewayDepositERC1155(l1msg.TxHead, l1msg.Message)
 	}
-	log.Warn("l1chain sendMessage unexpect method_id", "tx_hash", l1msg.TxHash, "method_id", _id)
+	log.Warn("l1chain sendMessage unexpect method_id", "tx_hash", l1msg.TxHash, "method_id", id)
 	return errMessenger
 }
 

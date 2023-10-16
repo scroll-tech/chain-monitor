@@ -169,8 +169,8 @@ func (l2 *l2Contracts) parseGatewayWithdraw(l2msg *orm.L2MessengerEvent) error {
 		log.Warn("l2chain sendMessage content less than 4 bytes", "tx_hash", l2msg.Log.TxHash.String())
 		return errMessenger
 	}
-	_id := common.Bytes2Hex(l2msg.Message[:4])
-	switch _id {
+	id := common.Bytes2Hex(l2msg.Message[:4])
+	switch id {
 	case "8eaac8a3": // FinalizeWithdrawETH
 		return l2.parseGatewayWithdrawETH(l2msg)
 	case "84bd13b0": // FinalizeWithdrawERC20
@@ -180,7 +180,7 @@ func (l2 *l2Contracts) parseGatewayWithdraw(l2msg *orm.L2MessengerEvent) error {
 	case "730608b3": // FinalizeWithdrawERC1155
 		return l2.parseGatewayWithdrawERC155(l2msg)
 	}
-	log.Warn("l2chain sendMessage unexpect method_id", "tx_hash", l2msg.Log.TxHash.String(), "method_id", _id)
+	log.Warn("l2chain sendMessage unexpect method_id", "tx_hash", l2msg.Log.TxHash.String(), "method_id", id)
 	return errMessenger
 }
 
