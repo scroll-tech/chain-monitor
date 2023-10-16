@@ -115,7 +115,7 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l2 *l2Contracts) integrateGatewayEvents() error {
+func (l2 *l2Contracts) gatewayEvents() error {
 	for _, event := range l2.ethEvents {
 		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
 			event.MsgHash = msgHash.String()

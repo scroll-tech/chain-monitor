@@ -114,7 +114,7 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l1 *l1Contracts) integrateGatewayEvents() error {
+func (l1 *l1Contracts) gatewayEvents() error {
 	for i := 0; i < len(l1.ethEvents); i++ {
 		event := l1.ethEvents[i]
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {

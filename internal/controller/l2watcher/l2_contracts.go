@@ -266,7 +266,7 @@ func (l2 *l2Contracts) parseL2Events(ctx context.Context, start, end uint64) (in
 	}
 
 	// If cross tx not used gateway contract, then the function can mock a gateway event.
-	if err = l2.integrateGatewayEvents(); err != nil {
+	if err = l2.gatewayEvents(); err != nil {
 		return 0, err
 	}
 
