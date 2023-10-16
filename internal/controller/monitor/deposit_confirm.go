@@ -42,6 +42,13 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
+
+	l2NoGatewaySQL = `select
+    l1me.tx_hash as l1_tx_hash, l1me.number as l1_number,
+    l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
+from l2_messenger_events as l2me full join l1_messenger_events as l1me 
+    on l2me.msg_hash = l1me.msg_hash
+where l2me.number BETWEEN ? AND ? and l2me.type = ? and l2me.from_gateway = false and l1me.type = ?;`
 )
 
 // DepositConfirm monitors the blockchain and confirms the deposit events.
@@ -195,6 +202,23 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 			data, _ := json.Marshal(msg)
 			go controller.SlackNotify(fmt.Sprintf("erc1155 event don't match, message: %s", string(data)))
 			log.Error("the erc1155 deposit count or amount doesn't match", "start", start, "end", end, "event_type", orm.L2FinalizeDepositERC1155, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+		}
+	}
+
+	// check no gateway events.
+	var noGateways []msgEvents
+	db = db.Raw(l2NoGatewaySQL, start, end, orm.L1SentMessage, orm.L2RelayedMessage)
+	if err := db.Scan(noGateways).Error; err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(noGateways); i++ {
+		msg := noGateways[i]
+		if msg.L1Number == 0 || msg.L2Number == 0 {
+			flagNumbers[msg.L2Number] = true
+			// no gateway event don't match, alert it.
+			data, _ := json.Marshal(msg)
+			go controller.SlackNotify(fmt.Sprintf("l1chain's sentMessage event can't match l2chain relayMessage event, content: %s", string(data)))
+			log.Error("l1chain's sentMessage event can't match l2chain relayMessage event", "start", start, "end", end, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 

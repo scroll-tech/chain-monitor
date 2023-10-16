@@ -42,6 +42,13 @@ where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
 from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
+
+	l1NoGatewaySQL = `select
+    l1me.tx_hash as l1_tx_hash, l1me.number as l1_number,
+    l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
+from l2_messenger_events as l2me full join l1_messenger_events as l1me 
+    on l2me.msg_hash = l1me.msg_hash
+where l1me.number BETWEEN ? AND ? and l1me.type = ? and l1me.from_gateway = false and l2me.type = ?;`
 )
 
 // WithdrawConfirm the loop in order to confirm withdraw events.
@@ -199,6 +206,25 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 			data, _ := json.Marshal(msg)
 			go controller.SlackNotify(fmt.Sprintf("erc1155 withdraw doesn't match, message: %s", string(data)))
 			log.Error("the erc1155 withdraw count or amount doesn't match", "start", start, "end", end, "event_type", orm.L1FinalizeWithdrawERC1155, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+		}
+	}
+
+	// check no gateway sentMessage events.
+	var noGateways []msgEvents
+	db = db.Raw(l1NoGatewaySQL, start, end, orm.L2SentMessage, orm.L1RelayedMessage)
+	if err := db.Scan(&noGateways).Error; err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(noGateways); i++ {
+		msg := noGateways[i]
+		if msg.L1Number == 0 || msg.L2Number == 0 {
+			if !flagNumbers[msg.L1Number] {
+				flagNumbers[msg.L1Number] = true
+				failedNumbers = append(failedNumbers, msg.L1Number)
+			}
+			data, _ := json.Marshal(msg)
+			go controller.SlackNotify(fmt.Sprintf("l2chain's sentMessage event can't match l1chain relayMessage event, content: %s", string(data)))
+			log.Error("l2chain's sentMessage event can't match l1chain relayMessage event", "start", start, "end", end, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 
