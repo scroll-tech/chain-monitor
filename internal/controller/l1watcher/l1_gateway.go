@@ -115,40 +115,32 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 }
 
 func (l1 *l1Contracts) gatewayEvents() error {
-	for i := 0; i < len(l1.ethEvents); i++ {
-		event := l1.ethEvents[i]
+	for _, event := range l1.ethEvents {
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-			msg.FromGateway = true
+			event.MsgHash, msg.FromGateway = msg.MsgHash, true
 		}
 	}
 
-	for i := 0; i < len(l1.erc20Events); i++ {
-		event := l1.erc20Events[i]
+	for _, event := range l1.erc20Events {
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-			msg.FromGateway = true
+			event.MsgHash, msg.FromGateway = msg.MsgHash, true
 		}
 	}
 
-	for i := 0; i < len(l1.erc721Events); i++ {
-		event := l1.erc721Events[i]
+	for _, event := range l1.erc721Events {
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-			msg.FromGateway = true
+			event.MsgHash, msg.FromGateway = msg.MsgHash, true
 		}
 	}
 
-	for i := 0; i < len(l1.erc1155Events); i++ {
-		event := l1.erc1155Events[i]
+	for _, event := range l1.erc1155Events {
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-			msg.FromGateway = true
+			event.MsgHash, msg.FromGateway = msg.MsgHash, true
 		}
 	}
 
 	for _, msg := range l1.msgSentEvents {
-		if !(msg.Type == orm.L1SentMessage) || msg.FromGateway {
+		if msg.Type != orm.L1SentMessage || msg.FromGateway {
 			continue
 		}
 		err := l1.parseGatewayDeposit(msg)

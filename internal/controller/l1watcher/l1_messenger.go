@@ -23,11 +23,10 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 				MsgHash: msgHash.String(),
 				Type:    orm.L1SentMessage,
 			},
-			Value:       data.Value,
-			Target:      data.Target,
-			Message:     data.Message,
-			Log:         vLog,
-			FromGateway: false,
+			Value:   data.Value,
+			Target:  data.Target,
+			Message: data.Message,
+			Log:     vLog,
 		}
 		return nil
 	})
@@ -35,24 +34,17 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 		msgHash := common.BytesToHash(data.MessageHash[:])
 		l1.msgSentEvents[vLog.TxHash.String()] = &orm.L1MessengerEvent{
 			TxHead: &orm.TxHead{
+				Number:  vLog.BlockNumber,
+				TxHash:  vLog.TxHash.String(),
 				MsgHash: msgHash.String(),
 				Type:    orm.L1RelayedMessage,
 			},
-			Log:         vLog,
-			FromGateway: true,
+			Log: vLog,
 		}
 		return orm.SaveL1Messenger(l1.tx, orm.L1RelayedMessage, vLog, msgHash)
 	})
 	l1.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerFailedRelayedMessageEvent) error {
 		msgHash := common.BytesToHash(data.MessageHash[:])
-		l1.msgSentEvents[vLog.TxHash.String()] = &orm.L1MessengerEvent{
-			TxHead: &orm.TxHead{
-				MsgHash: msgHash.String(),
-				Type:    orm.L1FailedRelayedMessage,
-			},
-			Log:         vLog,
-			FromGateway: true,
-		}
 		return orm.SaveL1Messenger(l1.tx, orm.L1FailedRelayedMessage, vLog, msgHash)
 	})
 }

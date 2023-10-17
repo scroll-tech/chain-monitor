@@ -211,7 +211,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 
 	// check no gateway sentMessage events.
 	var noGateways []msgEvents
-	db = db.Raw(l1NoGatewaySQL, start, end, orm.L2SentMessage, orm.L1RelayedMessage)
+	db = db.Raw(l1NoGatewaySQL, start, end, orm.L1SentMessage, orm.L2RelayedMessage)
 	if err := db.Scan(&noGateways).Error; err != nil {
 		return nil, err
 	}
@@ -223,8 +223,8 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
 			data, _ := json.Marshal(msg)
-			go controller.SlackNotify(fmt.Sprintf("l2chain's sentMessage event can't match l1chain relayMessage event, content: %s", string(data)))
-			log.Error("l2chain's sentMessage event can't match l1chain relayMessage event", "start", start, "end", end, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+			go controller.SlackNotify(fmt.Sprintf("l1chain's sentMessage event can't match l2chain relayMessage event, content: %s", string(data)))
+			log.Error("l1chain's sentMessage event can't match l2chain relayMessage event", "start", start, "end", end, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
 	}
 

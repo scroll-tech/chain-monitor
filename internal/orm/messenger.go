@@ -49,25 +49,26 @@ func SaveL1Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash 
 
 // L2MessengerEvent represents an event related to L2 messenger activities.
 type L2MessengerEvent struct {
+	*TxHead
 	Target  common.Address `gorm:"-"`
 	Message []byte         `gorm:"-"`
 	Log     *types.Log     `gorm:"-"`
 	Value   *big.Int       `gorm:"-"`
 
-	Number      uint64    `gorm:"index; comment: block number"`
-	Type        EventType `gorm:"index; comment: tx type"`
-	MsgNonce    uint64    `gorm:"type: msg_nonce"`
-	MsgHash     string    `gorm:"primaryKey"`
-	MsgProof    string
-	FromGateway bool `gorm:"from_gateway"`
+	MsgNonce    uint64 `gorm:"type: msg_nonce"`
+	MsgProof    string `gorm:"msg_proof"`
+	FromGateway bool   `gorm:"from_gateway"`
 }
 
 // SaveL2Messenger saves an L2 messenger event into the database.
 func SaveL2Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash common.Hash) error {
 	return db.Save(&L2MessengerEvent{
-		Number:  vLog.BlockNumber,
-		Type:    eventType,
-		MsgHash: msgHash.String(),
+		TxHead: &TxHead{
+			Number:  vLog.BlockNumber,
+			Type:    eventType,
+			MsgHash: msgHash.String(),
+			TxHash:  vLog.TxHash.String(),
+		},
 	}).Error
 }
 
