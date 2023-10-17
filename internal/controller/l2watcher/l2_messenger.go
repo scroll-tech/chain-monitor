@@ -17,28 +17,35 @@ import (
 func (l2 *l2Contracts) registerMessengerHandlers() {
 	l2.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerSentMessageEvent) error {
 		msgHash := utils.ComputeMessageHash(data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
-		number := vLog.BlockNumber
-		l2.txHashMsgHash[vLog.TxHash.String()] = msgHash
-		l2.msgSentEvents[number] = append(l2.msgSentEvents[number], &orm.L2MessengerEvent{
-			Target:  data.Target,
-			Message: data.Message,
-			Log:     vLog,
-			Value:   data.Value,
-
-			Number:      number,
-			MsgHash:     msgHash.String(),
-			Type:        orm.L2SentMessage,
-			MsgNonce:    data.MessageNonce.Uint64(),
-			FromGateway: true,
+		l2.msgSentEvents[vLog.BlockNumber] = append(l2.msgSentEvents[vLog.BlockNumber], &orm.L2MessengerEvent{
+			TxHead: &orm.TxHead{
+				Number:  vLog.BlockNumber,
+				TxHash:  vLog.TxHash.String(),
+				MsgHash: msgHash.String(),
+				Type:    orm.L2SentMessage,
+			},
+			Target:   data.Target,
+			Message:  data.Message,
+			Log:      vLog,
+			Value:    data.Value,
+			MsgNonce: data.MessageNonce.Uint64(),
 		})
 		return nil
 	})
 	l2.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerRelayedMessageEvent) error {
-		l2.txHashMsgHash[vLog.TxHash.String()] = data.MessageHash
+		msgHash := common.BytesToHash(data.MessageHash[:])
+		l2.msgSentEvents[vLog.BlockNumber] = append(l2.msgSentEvents[vLog.BlockNumber], &orm.L2MessengerEvent{
+			TxHead: &orm.TxHead{
+				Number:  vLog.BlockNumber,
+				TxHash:  vLog.TxHash.String(),
+				MsgHash: msgHash.String(),
+				Type:    orm.L2RelayedMessage,
+			},
+			Log: vLog,
+		})
 		return orm.SaveL2Messenger(l2.tx, orm.L2RelayedMessage, vLog, data.MessageHash)
 	})
 	l2.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerFailedRelayedMessageEvent) error {
-		l2.txHashMsgHash[vLog.TxHash.String()] = data.MessageHash
 		return orm.SaveL2Messenger(l2.tx, orm.L2FailedRelayedMessage, vLog, data.MessageHash)
 	})
 }
