@@ -140,7 +140,7 @@ func (l1 *l1Contracts) gatewayEvents() error {
 	}
 
 	for _, msg := range l1.msgSentEvents {
-		if msg.Type != orm.L1SentMessage || msg.FromGateway {
+		if !msg.IsNotGatewaySentMessage() {
 			continue
 		}
 		err := l1.parseGatewayDeposit(msg)
@@ -345,11 +345,8 @@ func (l1 *l1Contracts) storeL1WatcherEvents() error {
 	// store l1 scroll_messenger sentMessage events.
 	if length := len(l1.msgSentEvents); length > 0 {
 		var msgs = make([]*orm.L1MessengerEvent, 0, length)
-		for k, v := range l1.msgSentEvents {
-			// Only store sentMessage events.
-			if v.Type == orm.L1SentMessage {
-				msgs = append(msgs, l1.msgSentEvents[k])
-			}
+		for k := range l1.msgSentEvents {
+			msgs = append(msgs, l1.msgSentEvents[k])
 		}
 		if err := l1.tx.Save(msgs).Error; err != nil {
 			return err

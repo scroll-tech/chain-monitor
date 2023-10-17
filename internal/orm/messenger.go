@@ -35,6 +35,11 @@ type L1MessengerEvent struct {
 	FromGateway bool `gorm:"from_gateway"`
 }
 
+// IsNotGatewaySentMessage is sentMessage event but not from gateway contract.
+func (l1 *L1MessengerEvent) IsNotGatewaySentMessage() bool {
+	return l1.Type == L1SentMessage && !l1.FromGateway
+}
+
 // SaveL1Messenger saves an L1 messenger event into the database.
 func SaveL1Messenger(db *gorm.DB, eventType EventType, vLog *types.Log, msgHash common.Hash) error {
 	return db.Save(&L1MessengerEvent{
