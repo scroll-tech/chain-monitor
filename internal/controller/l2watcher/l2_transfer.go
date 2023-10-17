@@ -57,9 +57,8 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	}
 
 	var (
-		total    = big.NewInt(0).Set(sBalance)
-		events   = make(map[uint64][]*ethEvent)
-		txHashes = make(map[string]bool)
+		total  = big.NewInt(0).Set(sBalance)
+		events = make(map[uint64][]*ethEvent)
 	)
 	for _, event := range l2.ethEvents {
 		var amount = big.NewInt(0).Set(event.Amount)
@@ -74,7 +73,6 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 			Type:   event.Type,
 			Amount: amount,
 		})
-		txHashes[event.TxHash] = true
 	}
 	for _, event := range l2.erc20Events {
 		if !(event.Type == orm.L2FinalizeDepositWETH || event.Type == orm.L2WithdrawWETH) {
@@ -92,23 +90,19 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 			Type:   event.Type,
 			Amount: amount,
 		})
-		txHashes[event.TxHash] = true
 	}
 
 	for _, msgs := range l2.msgSentEvents {
 		for _, msg := range msgs {
-			txHash := msg.Log.TxHash.String()
-			if txHashes[txHash] {
-				continue
+			if msg.IsNotGatewaySentMessage() {
+				total.Add(total, msg.Value)
+				events[msg.Number] = append(events[msg.Number], &ethEvent{
+					Number: msg.Number,
+					TxHash: msg.Log.TxHash.String(),
+					Type:   msg.Type,
+					Amount: big.NewInt(0).Set(msg.Value),
+				})
 			}
-			txHashes[txHash] = true
-			total.Add(total, msg.Value)
-			events[msg.Number] = append(events[msg.Number], &ethEvent{
-				Number: msg.Number,
-				TxHash: txHash,
-				Type:   msg.Type,
-				Amount: big.NewInt(0).Set(msg.Value),
-			})
 		}
 
 	}

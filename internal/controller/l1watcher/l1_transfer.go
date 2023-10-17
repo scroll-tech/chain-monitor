@@ -95,15 +95,14 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	}
 
 	for _, msg := range l1.msgSentEvents {
-		if !msg.IsNotGatewaySentMessage() {
-			continue
+		if msg.IsNotGatewaySentMessage() {
+			events[msg.Number] = append(events[msg.Number], &ethEvent{
+				Number: msg.Number,
+				TxHash: msg.TxHash,
+				Type:   msg.Type,
+				Amount: big.NewInt(0).Set(msg.Value),
+			})
 		}
-		events[msg.Number] = append(events[msg.Number], &ethEvent{
-			Number: msg.Number,
-			TxHash: msg.TxHash,
-			Type:   msg.Type,
-			Amount: big.NewInt(0).Set(msg.Value),
-		})
 	}
 
 	if total.Cmp(eBalance) == 0 {
