@@ -98,7 +98,7 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	for _, msgs := range l2.msgSentEvents {
 		for _, msg := range msgs {
 			txHash := msg.Log.TxHash.String()
-			if msg.Type != orm.L2SentMessage || txHashes[txHash] {
+			if txHashes[txHash] {
 				continue
 			}
 			txHashes[txHash] = true
