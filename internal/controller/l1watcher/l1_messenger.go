@@ -1,9 +1,9 @@
 package l1watcher
 
 import (
-	l2gateway "chain-monitor/bytecode/scroll/L2/gateway"
 	"context"
 	"encoding/json"
+
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -11,6 +11,7 @@ import (
 	"chain-monitor/bytecode"
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L1/rollup"
+	l2gateway "chain-monitor/bytecode/scroll/L2/gateway"
 	"chain-monitor/internal/orm"
 	"chain-monitor/internal/utils"
 )
