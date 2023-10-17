@@ -345,12 +345,10 @@ func (l1 *l1Contracts) storeL1WatcherEvents() error {
 	// store l1 scroll_messenger sentMessage events.
 	if length := len(l1.msgSentEvents); length > 0 {
 		var msgs = make([]*orm.L1MessengerEvent, 0, length)
-		for i := 0; i < length; i++ {
-			for k, v := range l1.msgSentEvents {
-				// Only store sentMessage events.
-				if v.Type == orm.L1SentMessage {
-					msgs = append(msgs, l1.msgSentEvents[k])
-				}
+		for k, v := range l1.msgSentEvents {
+			// Only store sentMessage events.
+			if v.Type == orm.L1SentMessage {
+				msgs = append(msgs, l1.msgSentEvents[k])
 			}
 		}
 		if err := l1.tx.Save(msgs).Error; err != nil {
