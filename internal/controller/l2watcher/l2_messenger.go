@@ -37,7 +37,6 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 		return orm.SaveL2Messenger(l2.tx, orm.L2RelayedMessage, vLog, data.MessageHash)
 	})
 	l2.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerFailedRelayedMessageEvent) error {
-		l2.txHashMsgHash[vLog.TxHash.String()] = data.MessageHash
 		return orm.SaveL2Messenger(l2.tx, orm.L2FailedRelayedMessage, vLog, data.MessageHash)
 	})
 }
