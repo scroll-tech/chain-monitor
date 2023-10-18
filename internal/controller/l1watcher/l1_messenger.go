@@ -34,12 +34,12 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 		return nil
 	})
 	l1.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerRelayedMessageEvent) error {
-		msgHash := common.BytesToHash(data.MessageHash[:])
-		l1.msgSentEvents[vLog.TxHash.String()] = &orm.L1MessengerEvent{
+		txHash := vLog.TxHash.String()
+		l1.msgSentEvents[txHash] = &orm.L1MessengerEvent{
 			TxHead: &orm.TxHead{
 				Number:  vLog.BlockNumber,
-				TxHash:  vLog.TxHash.String(),
-				MsgHash: msgHash.String(),
+				TxHash:  txHash,
+				MsgHash: common.BytesToHash(data.MessageHash[:]).String(),
 				Type:    orm.L1RelayedMessage,
 			},
 			Log: vLog,
@@ -47,8 +47,17 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 		return nil
 	})
 	l1.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerFailedRelayedMessageEvent) error {
-		msgHash := common.BytesToHash(data.MessageHash[:])
-		return orm.SaveL1Messenger(l1.tx, orm.L1FailedRelayedMessage, vLog, msgHash)
+		txHash := vLog.TxHash.String()
+		l1.msgSentEvents[txHash] = &orm.L1MessengerEvent{
+			TxHead: &orm.TxHead{
+				Number:  vLog.BlockNumber,
+				TxHash:  txHash,
+				MsgHash: common.BytesToHash(data.MessageHash[:]).String(),
+				Type:    orm.L1FailedRelayedMessage,
+			},
+			Log: vLog,
+		}
+		return nil
 	})
 }
 

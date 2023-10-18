@@ -138,18 +138,17 @@ func (l1 *l1Contracts) gatewayEvents() error {
 	}
 
 	for _, msg := range l1.msgSentEvents {
-		if !msg.IsNotGatewaySentMessage() {
-			continue
+		if msg.IsNotGatewaySentMessage() {
+			err := l1.parseGatewayDeposit(msg)
+			if errors.Is(err, errMessenger) {
+				continue
+			}
+			if err != nil {
+				log.Error("l1chain failed to parse gateway message", "tx_hash", msg.TxHash, "err", err)
+				return err
+			}
+			msg.FromGateway = true
 		}
-		err := l1.parseGatewayDeposit(msg)
-		if errors.Is(err, errMessenger) {
-			continue
-		}
-		if err != nil {
-			log.Error("l1chain failed to parse gateway message", "tx_hash", msg.TxHash, "err", err)
-			return err
-		}
-		msg.FromGateway = true
 	}
 
 	return nil
