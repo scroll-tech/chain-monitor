@@ -3,7 +3,6 @@ package l1watcher
 import (
 	"context"
 	"encoding/json"
-
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -37,6 +36,8 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 		msgHash := common.BytesToHash(data.MessageHash[:])
 		l1.msgSentEvents[vLog.TxHash.String()] = &orm.L1MessengerEvent{
 			TxHead: &orm.TxHead{
+				Number:  vLog.BlockNumber,
+				TxHash:  vLog.TxHash.String(),
 				MsgHash: msgHash.String(),
 				Type:    orm.L1RelayedMessage,
 			},
