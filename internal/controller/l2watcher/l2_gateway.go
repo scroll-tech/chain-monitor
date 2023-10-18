@@ -114,40 +114,39 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 }
 
 func (l2 *l2Contracts) gatewayEvents() error {
+	var msgSentEvents = map[string]*orm.L2MessengerEvent{}
+	for _, msgs := range l2.msgSentEvents {
+		for _, msg := range msgs {
+			msgSentEvents[msg.TxHash] = msg
+		}
+	}
+
 	for _, event := range l2.ethEvents {
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-			delete(l2.txHashMsgHash, event.TxHash)
+		if msg, exist := msgSentEvents[event.TxHash]; exist {
+			event.MsgHash, msg.FromGateway = msg.MsgHash, true
 		}
 	}
 
 	for _, event := range l2.erc20Events {
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-			delete(l2.txHashMsgHash, event.TxHash)
+		if msg, exist := msgSentEvents[event.TxHash]; exist {
+			event.MsgHash, msg.FromGateway = msg.MsgHash, true
 		}
 	}
 
 	for _, event := range l2.erc721Events {
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-			delete(l2.txHashMsgHash, event.TxHash)
+		if msg, exist := msgSentEvents[event.TxHash]; exist {
+			event.MsgHash, msg.FromGateway = msg.MsgHash, true
 		}
 	}
 
 	for _, event := range l2.erc1155Events {
-		if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
-			event.MsgHash = msgHash.String()
-			delete(l2.txHashMsgHash, event.TxHash)
+		if msg, exist := msgSentEvents[event.TxHash]; exist {
+			event.MsgHash, msg.FromGateway = msg.MsgHash, true
 		}
 	}
 
-	for _, msgs := range l2.msgSentEvents {
-		for _, msg := range msgs {
-			if _, exist := l2.txHashMsgHash[msg.TxHash]; !exist {
-				msg.FromGateway = true
-				continue
-			}
+	for _, msg := range msgSentEvents {
+		if msg.IsNotGatewaySentMessage() {
 			err := l2.parseGatewayWithdraw(msg)
 			if errors.Is(err, errMessenger) {
 				continue

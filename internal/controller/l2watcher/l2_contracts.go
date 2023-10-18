@@ -32,7 +32,6 @@ type l2Contracts struct {
 
 	withdraw *msgproof.WithdrawTrie
 
-	txHashMsgHash map[string]common.Hash
 	msgSentEvents map[uint64][]*orm.L2MessengerEvent
 	ethEvents     []*orm.L2ETHEvent
 	erc20Events   []*orm.L2ERC20Event
@@ -73,12 +72,11 @@ func newL2Contracts(l2chainURL string, db *gorm.DB, cfg *config.L2Contracts) (*l
 	var (
 		client = ethclient.NewClient(rpcCli)
 		cts    = &l2Contracts{
-			rpcCli:        rpcCli,
-			client:        client,
-			cfg:           cfg,
-			chainName:     "l2_chain",
-			withdraw:      msgproof.NewWithdrawTrie(),
-			txHashMsgHash: map[string]common.Hash{},
+			rpcCli:    rpcCli,
+			client:    client,
+			cfg:       cfg,
+			chainName: "l2_chain",
+			withdraw:  msgproof.NewWithdrawTrie(),
 		}
 	)
 	cts.ETHGateway, err = gateway.NewL2ETHGateway(cfg.ETHGateway, client)
@@ -204,7 +202,6 @@ func (l2 *l2Contracts) initWithdraw(db *gorm.DB) error {
 }
 
 func (l2 *l2Contracts) clean() {
-	l2.txHashMsgHash = map[string]common.Hash{}
 	l2.msgSentEvents = map[uint64][]*orm.L2MessengerEvent{}
 	l2.transferEvents = map[string]*token.IERC20TransferEvent{}
 	l2.l2Confirms = map[uint64]*orm.L2ChainConfirm{}
