@@ -48,7 +48,7 @@ where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
     l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
 from l2_messenger_events as l2me full join l1_messenger_events as l1me 
     on l2me.msg_hash = l1me.msg_hash
-where l1me.number BETWEEN ? AND ? and l1me.type = ? and l1me.from_gateway = false and l2me.type = ?;`
+where l1me.number BETWEEN ? AND ? and l1me.type = ? and l1me.from_gateway = false;`
 )
 
 // WithdrawConfirm the loop in order to confirm withdraw events.
@@ -211,7 +211,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 
 	// check no gateway sentMessage events.
 	var noGateways []msgEvents
-	db = db.Raw(l1NoGatewaySQL, start, end, orm.L1SentMessage, orm.L2RelayedMessage)
+	db = db.Raw(l1NoGatewaySQL, start, end, orm.L1SentMessage)
 	if err := db.Scan(&noGateways).Error; err != nil {
 		return nil, err
 	}

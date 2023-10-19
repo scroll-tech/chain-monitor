@@ -48,7 +48,7 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
     l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
 from l2_messenger_events as l2me full join l1_messenger_events as l1me 
     on l2me.msg_hash = l1me.msg_hash
-where l2me.number BETWEEN ? AND ? and l2me.type = ? and l2me.from_gateway = false and l1me.type = ?;`
+where l2me.number BETWEEN ? AND ? and l2me.type = ? and l2me.from_gateway = false;`
 )
 
 // DepositConfirm monitors the blockchain and confirms the deposit events.
@@ -207,7 +207,7 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 
 	// check no gateway events.
 	var noGateways []msgEvents
-	db = db.Raw(l2NoGatewaySQL, start, end, orm.L2SentMessage, orm.L1RelayedMessage)
+	db = db.Raw(l2NoGatewaySQL, start, end, orm.L2SentMessage)
 	if err := db.Scan(noGateways).Error; err != nil {
 		return nil, err
 	}
