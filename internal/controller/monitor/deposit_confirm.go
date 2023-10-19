@@ -213,8 +213,11 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 	}
 	for i := 0; i < len(noGateways); i++ {
 		msg := noGateways[i]
-		if msg.L1Number == 0 || msg.L2Number == 0 {
-			flagNumbers[msg.L2Number] = true
+		if msg.L1Number == 0 || msg.L2Number == 0 || msg.L1Type == orm.L1FailedRelayedMessage {
+			if msg.L1Type != orm.L1FailedRelayedMessage && !flagNumbers[msg.L2Number] {
+				flagNumbers[msg.L2Number] = true
+				failedNumbers = append(failedNumbers, msg.L2Number)
+			}
 			// no gateway event don't match, alert it.
 			data, _ := json.Marshal(msg)
 			go controller.SlackNotify(fmt.Sprintf("l2chain's sentMessage event can't match l1chain relayMessage event, content: %s", string(data)))
