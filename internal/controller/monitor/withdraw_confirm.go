@@ -30,15 +30,15 @@ from l2_erc20_events as l2ee full join l1_erc20_events as l1ee
 where l1ee.number BETWEEN ? AND ? and l1ee.type in (?, ?, ?, ?);`
 
 	l1erc721SQL = `select 
-   l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.token_id as l1_token_id, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.token_id as l2_token_id
+   l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.token_id_list as l1_token_id_list, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.token_id_list as l2_token_id_list
 from l2_erc721_events as l2ee full join l1_erc721_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
 
 	l1erc1155SQL = `select 
-    l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.amount as l1_amount, l1ee.token_id as l1_token_id, 
-    l2ee.tx_hash as l2_tx_hash, l2ee.amount as l2_amount, l2ee.token_id as l2_token_id
+    l1ee.number as l1_number, l1ee.tx_hash as l1_tx_hash, l1ee.amount_list as l1_amount_list, l1ee.token_id_list as l1_token_id_list, 
+    l2ee.tx_hash as l2_tx_hash, l2ee.amount_list as l2_amount_list, l2ee.token_id_list as l2_token_id_list
 from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
@@ -170,7 +170,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 	}
 	for i := 0; i < len(erc721Events); i++ {
 		msg := erc721Events[i]
-		if msg.L1TokenID != msg.L2TokenID {
+		if msg.L1TokenIDList != msg.L2TokenIDList {
 			if !flagNumbers[msg.L1Number] {
 				flagNumbers[msg.L1Number] = true
 				failedNumbers = append(failedNumbers, msg.L1Number)
@@ -191,7 +191,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 	}
 	for i := 0; i < len(erc1155Events); i++ {
 		msg := erc1155Events[i]
-		if msg.L1TokenID != msg.L2TokenID || msg.L1Amount != msg.L2Amount {
+		if msg.L1TokenIDList != msg.L2TokenIDList || msg.L1AmountList != msg.L2AmountList {
 			if !flagNumbers[msg.L1Number] {
 				flagNumbers[msg.L1Number] = true
 				failedNumbers = append(failedNumbers, msg.L1Number)

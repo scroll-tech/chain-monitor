@@ -197,35 +197,38 @@ func newL1ETH20Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token 
 	}
 }
 
-func newL1ERC721Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token common.Address, tokenIDList []*big.Int) *orm.L1ERC721Event {
-	var ids = tokenIDList[0].String()
-	for _, id := range tokenIDList[1:] {
-		ids += "," + id.String()
+func newL1ERC721Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token common.Address, tokenIDs []*big.Int) *orm.L1ERC721Event {
+	var tokenIDList = tokenIDs[0].String()
+	for _, id := range tokenIDs[1:] {
+		tokenIDList += "," + id.String()
 	}
 
 	return &orm.L1ERC721Event{
 		TxHead:      orm.NewTxHead(vLog, eventType),
 		L1Token:     l1Token.String(),
 		L2Token:     l2Token.String(),
-		TokenIDList: ids,
+		TokenIDList: tokenIDList,
+		TokenIds:    tokenIDs,
 	}
 }
 
-func newL1ERC1155Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token common.Address, tokenIDList, amountList []*big.Int) *orm.L1ERC1155Event {
+func newL1ERC1155Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token common.Address, tokenIDs, amounts []*big.Int) *orm.L1ERC1155Event {
 	var (
-		tokenIDs = tokenIDList[0].String()
-		amounts  = amountList[0].String()
+		tokenIDList = tokenIDs[0].String()
+		amountList  = amounts[0].String()
 	)
-	for i := 1; i < len(tokenIDList); i++ {
-		tokenIDs += "," + tokenIDList[i].String()
-		amounts += "," + amountList[i].String()
+	for i := 1; i < len(tokenIDs); i++ {
+		tokenIDList += "," + tokenIDs[i].String()
+		amountList += "," + amounts[i].String()
 	}
 
 	return &orm.L1ERC1155Event{
 		TxHead:      orm.NewTxHead(vLog, eventType),
 		L1Token:     l1Token.String(),
 		L2Token:     l2Token.String(),
-		TokenIDList: tokenIDs,
-		AmountList:  amounts,
+		TokenIDList: tokenIDList,
+		AmountList:  amountList,
+		TokenIds:    tokenIDs,
+		Amounts:     amounts,
 	}
 }

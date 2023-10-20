@@ -156,7 +156,8 @@ type L1ERC721Event struct {
 	*TxHead
 	L1Token     string
 	L2Token     string
-	TokenIDList string `gorm:"token_id_list"`
+	TokenIDList string     `gorm:"token_id_list"`
+	TokenIds    []*big.Int `gorm:"-"`
 }
 
 // L2ERC721Event represents an ERC721 event on Layer 2.
@@ -164,7 +165,8 @@ type L2ERC721Event struct {
 	*TxHead
 	L1Token     string
 	L2Token     string
-	TokenIDList string `gorm:"token_id_list"`
+	TokenIDList string     `gorm:"token_id_list"`
+	TokenIds    []*big.Int `gorm:"-"`
 }
 
 // L1ERC1155Event represents an ERC1155 event on Layer 1.
@@ -172,8 +174,10 @@ type L1ERC1155Event struct {
 	*TxHead
 	L1Token     string
 	L2Token     string
-	TokenIDList string `gorm:"token_id_list"`
-	AmountList  string `gorm:"amount_list"`
+	TokenIDList string     `gorm:"token_id_list"`
+	AmountList  string     `gorm:"amount_list"`
+	TokenIds    []*big.Int `gorm:"-"`
+	Amounts     []*big.Int `gorm:"-"`
 }
 
 // L2ERC1155Event represents an ERC1155 event on Layer 2.
@@ -181,6 +185,8 @@ type L2ERC1155Event struct {
 	*TxHead
 	L1Token     string
 	L2Token     string
-	TokenIDList string `gorm:"token_id_list"`
-	AmountList  string `gorm:"amount_list"`
+	TokenIDList string     `gorm:"token_id_list"`
+	AmountList  string     `gorm:"amount_list"`
+	TokenIds    []*big.Int `gorm:"-"`
+	Amounts     []*big.Int `gorm:"-"`
 }

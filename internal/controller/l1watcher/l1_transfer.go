@@ -17,7 +17,8 @@ import (
 
 func (l1 *l1Contracts) registerTransfer() {
 	l1.iERC20.RegisterTransfer(func(vLog *types.Log, data *token.IERC20TransferEvent) error {
-		l1.transferEvents[vLog.TxHash.String()] = data
+		txHash := vLog.TxHash.String()
+		l1.transferEvents[txHash] = append(l1.transferEvents[txHash], data)
 		return nil
 	})
 }
@@ -141,12 +142,12 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) error {
 	var failedNumbers = map[uint64]bool{}
 	for _, event := range l1.erc20Events {
-		if !l1.transferNormalCheck(event.Type, event.TxHash, event.Amount) {
+		if !l1.transferNormalCheck(event.Type, event.TxHash, []*big.Int{event.Amount}) {
 			failedNumbers[event.Number] = true
 		}
 	}
 	for _, event := range l1.erc721Events {
-		if !l1.transferNormalCheck(event.Type, event.TxHash, event.TokenID) {
+		if !l1.transferNormalCheck(event.Type, event.TxHash, event.TokenIds) {
 			failedNumbers[event.Number] = true
 		}
 	}
@@ -168,18 +169,27 @@ func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) er
 	return nil
 }
 
-func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) bool {
-	event, exist := l1.transferEvents[txHash]
+func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amounts []*big.Int) bool {
+	events, exist := l1.transferEvents[txHash]
 	if !exist {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
 		go controller.SlackNotify(fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s", tp.String(), txHash))
 		return false
-	} else if event.Value.Cmp(amount) != 0 {
-		controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
-		data, _ := json.Marshal(event)
-		go controller.SlackNotify(fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
-			tp.String(), txHash, amount.String(), event.Value.String(), string(data)))
+	}
+	if len(events) != len(amounts) {
+		log.Error("l1chain gateway events count doesn't match transfer count", "tx_hash", txHash, "event count", len(amounts), "transfer count", len(events))
+		go controller.SlackNotify(fmt.Sprintf("l1chain gateway events count doesn't match transfer count, tx_hash: %s, event_count: %d, transfer_count: %d", txHash, len(amounts), len(events)))
 		return false
+	}
+	for i, event := range events {
+		amount := amounts[i]
+		if event.Value.Cmp(amount) != 0 {
+			controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
+			data, _ := json.Marshal(event)
+			go controller.SlackNotify(fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
+				tp.String(), txHash, amount.String(), event.Value.String(), string(data)))
+			return false
+		}
 	}
 	delete(l1.transferEvents, txHash)
 	return true
@@ -187,15 +197,17 @@ func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amou
 
 func (l1 *l1Contracts) transferAbnormalCheck() []uint64 {
 	var failedNumbers []uint64
-	for txHash, event := range l1.transferEvents {
-		for _, api := range l1.gatewayAPIs {
-			addr := api.GetAddress()
-			if event.To == addr || event.From == addr {
-				failedNumbers = append(failedNumbers, event.Log.BlockNumber)
-				controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
-				data, _ := json.Marshal(event)
-				go controller.SlackNotify(
-					fmt.Sprintf("l1chain unexpect tx.From or tx.To address used gateway, tx_hash: %s, content: %s", txHash, string(data)))
+	for txHash, events := range l1.transferEvents {
+		for _, event := range events {
+			for _, api := range l1.gatewayAPIs {
+				addr := api.GetAddress()
+				if event.To == addr || event.From == addr {
+					failedNumbers = append(failedNumbers, event.Log.BlockNumber)
+					controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
+					data, _ := json.Marshal(event)
+					go controller.SlackNotify(
+						fmt.Sprintf("l1chain unexpect tx.From or tx.To address used gateway, tx_hash: %s, content: %s", txHash, string(data)))
+				}
 			}
 		}
 	}

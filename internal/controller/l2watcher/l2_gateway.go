@@ -86,22 +86,43 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 
 	l2.ERC721Gateway.RegisterWithdrawERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayWithdrawERC721Event) error {
 		controller.ERC721EventsTotal.WithLabelValues(l2.chainName, orm.L2WithdrawERC721.String()).Inc()
-		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2WithdrawERC721, vLog, data.L1Token, data.L2Token, data.TokenId))
+		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2WithdrawERC721, vLog, data.L1Token, data.L2Token, []*big.Int{data.TokenId}))
+		return nil
+	})
+	l2.ERC721Gateway.RegisterBatchWithdrawERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayBatchWithdrawERC721Event) error {
+		controller.ERC721EventsTotal.WithLabelValues(l2.chainName, orm.L2BatchWithdrawERC721.String()).Inc()
+		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2BatchWithdrawERC721, vLog, data.L1Token, data.L2Token, data.TokenIds))
 		return nil
 	})
 	l2.ERC721Gateway.RegisterFinalizeDepositERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayFinalizeDepositERC721Event) error {
 		controller.ERC721EventsTotal.WithLabelValues(l2.chainName, orm.L2FinalizeDepositERC721.String()).Inc()
-		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2FinalizeDepositERC721, vLog, data.L1Token, data.L2Token, data.TokenId))
+		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2FinalizeDepositERC721, vLog, data.L1Token, data.L2Token, []*big.Int{data.TokenId}))
 		return nil
 	})
+	l2.ERC721Gateway.RegisterFinalizeBatchDepositERC721(func(vLog *types.Log, data *gateway.L2ERC721GatewayFinalizeBatchDepositERC721Event) error {
+		controller.ERC721EventsTotal.WithLabelValues(l2.chainName, orm.L2BatchFinalizeDepositERC721.String()).Inc()
+		l2.erc721Events = append(l2.erc721Events, newL2ERC721Event(orm.L2BatchFinalizeDepositERC721, vLog, data.L1Token, data.L2Token, data.TokenIds))
+		return nil
+	})
+
 	l2.ERC1155Gateway.RegisterWithdrawERC1155(func(vLog *types.Log, data *gateway.L2ERC1155GatewayWithdrawERC1155Event) error {
 		controller.ERC1155EventsTotal.WithLabelValues(l2.chainName, orm.L2WithdrawERC1155.String()).Inc()
-		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2WithdrawERC1155, vLog, data.L1Token, data.L2Token, data.TokenId, data.Amount))
+		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2WithdrawERC1155, vLog, data.L1Token, data.L2Token, []*big.Int{data.TokenId}, []*big.Int{data.Amount}))
+		return nil
+	})
+	l2.ERC1155Gateway.RegisterBatchWithdrawERC1155(func(vLog *types.Log, data *gateway.L2ERC1155GatewayBatchWithdrawERC1155Event) error {
+		controller.ERC1155EventsTotal.WithLabelValues(l2.chainName, orm.L2BatchWithdrawERC1155.String()).Inc()
+		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2BatchWithdrawERC1155, vLog, data.L1Token, data.L2Token, data.TokenIds, data.Amounts))
 		return nil
 	})
 	l2.ERC1155Gateway.RegisterFinalizeDepositERC1155(func(vLog *types.Log, data *gateway.L2ERC1155GatewayFinalizeDepositERC1155Event) error {
 		controller.ERC1155EventsTotal.WithLabelValues(l2.chainName, orm.L2FinalizeDepositERC1155.String()).Inc()
-		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2FinalizeDepositERC1155, vLog, data.L1Token, data.L2Token, data.TokenId, data.Amount))
+		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2FinalizeDepositERC1155, vLog, data.L1Token, data.L2Token, []*big.Int{data.TokenId}, []*big.Int{data.Amount}))
+		return nil
+	})
+	l2.ERC1155Gateway.RegisterFinalizeBatchDepositERC1155(func(vLog *types.Log, data *gateway.L2ERC1155GatewayFinalizeBatchDepositERC1155Event) error {
+		controller.ERC1155EventsTotal.WithLabelValues(l2.chainName, orm.L2BatchFinalizeDepositERC1155.String()).Inc()
+		l2.erc1155Events = append(l2.erc1155Events, newL2ERC1155Event(orm.L2BatchFinalizeDepositERC1155, vLog, data.L1Token, data.L2Token, data.TokenIds, data.Amounts))
 		return nil
 	})
 }
@@ -174,21 +195,37 @@ func newL2ETH20Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token 
 	}
 }
 
-func newL2ERC721Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token common.Address, tokenID *big.Int) *orm.L2ERC721Event {
+func newL2ERC721Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token common.Address, tokenIDs []*big.Int) *orm.L2ERC721Event {
+	var tokenIDList = tokenIDs[0].String()
+	for _, id := range tokenIDs[1:] {
+		tokenIDList += "," + id.String()
+	}
 	return &orm.L2ERC721Event{
-		TxHead:  orm.NewTxHead(vLog, eventType),
-		L1Token: l1Token.String(),
-		L2Token: l2Token.String(),
-		TokenID: tokenID,
+		TxHead:      orm.NewTxHead(vLog, eventType),
+		L1Token:     l1Token.String(),
+		L2Token:     l2Token.String(),
+		TokenIDList: tokenIDList,
+		TokenIds:    tokenIDs,
 	}
 }
 
-func newL2ERC1155Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token common.Address, tokenID, amount *big.Int) *orm.L2ERC1155Event {
+func newL2ERC1155Event(eventType orm.EventType, vLog *types.Log, l1Token, l2Token common.Address, tokenIDs, amounts []*big.Int) *orm.L2ERC1155Event {
+	var (
+		tokenIDList = tokenIDs[0].String()
+		amountList  = amounts[0].String()
+	)
+	for i := 1; i < len(tokenIDs); i++ {
+		tokenIDList += "," + tokenIDs[i].String()
+		amountList += "," + amounts[i].String()
+	}
+
 	return &orm.L2ERC1155Event{
-		TxHead:  orm.NewTxHead(vLog, eventType),
-		L1Token: l1Token.String(),
-		L2Token: l2Token.String(),
-		TokenID: tokenID,
-		Amount:  amount,
+		TxHead:      orm.NewTxHead(vLog, eventType),
+		L1Token:     l1Token.String(),
+		L2Token:     l2Token.String(),
+		TokenIDList: tokenIDList,
+		AmountList:  amountList,
+		TokenIds:    tokenIDs,
+		Amounts:     amounts,
 	}
 }
