@@ -45,16 +45,13 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	if len(l2.msgSentEvents) == 0 {
 		return 0, nil
 	}
-	// Get balance at start number.
-	sBalance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
+
+	// Get balance at start, end number.
+	balances, err := utils.GetBatchBalances(ctx, l2.rpcCli, l2.cfg.ScrollMessenger, []uint64{start, end})
 	if err != nil {
 		return 0, err
 	}
-	// Get latest eth balance.
-	eBalance, err := l2.client.BalanceAt(ctx, l2.cfg.ScrollMessenger, big.NewInt(0).SetUint64(end))
-	if err != nil {
-		return 0, err
-	}
+	sBalance, eBalance := balances[0], balances[1]
 
 	var (
 		total  = big.NewInt(0).Set(sBalance)
@@ -116,7 +113,7 @@ func (l2 *l2Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 	for number := start; number <= end; number++ {
 		numbers = append(numbers, number)
 	}
-	balances, err := utils.GetBatchBalances(ctx, l2.rpcCli, l2.cfg.ScrollMessenger, numbers)
+	balances, err = utils.GetBatchBalances(ctx, l2.rpcCli, l2.cfg.ScrollMessenger, numbers)
 	if err != nil {
 		return 0, err
 	}
