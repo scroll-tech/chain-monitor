@@ -107,7 +107,7 @@ func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (
 			}
 		}
 	}
-	if total.Cmp(eBalance) >= 0 {
+	if total.Cmp(eBalance) <= 0 {
 		return 0, nil
 	}
 
