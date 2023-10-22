@@ -49,7 +49,7 @@ type l1Contracts struct {
 
 	// this fields are used check balance.
 	checkBalance   bool
-	transferEvents map[string]*token.IERC20TransferEvent
+	transferEvents map[string][]*token.IERC20TransferEvent
 	iERC20         *token.IERC20
 
 	l1Confirms []*orm.L1ChainConfirm
@@ -193,7 +193,7 @@ func newL1Contracts(l1chainURL string, cfg *config.L1Contracts) (*l1Contracts, e
 func (l1 *l1Contracts) clean() {
 	l1.txHashMsgHash = map[string]common.Hash{}
 	l1.msgSentEvents = map[uint64][]*orm.L1MessengerEvent{}
-	l1.transferEvents = map[string]*token.IERC20TransferEvent{}
+	l1.transferEvents = map[string][]*token.IERC20TransferEvent{}
 	l1.l1Confirms = l1.l1Confirms[:0]
 	l1.ethEvents = l1.ethEvents[:0]
 	l1.erc20Events = l1.erc20Events[:0]

@@ -53,7 +53,7 @@ type l2Contracts struct {
 	MessageQueue    *predeploys.L2MessageQueue
 
 	// this fields are used check balance.
-	transferEvents map[string]*token.IERC20TransferEvent
+	transferEvents map[string][]*token.IERC20TransferEvent
 	iERC20         *token.IERC20
 
 	l2Confirms map[uint64]*orm.L2ChainConfirm
@@ -205,7 +205,7 @@ func (l2 *l2Contracts) initWithdraw(db *gorm.DB) error {
 func (l2 *l2Contracts) clean() {
 	l2.txHashMsgHash = map[string]common.Hash{}
 	l2.msgSentEvents = map[uint64][]*orm.L2MessengerEvent{}
-	l2.transferEvents = map[string]*token.IERC20TransferEvent{}
+	l2.transferEvents = map[string][]*token.IERC20TransferEvent{}
 	l2.l2Confirms = map[uint64]*orm.L2ChainConfirm{}
 	l2.ethEvents = l2.ethEvents[:0]
 	l2.erc20Events = l2.erc20Events[:0]

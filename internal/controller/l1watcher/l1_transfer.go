@@ -17,7 +17,8 @@ import (
 
 func (l1 *l1Contracts) registerTransfer() {
 	l1.iERC20.RegisterTransfer(func(vLog *types.Log, data *token.IERC20TransferEvent) error {
-		l1.transferEvents[vLog.TxHash.String()] = data
+		txHash := vLog.TxHash.String()
+		l1.transferEvents[txHash] = append(l1.transferEvents[txHash], data)
 		return nil
 	})
 }
@@ -169,12 +170,21 @@ func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) er
 }
 
 func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) bool {
-	event, exist := l1.transferEvents[txHash]
+	events, exist := l1.transferEvents[txHash]
 	if !exist {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
 		go controller.SlackNotify(fmt.Sprintf("can't find %s relate transfer event, tx_hash: %s", tp.String(), txHash))
 		return false
-	} else if event.Value.Cmp(amount) != 0 {
+	}
+	// gateway transfer event just has one in one transaction.
+	if len(events) != 1 {
+		log.Error("l1chain gateway events count doesn't match transfer count", "tx_hash", txHash, "event count", 1, "transfer count", len(events))
+		go controller.SlackNotify(fmt.Sprintf("l1chain gateway events count doesn't match transfer count, tx_hash: %s, event_count: %d, transfer_count: %d", txHash, 1, len(events)))
+		return false
+	}
+	// check transfer value.
+	event := events[0]
+	if event.Value.Cmp(amount) != 0 {
 		controller.ERC20BalanceFailedTotal.WithLabelValues(l1.chainName, tp.String()).Inc()
 		data, _ := json.Marshal(event)
 		go controller.SlackNotify(fmt.Sprintf("the %s transfer value doesn't match, tx_hash: %s, expect_value: %s, actual_value: %s, content: %s",
@@ -187,15 +197,17 @@ func (l1 *l1Contracts) transferNormalCheck(tp orm.EventType, txHash string, amou
 
 func (l1 *l1Contracts) transferAbnormalCheck() []uint64 {
 	var failedNumbers []uint64
-	for txHash, event := range l1.transferEvents {
-		for _, api := range l1.gatewayAPIs {
-			addr := api.GetAddress()
-			if event.To == addr || event.From == addr {
-				failedNumbers = append(failedNumbers, event.Log.BlockNumber)
-				controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
-				data, _ := json.Marshal(event)
-				go controller.SlackNotify(
-					fmt.Sprintf("l1chain unexpect tx.From or tx.To address used gateway, tx_hash: %s, content: %s", txHash, string(data)))
+	for txHash, events := range l1.transferEvents {
+		for _, event := range events {
+			for _, api := range l1.gatewayAPIs {
+				addr := api.GetAddress()
+				if event.To == addr || event.From == addr {
+					failedNumbers = append(failedNumbers, event.Log.BlockNumber)
+					controller.ERC20UnexpectTotal.WithLabelValues(l1.chainName).Inc()
+					data, _ := json.Marshal(event)
+					go controller.SlackNotify(
+						fmt.Sprintf("l1chain unexpect tx.From or tx.To address used gateway, tx_hash: %s, content: %s", txHash, string(data)))
+				}
 			}
 		}
 	}
