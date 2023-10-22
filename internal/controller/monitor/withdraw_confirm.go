@@ -133,8 +133,6 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 		start, end,
 		orm.L1FinalizeWithdrawDAI,
 		orm.L1FinalizeWithdrawWETH,
-		orm.L1USDCFinalizeWithdrawERC20,
-		orm.L1LIDOFinalizeWithdrawERC20,
 		orm.L1FinalizeWithdrawStandardERC20,
 		orm.L1FinalizeWithdrawCustomERC20)
 	if err := db.Scan(&erc20Events).Error; err != nil {

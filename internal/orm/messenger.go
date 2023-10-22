@@ -18,11 +18,11 @@ const (
 	L1FailedRelayedMessage EventType = 203
 
 	// L2SentMessage l2 sent message.
-	L2SentMessage EventType = 211
+	L2SentMessage EventType = 201
 	// L2RelayedMessage l2 relayed message.
-	L2RelayedMessage EventType = 212
+	L2RelayedMessage EventType = 202
 	// L2FailedRelayedMessage l2 failed relayed message.
-	L2FailedRelayedMessage EventType = 213
+	L2FailedRelayedMessage EventType = 203
 )
 
 // L1MessengerEvent represents an event related to L1 messenger activities.
