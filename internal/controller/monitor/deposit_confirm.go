@@ -137,8 +137,6 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 		start, end,
 		orm.L2FinalizeDepositDAI,
 		orm.L2FinalizeDepositWETH,
-		orm.L2USDCFinalizeDepositERC20,
-		orm.L2LIDOFinalizeDepositERC20,
 		orm.L2FinalizeDepositStandardERC20,
 		orm.L2FinalizeDepositCustomERC20)
 	if err := db.Scan(&erc20Events).Error; err != nil {
