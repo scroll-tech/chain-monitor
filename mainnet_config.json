@@ -1,8 +1,8 @@
 {
   "l1_config": {
-    "l1_url": "http://10.5.12.230:8545/l1",
+    "l1_url": "https://rpc.ankr.com/eth",
     "confirm": "0x4",
-    "start_number": 4041200,
+    "start_number": 18391296,
     "l1_contracts": {
       "l1_gateways": {
         "eth_gateway": "0x7F2b8C31F88B6006c382775eea88297Ec1e3E905",
@@ -21,8 +21,9 @@
     }
   },
   "l2_config": {
-    "l2_url": "http://10.5.11.195:8545",
+    "l2_url": "https://rpc.ankr.com/scroll",
     "confirm": "0x4",
+    "start_number": 216579,
     "l2_contracts": {
       "l2_gateways": {
         "eth_gateway": "0x6EA73e05AdC79974B931123675ea8F78FfdacDF0",
