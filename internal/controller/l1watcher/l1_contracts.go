@@ -19,12 +19,11 @@ import (
 )
 
 type l1Contracts struct {
-	cfg          *config.L1Contracts
-	l2gatewayCfg *config.Gateway
-	tx           *gorm.DB
-	rpcCli       *rpc.Client
-	client       *ethclient.Client
-	chainName    string
+	cfg       *config.L1Contracts
+	tx        *gorm.DB
+	rpcCli    *rpc.Client
+	client    *ethclient.Client
+	chainName string
 
 	msgSentEvents map[string]*orm.L1MessengerEvent
 	ethEvents     []*orm.L1ETHEvent

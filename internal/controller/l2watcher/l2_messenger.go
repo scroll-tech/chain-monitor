@@ -1,9 +1,7 @@
 package l2watcher
 
 import (
-	l1gateway "chain-monitor/bytecode/scroll/L1/gateway"
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -28,7 +26,7 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 			Target:   data.Target,
 			Message:  data.Message,
 			Log:      vLog,
-			Value:    data.Value,
+			Amount:   data.Value,
 			MsgNonce: data.MessageNonce.Uint64(),
 		})
 		return nil
@@ -146,162 +144,5 @@ func (l2 *l2Contracts) storeL1ChainConfirms(ctx context.Context) error {
 	if err = l2.tx.Model(&orm.L2ChainConfirm{}).Save(l2Confirms).Error; err != nil {
 		return err
 	}
-	return nil
-}
-
-func (l2 *l2Contracts) parseGatewayWithdraw(l2msg *orm.L2MessengerEvent) error {
-	if len(l2msg.Message) < 4 {
-		log.Warn("l2chain sendMessage content less than 4 bytes", "tx_hash", l2msg.Log.TxHash.String())
-		return errMessenger
-	}
-	id := common.Bytes2Hex(l2msg.Message[:4])
-	switch id {
-	case "8eaac8a3": // FinalizeWithdrawETH
-		return l2.parseGatewayWithdrawETH(l2msg)
-	case "84bd13b0": // FinalizeWithdrawERC20
-		return l2.parseGatewayWithdrawERC20(l2msg)
-	case "d606b4dc": // FinalizeWithdrawERC721
-		return l2.parseGatewayWithdrawERC721(l2msg)
-	case "730608b3": // FinalizeWithdrawERC1155
-		return l2.parseGatewayWithdrawERC155(l2msg)
-	}
-	log.Warn("l2chain sendMessage unexpect method_id", "tx_hash", l2msg.Log.TxHash.String(), "method_id", id)
-	return errMessenger
-}
-
-func (l2 *l2Contracts) parseGatewayWithdrawETH(l2msg *orm.L2MessengerEvent) error {
-	method, err := l1gateway.L1ETHGatewayABI.MethodById(l2msg.Message)
-	if err != nil {
-		return err
-	}
-	params, err := method.Inputs.Unpack(l2msg.Message[4:])
-	if err != nil {
-		return err
-	}
-	event := new(l1gateway.L1ETHGatewayFinalizeWithdrawETHEvent)
-	err = method.Inputs.Copy(event, params)
-	if err != nil {
-		return err
-	}
-	l2.ethEvents = append(l2.ethEvents, &orm.L2ETHEvent{
-		TxHead: &orm.TxHead{
-			Number:  l2msg.Number,
-			TxHash:  l2msg.Log.TxHash.String(),
-			MsgHash: l2msg.MsgHash,
-			Type:    orm.L2WithdrawETH,
-		},
-		Amount: event.Amount,
-	})
-	return nil
-}
-
-func (l2 *l2Contracts) parseGatewayWithdrawERC20(l2msg *orm.L2MessengerEvent) error {
-	method, err := l1gateway.L1ERC20GatewayABI.MethodById(l2msg.Message)
-	if err != nil {
-		return err
-	}
-	params, err := method.Inputs.Unpack(l2msg.Message[4:])
-	if err != nil {
-		return err
-	}
-	event := new(l1gateway.L1ERC20GatewayFinalizeWithdrawERC20Event)
-	err = method.Inputs.Copy(event, params)
-	if err != nil {
-		return err
-	}
-
-	var (
-		_tp        orm.EventType
-		gatewayCfg = l2.l1gatewayCfg
-	)
-	switch l2msg.Target {
-	case gatewayCfg.DAIGateway:
-		_tp = orm.L2WithdrawDAI
-	case gatewayCfg.WETHGateway:
-		_tp = orm.L2WithdrawWETH
-	case gatewayCfg.StandardERC20Gateway:
-		_tp = orm.L2WithdrawStandardERC20
-	case gatewayCfg.CustomERC20Gateway:
-		_tp = orm.L2WithdrawCustomERC20
-	case gatewayCfg.USDCGateway:
-		_tp = orm.L2USDCWithdrawERC20
-	case gatewayCfg.LIDOGateway:
-		_tp = orm.L2LIDOWithdrawERC20
-	default:
-		buf, _ := json.Marshal(event)
-		log.Warn("l1chain unexpect erc20 withdraw transfer", "target address", l2msg.Target.String(), "content", string(buf))
-	}
-
-	l2.erc20Events = append(l2.erc20Events, &orm.L2ERC20Event{
-		TxHead: &orm.TxHead{
-			Number:  l2msg.Number,
-			TxHash:  l2msg.Log.TxHash.String(),
-			MsgHash: l2msg.MsgHash,
-			Type:    _tp,
-		},
-		L1Token: event.L1Token.String(),
-		L2Token: event.L2Token.String(),
-		Amount:  event.Amount,
-	})
-
-	return nil
-}
-
-func (l2 *l2Contracts) parseGatewayWithdrawERC721(l2msg *orm.L2MessengerEvent) error {
-	method, err := l1gateway.L1ERC721GatewayABI.MethodById(l2msg.Message)
-	if err != nil {
-		return err
-	}
-	params, err := method.Inputs.Unpack(l2msg.Message[4:])
-	if err != nil {
-		return err
-	}
-	event := new(l1gateway.L1ERC721GatewayFinalizeWithdrawERC721Event)
-	err = method.Inputs.Copy(event, params)
-	if err != nil {
-		return err
-	}
-	l2.erc721Events = append(l2.erc721Events, &orm.L2ERC721Event{
-		TxHead: &orm.TxHead{
-			Number:  l2msg.Number,
-			TxHash:  l2msg.Log.TxHash.String(),
-			MsgHash: l2msg.MsgHash,
-			Type:    orm.L2WithdrawERC721,
-		},
-		L1Token: event.L1Token.String(),
-		L2Token: event.L2Token.String(),
-		TokenID: event.TokenId,
-	})
-
-	return nil
-}
-
-func (l2 *l2Contracts) parseGatewayWithdrawERC155(l2msg *orm.L2MessengerEvent) error {
-	method, err := l1gateway.L1ERC1155GatewayABI.MethodById(l2msg.Message)
-	if err != nil {
-		return err
-	}
-	params, err := method.Inputs.Unpack(l2msg.Message[4:])
-	if err != nil {
-		return err
-	}
-	event := new(l1gateway.L1ERC1155GatewayFinalizeWithdrawERC1155Event)
-	err = method.Inputs.Copy(event, params)
-	if err != nil {
-		return err
-	}
-	l2.erc1155Events = append(l2.erc1155Events, &orm.L2ERC1155Event{
-		TxHead: &orm.TxHead{
-			Number:  l2msg.Number,
-			TxHash:  l2msg.Log.TxHash.String(),
-			MsgHash: l2msg.MsgHash,
-			Type:    orm.L2WithdrawERC1155,
-		},
-		L1Token: event.L1Token.String(),
-		L2Token: event.L2Token.String(),
-		TokenID: event.TokenId,
-		Amount:  event.Amount,
-	})
-
 	return nil
 }

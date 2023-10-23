@@ -4,13 +4,11 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/core/types"
-	"github.com/scroll-tech/go-ethereum/log"
-
 	"chain-monitor/bytecode/scroll/L1/gateway"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/core/types"
 )
 
 var (
@@ -115,39 +113,25 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 func (l1 *l1Contracts) gatewayEvents() error {
 	for _, event := range l1.ethEvents {
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash, msg.FromGateway = msg.MsgHash, true
+			event.MsgHash = msg.MsgHash
 		}
 	}
 
 	for _, event := range l1.erc20Events {
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash, msg.FromGateway = msg.MsgHash, true
+			event.MsgHash = msg.MsgHash
 		}
 	}
 
 	for _, event := range l1.erc721Events {
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash, msg.FromGateway = msg.MsgHash, true
+			event.MsgHash = msg.MsgHash
 		}
 	}
 
 	for _, event := range l1.erc1155Events {
 		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash, msg.FromGateway = msg.MsgHash, true
-		}
-	}
-
-	for _, msg := range l1.msgSentEvents {
-		if msg.IsNotGatewaySentMessage() {
-			err := l1.parseGatewayDeposit(msg)
-			if errors.Is(err, errMessenger) {
-				continue
-			}
-			if err != nil {
-				log.Error("l1chain failed to parse gateway message", "tx_hash", msg.TxHash, "err", err)
-				return err
-			}
-			msg.FromGateway = true
+			event.MsgHash = msg.MsgHash
 		}
 	}
 

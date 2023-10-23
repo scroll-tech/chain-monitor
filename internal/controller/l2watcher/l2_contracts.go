@@ -22,10 +22,9 @@ import (
 )
 
 type l2Contracts struct {
-	tx           *gorm.DB
-	cfg          *config.L2Contracts
-	l1gatewayCfg *config.Gateway
-	chainName    string
+	tx        *gorm.DB
+	cfg       *config.L2Contracts
+	chainName string
 
 	rpcCli *rpc.Client
 	client *ethclient.Client
@@ -248,11 +247,11 @@ func (l2 *l2Contracts) parseL2Events(ctx context.Context, start, end uint64) (in
 	}
 
 	// Parse withdraw transfer event logs.
-	_, err = l2.withdrawFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
-	if err != nil {
-		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
-		return 0, err
-	}
+	//_, err = l2.withdrawFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
+	//if err != nil {
+	//	controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
+	//	return 0, err
+	//}
 
 	// Create l2Confirms
 	for number := start; number <= end; number++ {

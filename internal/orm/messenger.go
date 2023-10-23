@@ -30,14 +30,17 @@ type L1MessengerEvent struct {
 	Target  common.Address `gorm:"-"`
 	Message []byte         `gorm:"-"`
 	Log     *types.Log     `gorm:"-"`
-	Value   *big.Int       `gorm:"-"`
 
-	FromGateway bool `gorm:"from_gateway"`
+	Amount *big.Int `gorm:"type:numeric(32,0)"`
 }
 
-// IsNotGatewaySentMessage is sentMessage event but not from gateway contract.
-func (l1 *L1MessengerEvent) IsNotGatewaySentMessage() bool {
-	return l1.Type == L1SentMessage && !l1.FromGateway
+func GetL1MessengerEvent(db *gorm.DB, msgHash string) (*L1MessengerEvent, error) {
+	var msg L1MessengerEvent
+	err := db.Model(&L1MessengerEvent{}).Where("msg_hash = ?", msgHash).Last(&msg).Error
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 // SaveL1Messenger saves an L1 messenger event into the database.
@@ -62,16 +65,19 @@ type L2MessengerEvent struct {
 	Target  common.Address `gorm:"-"`
 	Message []byte         `gorm:"-"`
 	Log     *types.Log     `gorm:"-"`
-	Value   *big.Int       `gorm:"-"`
 
-	MsgNonce    uint64 `gorm:"type: msg_nonce"`
-	MsgProof    string `gorm:"msg_proof"`
-	FromGateway bool   `gorm:"from_gateway"`
+	Amount   *big.Int `gorm:"type:numeric(32,0)"`
+	MsgNonce uint64   `gorm:"type: msg_nonce"`
+	MsgProof string   `gorm:"msg_proof"`
 }
 
-// IsNotGatewaySentMessage is sentMessage event but not from gateway contract.
-func (l2 *L2MessengerEvent) IsNotGatewaySentMessage() bool {
-	return l2.Type == L2SentMessage && !l2.FromGateway
+func GetL2MessengerEvent(db *gorm.DB, msgHash string) (*L2MessengerEvent, error) {
+	var msg L2MessengerEvent
+	err := db.Model(&L2MessengerEvent{}).Where("msg_hash = ?", msgHash).Last(&msg).Error
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 // SaveL2Messenger saves an L2 messenger event into the database.

@@ -1,9 +1,11 @@
 package monitor
 
 import (
+	"chain-monitor/internal/utils"
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
@@ -225,7 +227,108 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 		}
 	}
 
+	// check l2ScrollMessenger eth balance.
+	failedNumber, err := ch.confirmL2ETHBalance(ctx, start, end)
+	if err != nil {
+		return nil, err
+	}
+	if flagNumbers[failedNumber] {
+		flagNumbers[failedNumber] = true
+		failedNumbers = append(failedNumbers, failedNumber)
+	}
+
 	return failedNumbers, nil
+}
+
+func (ch *ChainMonitor) confirmL2ETHBalance(ctx context.Context, start, end uint64) (uint64, error) {
+	client := ch.l2watcher.RPCClient()
+	contracts := ch.l2watcher.L2Contracts()
+
+	var l2Msgs []orm.L2MessengerEvent
+	tx := ch.db.Model(&orm.L2MessengerEvent{}).Select("number", "tx_hash", "msg_hash", "type", "amount").Where("number BETWEEN ? AND ?", start, end)
+	err := tx.Scan(&l2Msgs).Error
+	if err != nil {
+		return 0, err
+	}
+
+	var relayHashes []string
+	for _, msg := range l2Msgs {
+		if msg.Type == orm.L2RelayedMessage {
+			relayHashes = append(relayHashes, msg.MsgHash)
+		}
+	}
+	var (
+		l1Msgs    []orm.L1MessengerEvent
+		l1MsgsMap = map[string]*orm.L1MessengerEvent{}
+	)
+	tx = ch.db.Model(&orm.L1MessengerEvent{}).Select("msg_hash", "amount").Where("msg_hash in ?", relayHashes)
+	if err = tx.Scan(l1Msgs).Error; err != nil {
+		return 0, err
+	}
+	for i := range l1Msgs {
+		l1MsgsMap[l1Msgs[i].MsgHash] = &l1Msgs[i]
+	}
+
+	var l2MsgsNumber map[uint64][]*orm.L2MessengerEvent
+	for i := range l2Msgs {
+		msg := &l2Msgs[i]
+		if l1Msg := l1MsgsMap[msg.MsgHash]; l1Msg != nil {
+			msg.Amount = l1Msg.Amount
+		}
+		l2MsgsNumber[msg.Number] = append(l2MsgsNumber[msg.Number], msg)
+	}
+
+	// Get balance at start number.
+	balances, err := utils.GetBatchBalances(ctx, client, contracts.ScrollMessenger, []uint64{start - 1, end})
+	if err != nil {
+		return 0, err
+	}
+	sBalance, expectBalance := balances[0], balances[1]
+
+	actualBalance := big.NewInt(0).Set(sBalance)
+	for _, msgs := range l2MsgsNumber {
+		for _, msg := range msgs {
+			if msg.Type == orm.L2SentMessage {
+				actualBalance.Add(actualBalance, msg.Amount)
+			}
+			if msg.Type == orm.L2RelayedMessage {
+				actualBalance.Sub(actualBalance, msg.Amount)
+			}
+		}
+	}
+
+	if actualBalance.Cmp(expectBalance) == 0 {
+		return 0, nil
+	}
+
+	// Get eth batch balances.
+	numbers := make([]uint64, 0, end-start+1)
+	for number := start; number <= end; number++ {
+		numbers = append(numbers, number)
+	}
+	balances, err = utils.GetBatchBalances(ctx, client, contracts.ScrollMessenger, numbers)
+	if err != nil {
+		return 0, err
+	}
+	actualBalance = big.NewInt(0).Set(sBalance)
+	for idx, number := range numbers {
+		for _, msg := range l2MsgsNumber[number] {
+			if msg.Type == orm.L2SentMessage {
+				actualBalance.Add(actualBalance, msg.Amount)
+			}
+			if msg.Type == orm.L2RelayedMessage {
+				actualBalance.Sub(actualBalance, msg.Amount)
+			}
+		}
+		balance := balances[idx]
+		if actualBalance.Cmp(balance) != 0 {
+			controller.ETHBalanceFailedTotal.WithLabelValues("").Inc()
+			go controller.SlackNotify(fmt.Sprintf("l2ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), actualBalance.String()))
+			return number, nil
+		}
+	}
+
+	return 0, nil
 }
 
 func (ch *ChainMonitor) getDepositStartAndEndNumber() (uint64, uint64) {

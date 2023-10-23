@@ -4,13 +4,11 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/core/types"
-	"github.com/scroll-tech/go-ethereum/log"
-
 	"chain-monitor/bytecode/scroll/L2/gateway"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/core/types"
 )
 
 var (
@@ -123,39 +121,25 @@ func (l2 *l2Contracts) gatewayEvents() error {
 
 	for _, event := range l2.ethEvents {
 		if msg, exist := msgSentEvents[event.TxHash]; exist {
-			event.MsgHash, msg.FromGateway = msg.MsgHash, true
+			event.MsgHash = msg.MsgHash
 		}
 	}
 
 	for _, event := range l2.erc20Events {
 		if msg, exist := msgSentEvents[event.TxHash]; exist {
-			event.MsgHash, msg.FromGateway = msg.MsgHash, true
+			event.MsgHash = msg.MsgHash
 		}
 	}
 
 	for _, event := range l2.erc721Events {
 		if msg, exist := msgSentEvents[event.TxHash]; exist {
-			event.MsgHash, msg.FromGateway = msg.MsgHash, true
+			event.MsgHash = msg.MsgHash
 		}
 	}
 
 	for _, event := range l2.erc1155Events {
 		if msg, exist := msgSentEvents[event.TxHash]; exist {
-			event.MsgHash, msg.FromGateway = msg.MsgHash, true
-		}
-	}
-
-	for _, msg := range msgSentEvents {
-		if msg.IsNotGatewaySentMessage() {
-			err := l2.parseGatewayWithdraw(msg)
-			if errors.Is(err, errMessenger) {
-				continue
-			}
-			if err != nil {
-				log.Error("l2chain failed to parse gateway message", "tx_hash", msg.Log.TxHash.String(), "err", err)
-				return err
-			}
-			msg.FromGateway = true
+			event.MsgHash = msg.MsgHash
 		}
 	}
 

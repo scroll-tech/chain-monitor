@@ -12,7 +12,6 @@ import (
 	"chain-monitor/bytecode/scroll/token"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
-	"chain-monitor/internal/utils"
 )
 
 func (l1 *l1Contracts) registerTransfer() {
@@ -41,101 +40,6 @@ type ethEvent struct {
 	Amount *big.Int
 }
 
-func (l1 *l1Contracts) checkETHBalance(ctx context.Context, start, end uint64) (uint64, error) {
-	if len(l1.ethEvents) == 0 {
-		return 0, nil
-	}
-
-	// Get balance at start number.
-	sBalance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(start-1))
-	if err != nil {
-		return 0, err
-	}
-
-	// Get latest eth balance.
-	eBalance, err := l1.client.BalanceAt(ctx, l1.cfg.ScrollMessenger, big.NewInt(0).SetUint64(end))
-	if err != nil {
-		return 0, err
-	}
-
-	var (
-		total  = big.NewInt(0).Set(sBalance)
-		events = make(map[uint64][]*ethEvent)
-	)
-	for _, event := range l1.ethEvents {
-		var amount = big.NewInt(0).Set(event.Amount)
-		// L1DepositETH: +amount, L1FinalizeWithdrawETH: -amount
-		if event.Type == orm.L1FinalizeWithdrawETH {
-			amount.Mul(amount, big.NewInt(-1))
-		}
-		total.Add(total, amount)
-		events[event.Number] = append(events[event.Number], &ethEvent{
-			Number: event.Number,
-			TxHash: event.TxHash,
-			Type:   event.Type,
-			Amount: amount,
-		})
-	}
-	for _, event := range l1.erc20Events {
-		if !(event.Type == orm.L1DepositWETH || event.Type == orm.L1FinalizeWithdrawWETH) {
-			continue
-		}
-		var amount = big.NewInt(0).Set(event.Amount)
-		// L1DepositWETH: +amount, L1FinalizeWithdrawWETH: -amount
-		if event.Type == orm.L1FinalizeWithdrawWETH {
-			amount.Mul(amount, big.NewInt(-1))
-		}
-		total.Add(total, amount)
-		events[event.Number] = append(events[event.Number], &ethEvent{
-			Number: event.Number,
-			TxHash: event.TxHash,
-			Type:   event.Type,
-			Amount: amount,
-		})
-	}
-
-	for _, msg := range l1.msgSentEvents {
-		if msg.IsNotGatewaySentMessage() {
-			events[msg.Number] = append(events[msg.Number], &ethEvent{
-				Number: msg.Number,
-				TxHash: msg.TxHash,
-				Type:   msg.Type,
-				Amount: big.NewInt(0).Set(msg.Value),
-			})
-		}
-	}
-
-	if total.Cmp(eBalance) == 0 {
-		return 0, nil
-	}
-
-	// Get eth batch balances.
-	numbers := make([]uint64, 0, end-start+1)
-	for number := start; number <= end; number++ {
-		numbers = append(numbers, number)
-	}
-	balances, err := utils.GetBatchBalances(ctx, l1.rpcCli, l1.cfg.ScrollMessenger, numbers)
-	if err != nil {
-		return 0, err
-	}
-
-	var amount = big.NewInt(0).Set(sBalance)
-	for idx, number := range numbers {
-		for _, event := range events[number] {
-			amount.Add(amount, event.Amount)
-		}
-
-		balance := balances[idx]
-		if amount.Cmp(balance) != 0 {
-			controller.ETHBalanceFailedTotal.WithLabelValues(l1.chainName).Inc()
-			go controller.SlackNotify(fmt.Sprintf("l1ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), amount.String()))
-			return number, nil
-		}
-	}
-
-	return 0, nil
-}
-
 func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) error {
 	var failedNumbers = map[uint64]bool{}
 	for _, event := range l1.erc20Events {
@@ -152,12 +56,6 @@ func (l1 *l1Contracts) checkL1Balance(ctx context.Context, start, end uint64) er
 	for _, failedNumber := range l1.transferAbnormalCheck() {
 		failedNumbers[failedNumber] = true
 	}
-
-	failedNumber, err := l1.checkETHBalance(ctx, start, end)
-	if err != nil {
-		return err
-	}
-	failedNumbers[failedNumber] = true
 
 	for _, cfm := range l1.l1Confirms {
 		cfm.BalanceStatus = !failedNumbers[cfm.Number]

@@ -1,15 +1,9 @@
 -- +goose Up
 -- +goose MessengerChangeBegin
 alter table l1_messenger_events
-    rename column confirm to from_gateway;
-alter table l1_messenger_events
-    alter column from_gateway set default true;
-
+    add amount numeric(32);
 alter table l2_messenger_events
-    rename column confirm to from_gateway;
-alter table l2_messenger_events
-    alter column from_gateway set default true;
-
+    add amount numeric(32);
 alter table l2_messenger_events
     add tx_hash varchar(66) default '' not null;
 -- +goose MessengerChangeEnd
@@ -17,15 +11,9 @@ alter table l2_messenger_events
 -- +goose Down
 -- +goose MessengerChangeBegin
 alter table l1_messenger_events
-    rename column from_gateway to confirm;
-alter table l1_messenger_events
-    alter column confirm drop default;
-
+drop column amount;
 alter table l2_messenger_events
-    rename column from_gateway to confirm;
-alter table l2_messenger_events
-    alter column confirm drop default;
-
+drop column amount;
 alter table l2_messenger_events
 drop column tx_hash;
 -- +goose MessengerChangeEnd
