@@ -247,11 +247,11 @@ func (l2 *l2Contracts) parseL2Events(ctx context.Context, start, end uint64) (in
 	}
 
 	// Parse withdraw transfer event logs.
-	//_, err = l2.withdrawFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
-	//if err != nil {
-	//	controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
-	//	return 0, err
-	//}
+	_, err = l2.withdrawFilter.GetLogs(ctx, l2.client, start, end, l2.parseTransferLogs)
+	if err != nil {
+		controller.ParseLogsFailureTotal.WithLabelValues(l2.chainName).Inc()
+		return 0, err
+	}
 
 	// Create l2Confirms
 	for number := start; number <= end; number++ {
@@ -259,11 +259,6 @@ func (l2 *l2Contracts) parseL2Events(ctx context.Context, start, end uint64) (in
 			Number:        number,
 			BalanceStatus: true,
 		}
-	}
-
-	// If cross tx not used gateway contract, then the function can mock a gateway event.
-	if err = l2.gatewayEvents(); err != nil {
-		return 0, err
 	}
 
 	// Check balance.

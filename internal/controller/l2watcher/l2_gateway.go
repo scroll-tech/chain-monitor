@@ -1,7 +1,6 @@
 package l2watcher
 
 import (
-	"errors"
 	"math/big"
 
 	"chain-monitor/bytecode/scroll/L2/gateway"
@@ -9,10 +8,6 @@ import (
 	"chain-monitor/internal/orm"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
-)
-
-var (
-	errMessenger = errors.New("l2chain sendMessage content is not relate to gateway contract")
 )
 
 func (l2 *l2Contracts) registerGatewayHandlers() {
@@ -147,8 +142,20 @@ func (l2 *l2Contracts) gatewayEvents() error {
 }
 
 func (l2 *l2Contracts) storeGatewayEvents() error {
+	var msgSentEvents = map[string]*orm.L2MessengerEvent{}
+	for _, msgs := range l2.msgSentEvents {
+		for _, msg := range msgs {
+			msgSentEvents[msg.TxHash] = msg
+		}
+	}
+
 	// store l2 eth events.
 	if len(l2.ethEvents) > 0 {
+		for _, event := range l2.ethEvents {
+			if msg, exist := msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
 		if err := l2.tx.Save(l2.ethEvents).Error; err != nil {
 			return err
 		}
@@ -156,6 +163,11 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 
 	// store l2 erc20 events.
 	if len(l2.erc20Events) > 0 {
+		for _, event := range l2.erc20Events {
+			if msg, exist := msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
 		if err := l2.tx.Save(l2.erc20Events).Error; err != nil {
 			return err
 		}
@@ -163,6 +175,11 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 
 	// store l2 err721 events.
 	if len(l2.erc721Events) > 0 {
+		for _, event := range l2.erc721Events {
+			if msg, exist := msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
 		if err := l2.tx.Save(l2.erc721Events).Error; err != nil {
 			return err
 		}
@@ -170,6 +187,11 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 
 	// store l2 erc1155 events.
 	if len(l2.erc1155Events) > 0 {
+		for _, event := range l2.erc1155Events {
+			if msg, exist := msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
 		if err := l2.tx.Save(l2.erc1155Events).Error; err != nil {
 			return err
 		}

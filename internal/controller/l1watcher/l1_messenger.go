@@ -100,6 +100,11 @@ func (l1 *l1Contracts) registerScrollHandlers() {
 func (l1 *l1Contracts) storeL1WatcherEvents() error {
 	// store l1 eth events.
 	if len(l1.ethEvents) > 0 {
+		for _, event := range l1.ethEvents {
+			if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
 		if err := l1.tx.Save(l1.ethEvents).Error; err != nil {
 			return err
 		}
@@ -107,6 +112,11 @@ func (l1 *l1Contracts) storeL1WatcherEvents() error {
 
 	// store l1 erc20 events.
 	if len(l1.erc20Events) > 0 {
+		for _, event := range l1.erc20Events {
+			if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
 		if err := l1.tx.Save(l1.erc20Events).Error; err != nil {
 			return err
 		}
@@ -114,6 +124,11 @@ func (l1 *l1Contracts) storeL1WatcherEvents() error {
 
 	// store l1 err721 events.
 	if len(l1.erc721Events) > 0 {
+		for _, event := range l1.erc721Events {
+			if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
 		if err := l1.tx.Save(l1.erc721Events).Error; err != nil {
 			return err
 		}
@@ -121,6 +136,11 @@ func (l1 *l1Contracts) storeL1WatcherEvents() error {
 
 	// store l1 erc1155 events.
 	if len(l1.erc1155Events) > 0 {
+		for _, event := range l1.erc1155Events {
+			if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
 		if err := l1.tx.Save(l1.erc1155Events).Error; err != nil {
 			return err
 		}

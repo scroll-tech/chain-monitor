@@ -1,7 +1,6 @@
 package l1watcher
 
 import (
-	"errors"
 	"math/big"
 
 	"chain-monitor/bytecode/scroll/L1/gateway"
@@ -9,10 +8,6 @@ import (
 	"chain-monitor/internal/orm"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
-)
-
-var (
-	errMessenger = errors.New("l1chain sendMessage content is not relate to gateway contract")
 )
 
 func (l1 *l1Contracts) registerGatewayHandlers() {
@@ -108,34 +103,6 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 		l1.erc1155Events = append(l1.erc1155Events, newL1ERC1155Event(orm.L1FinalizeWithdrawERC1155, vLog, data.L1Token, data.L2Token, data.TokenId, data.Amount))
 		return nil
 	})
-}
-
-func (l1 *l1Contracts) gatewayEvents() error {
-	for _, event := range l1.ethEvents {
-		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-		}
-	}
-
-	for _, event := range l1.erc20Events {
-		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-		}
-	}
-
-	for _, event := range l1.erc721Events {
-		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-		}
-	}
-
-	for _, event := range l1.erc1155Events {
-		if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-		}
-	}
-
-	return nil
 }
 
 func newL1ETHEvent(eventType orm.EventType, vLog *types.Log, amount *big.Int) *orm.L1ETHEvent {

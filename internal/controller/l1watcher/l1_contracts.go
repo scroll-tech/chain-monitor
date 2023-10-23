@@ -248,11 +248,6 @@ func (l1 *l1Contracts) parseL1Events(ctx context.Context, start, end uint64) (in
 		})
 	}
 
-	// Integrate gateway events.
-	if err = l1.gatewayEvents(); err != nil {
-		return 0, err
-	}
-
 	// Check balance.
 	if l1.checkBalance {
 		if err = l1.checkL1Balance(ctx, start, end); err != nil {
