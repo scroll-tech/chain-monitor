@@ -48,9 +48,9 @@ where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 	l2MessengerSQL = `select
     l1me.tx_hash as l1_tx_hash, l1me.number as l1_number,
     l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
-from l2_messenger_events as l2me full join l1_messenger_events as l1me 
+from l2_messenger_events as l2me join l1_messenger_events as l1me 
     on l2me.msg_hash = l1me.msg_hash
-where l2me.number BETWEEN ? AND ?;`
+where l2me.number BETWEEN ? AND ? AND l2me.type != ?;`
 )
 
 // DepositConfirm monitors the blockchain and confirms the deposit events.
@@ -228,8 +228,8 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 
 	// check no gateway events.
 	var messengerEvents []msgEvents
-	db = db.Raw(l2MessengerSQL, start, end)
-	if err := db.Scan(messengerEvents).Error; err != nil {
+	db = db.Raw(l2MessengerSQL, start, end, orm.L2FailedRelayedMessage)
+	if err := db.Scan(&messengerEvents).Error; err != nil {
 		return nil, err
 	}
 	for i := 0; i < len(messengerEvents); i++ {
@@ -254,7 +254,7 @@ func (ch *ChainMonitor) confirmL2ETHBalance(ctx context.Context, start, end uint
 	contracts := ch.l2watcher.L2Contracts()
 
 	var l2Msgs []orm.L2MessengerEvent
-	tx := ch.db.Model(&orm.L2MessengerEvent{}).Select("number", "tx_hash", "msg_hash", "type", "amount").Where("number BETWEEN ? AND ?", start, end)
+	tx := ch.db.Model(&orm.L2MessengerEvent{}).Select("number", "tx_hash", "msg_hash", "type", "amount").Where("number BETWEEN ? AND ? AND type != ?", start, end, orm.L2FailedRelayedMessage)
 	err := tx.Scan(&l2Msgs).Error
 	if err != nil {
 		return 0, err
@@ -297,6 +297,9 @@ func (ch *ChainMonitor) confirmL2ETHBalance(ctx context.Context, start, end uint
 	actualBalance := big.NewInt(0).Set(sBalance)
 	for _, msgs := range l2MsgsNumber {
 		for _, msg := range msgs {
+			if msg.Type == orm.L2FailedRelayedMessage {
+				continue
+			}
 			amount, ok := big.NewInt(0).SetString(msg.Amount, 10)
 			if !ok {
 				amount = big.NewInt(0)

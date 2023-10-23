@@ -1,14 +1,6 @@
 package app
 
 import (
-	"fmt"
-	"os"
-	"os/signal"
-	"time"
-
-	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/urfave/cli/v2"
-
 	"chain-monitor/internal/config"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/controller/l1watcher"
@@ -17,6 +9,12 @@ import (
 	"chain-monitor/internal/orm/migrate"
 	"chain-monitor/internal/route"
 	"chain-monitor/internal/utils"
+	"fmt"
+	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/urfave/cli/v2"
+	"os"
+	"os/signal"
+	"time"
 )
 
 var (

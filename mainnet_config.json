@@ -2,7 +2,7 @@
   "l1_config": {
     "l1_url": "https://rpc.ankr.com/eth",
     "confirm": "0x4",
-    "start_number": 18306934,
+    "start_number": 18318520,
     "l1_contracts": {
       "l1_gateways": {
         "eth_gateway": "0x7F2b8C31F88B6006c382775eea88297Ec1e3E905",

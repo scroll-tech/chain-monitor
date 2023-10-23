@@ -48,9 +48,9 @@ where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
 	l1MessengerSQL = `select
     l1me.tx_hash as l1_tx_hash, l1me.number as l1_number,
     l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
-from l2_messenger_events as l2me full join l1_messenger_events as l1me 
+from l2_messenger_events as l2me join l1_messenger_events as l1me 
     on l2me.msg_hash = l1me.msg_hash
-where l1me.number BETWEEN ? AND ?;`
+where l1me.number BETWEEN ? AND ? AND l1me.type != ?;`
 )
 
 // WithdrawConfirm the loop in order to confirm withdraw events.
@@ -230,7 +230,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 
 	// check no gateway sentMessage events.
 	var messengerEvents []msgEvents
-	db = db.Raw(l1MessengerSQL, start, end)
+	db = db.Raw(l1MessengerSQL, start, end, orm.L1FailedRelayedMessage)
 	if err := db.Scan(&messengerEvents).Error; err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func (ch *ChainMonitor) confirmL1ETHBalance(ctx context.Context, start, end uint
 		l2MsgsMap = map[string]*orm.L2MessengerEvent{}
 	)
 	tx = ch.db.Model(&orm.L2MessengerEvent{}).Select("msg_hash", "amount").Where("msg_hash in ?", relayHashes)
-	if err = tx.Scan(l2Msgs).Error; err != nil {
+	if err = tx.Scan(&l2Msgs).Error; err != nil {
 		return 0, err
 	}
 	for i := range l2Msgs {
