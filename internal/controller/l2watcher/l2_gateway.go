@@ -106,41 +106,6 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 	})
 }
 
-func (l2 *l2Contracts) gatewayEvents() error {
-	var msgSentEvents = map[string]*orm.L2MessengerEvent{}
-	for _, msgs := range l2.msgSentEvents {
-		for _, msg := range msgs {
-			msgSentEvents[msg.TxHash] = msg
-		}
-	}
-
-	for _, event := range l2.ethEvents {
-		if msg, exist := msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-		}
-	}
-
-	for _, event := range l2.erc20Events {
-		if msg, exist := msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-		}
-	}
-
-	for _, event := range l2.erc721Events {
-		if msg, exist := msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-		}
-	}
-
-	for _, event := range l2.erc1155Events {
-		if msg, exist := msgSentEvents[event.TxHash]; exist {
-			event.MsgHash = msg.MsgHash
-		}
-	}
-
-	return nil
-}
-
 func (l2 *l2Contracts) storeGatewayEvents() error {
 	var msgSentEvents = map[string]*orm.L2MessengerEvent{}
 	for _, msgs := range l2.msgSentEvents {
