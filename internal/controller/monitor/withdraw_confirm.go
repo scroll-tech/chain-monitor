@@ -279,7 +279,7 @@ func (ch *ChainMonitor) confirmL1ETHBalance(ctx context.Context, start, end uint
 		l2MsgsMap[l2Msgs[i].MsgHash] = &l2Msgs[i]
 	}
 
-	var l1MsgsNumber map[uint64][]*orm.L1MessengerEvent
+	var l1MsgsNumber = map[uint64][]*orm.L1MessengerEvent{}
 	for i := range l1Msgs {
 		msg := &l1Msgs[i]
 		if l1Msg := l2MsgsMap[msg.MsgHash]; l1Msg != nil {

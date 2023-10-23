@@ -1,9 +1,11 @@
 package l1watcher
 
 import (
-	"chain-monitor/internal/config"
-	"github.com/scroll-tech/go-ethereum/rpc"
 	"sync/atomic"
+
+	"github.com/scroll-tech/go-ethereum/rpc"
+
+	"chain-monitor/internal/config"
 )
 
 // L1StartNumber returns l1watcher start number.

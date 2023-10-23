@@ -1,8 +1,9 @@
 package controller
 
 import (
-	"chain-monitor/internal/config"
 	"github.com/scroll-tech/go-ethereum/rpc"
+
+	"chain-monitor/internal/config"
 )
 
 // WatcherAPI watcher api, relate to l1watcher and l2watcher.
@@ -19,6 +20,7 @@ type L1WatcherAPI interface {
 	L1Contracts() *config.L1Contracts
 }
 
+// L2WatcherAPI watcher api, relate to l1watcher and l2watcher.
 type L2WatcherAPI interface {
 	WatcherAPI
 	L2Contracts() *config.L2Contracts

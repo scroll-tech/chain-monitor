@@ -3,11 +3,12 @@ package l2watcher
 import (
 	"math/big"
 
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/core/types"
+
 	"chain-monitor/bytecode/scroll/L2/gateway"
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
-	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/core/types"
 )
 
 func (l2 *l2Contracts) registerGatewayHandlers() {

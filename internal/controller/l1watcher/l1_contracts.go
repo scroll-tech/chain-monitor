@@ -250,9 +250,7 @@ func (l1 *l1Contracts) parseL1Events(ctx context.Context, start, end uint64) (in
 
 	// Check balance.
 	if l1.checkBalance {
-		if err = l1.checkL1Balance(ctx, start, end); err != nil {
-			return 0, err
-		}
+		l1.checkL1Balance()
 	}
 
 	// store l1chain gateway events.

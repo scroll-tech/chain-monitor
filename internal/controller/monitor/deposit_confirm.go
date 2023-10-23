@@ -270,15 +270,15 @@ func (ch *ChainMonitor) confirmL2ETHBalance(ctx context.Context, start, end uint
 		l1Msgs    []orm.L1MessengerEvent
 		l1MsgsMap = map[string]*orm.L1MessengerEvent{}
 	)
-	tx = ch.db.Model(&orm.L1MessengerEvent{}).Select("msg_hash", "amount").Where("msg_hash in ?", relayHashes)
-	if err = tx.Scan(l1Msgs).Error; err != nil {
+	tx = ch.db.Model(&orm.L1MessengerEvent{}).Select("number", "msg_hash", "amount").Where("msg_hash in ?", relayHashes)
+	if err = tx.Scan(&l1Msgs).Error; err != nil {
 		return 0, err
 	}
 	for i := range l1Msgs {
 		l1MsgsMap[l1Msgs[i].MsgHash] = &l1Msgs[i]
 	}
 
-	var l2MsgsNumber map[uint64][]*orm.L2MessengerEvent
+	var l2MsgsNumber = map[uint64][]*orm.L2MessengerEvent{}
 	for i := range l2Msgs {
 		msg := &l2Msgs[i]
 		if l1Msg := l1MsgsMap[msg.MsgHash]; l1Msg != nil {
@@ -297,7 +297,10 @@ func (ch *ChainMonitor) confirmL2ETHBalance(ctx context.Context, start, end uint
 	actualBalance := big.NewInt(0).Set(sBalance)
 	for _, msgs := range l2MsgsNumber {
 		for _, msg := range msgs {
-			amount, _ := big.NewInt(0).SetString(msg.Amount, 10)
+			amount, ok := big.NewInt(0).SetString(msg.Amount, 10)
+			if !ok {
+				amount = big.NewInt(0)
+			}
 			if msg.Type == orm.L2SentMessage {
 				actualBalance.Add(actualBalance, amount)
 			}

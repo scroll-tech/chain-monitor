@@ -3,6 +3,7 @@ package l2watcher
 import (
 	"context"
 	"fmt"
+
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"

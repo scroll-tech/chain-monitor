@@ -262,9 +262,7 @@ func (l2 *l2Contracts) parseL2Events(ctx context.Context, start, end uint64) (in
 	}
 
 	// Check balance.
-	if err = l2.checkL2Balance(ctx, start, end); err != nil {
-		return 0, err
-	}
+	l2.checkL2Balance()
 
 	// Check eth balance.
 	if err = l2.storeGatewayEvents(); err != nil {

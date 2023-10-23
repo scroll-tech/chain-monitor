@@ -1,9 +1,11 @@
 package l2watcher
 
 import (
-	"chain-monitor/internal/config"
-	"github.com/scroll-tech/go-ethereum/rpc"
 	"sync/atomic"
+
+	"github.com/scroll-tech/go-ethereum/rpc"
+
+	"chain-monitor/internal/config"
 )
 
 // CurrentNumber retrieves the current starting block number

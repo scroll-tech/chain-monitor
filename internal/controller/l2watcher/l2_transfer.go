@@ -1,7 +1,6 @@
 package l2watcher
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -32,15 +31,7 @@ func (l2 *l2Contracts) parseTransferLogs(logs []types.Log) error {
 	return nil
 }
 
-// This struct is used to check scrollMessenger eth balance.
-type ethEvent struct {
-	Number uint64
-	TxHash string
-	Type   orm.EventType
-	Amount *big.Int
-}
-
-func (l2 *l2Contracts) checkL2Balance(ctx context.Context, start, end uint64) error {
+func (l2 *l2Contracts) checkL2Balance() {
 	var failedNumbers = map[uint64]bool{}
 	for _, event := range l2.erc20Events {
 		if !l2.transferNormalCheck(event.Type, event.TxHash, event.Amount) {
@@ -61,8 +52,6 @@ func (l2 *l2Contracts) checkL2Balance(ctx context.Context, start, end uint64) er
 	for number, cfm := range l2.l2Confirms {
 		cfm.BalanceStatus = !failedNumbers[number]
 	}
-
-	return nil
 }
 
 func (l2 *l2Contracts) transferNormalCheck(tp orm.EventType, txHash string, amount *big.Int) bool {
