@@ -21,7 +21,7 @@ func (l1 *l1Contracts) registerMessengerHandlers() {
 				MsgHash: msgHash.String(),
 				Type:    orm.L1SentMessage,
 			},
-			Amount:  data.Value,
+			Amount:  data.Value.String(),
 			Target:  data.Target,
 			Message: data.Message,
 			Log:     vLog,

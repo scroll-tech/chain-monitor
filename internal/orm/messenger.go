@@ -1,8 +1,6 @@
 package orm
 
 import (
-	"math/big"
-
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"gorm.io/gorm"
@@ -31,7 +29,7 @@ type L1MessengerEvent struct {
 	Message []byte         `gorm:"-"`
 	Log     *types.Log     `gorm:"-"`
 
-	Amount *big.Int `gorm:"type:numeric(32,0)"`
+	Amount string `gorm:"type:numeric(32,0)"`
 }
 
 func GetL1MessengerEvent(db *gorm.DB, msgHash string) (*L1MessengerEvent, error) {
@@ -66,9 +64,9 @@ type L2MessengerEvent struct {
 	Message []byte         `gorm:"-"`
 	Log     *types.Log     `gorm:"-"`
 
-	Amount   *big.Int `gorm:"type:numeric(32,0)"`
-	MsgNonce uint64   `gorm:"type: msg_nonce"`
-	MsgProof string   `gorm:"msg_proof"`
+	Amount   string `gorm:"type:numeric(32,0)"`
+	MsgNonce uint64 `gorm:"type: msg_nonce"`
+	MsgProof string `gorm:"msg_proof"`
 }
 
 func GetL2MessengerEvent(db *gorm.DB, msgHash string) (*L2MessengerEvent, error) {

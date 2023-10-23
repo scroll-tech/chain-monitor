@@ -3,7 +3,6 @@ package l2watcher
 import (
 	"context"
 	"fmt"
-
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -26,7 +25,7 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 			Target:   data.Target,
 			Message:  data.Message,
 			Log:      vLog,
-			Amount:   data.Value,
+			Amount:   data.Value.String(),
 			MsgNonce: data.MessageNonce.Uint64(),
 		})
 		return nil
