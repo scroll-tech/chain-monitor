@@ -298,7 +298,13 @@ func (ch *ChainMonitor) confirmL1ETHBalance(ctx context.Context, start, end uint
 	actualBalance := big.NewInt(0).Set(sBalance)
 	for _, msgs := range l1MsgsNumber {
 		for _, msg := range msgs {
-			amount, _ := big.NewInt(0).SetString(msg.Amount, 10)
+			if msg.Type == orm.L1FailedRelayedMessage {
+				continue
+			}
+			amount, ok := big.NewInt(0).SetString(msg.Amount, 10)
+			if !ok {
+				amount = big.NewInt(0)
+			}
 			if msg.Type == orm.L2SentMessage {
 				actualBalance.Add(actualBalance, amount)
 			}
