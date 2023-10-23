@@ -45,12 +45,12 @@ from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee
     on l1ee.msg_hash = l2ee.msg_hash 
 where l2ee.number BETWEEN ? AND ? and l2ee.type = ?;`
 
-	l2NoGatewaySQL = `select
+	l2MessengerSQL = `select
     l1me.tx_hash as l1_tx_hash, l1me.number as l1_number,
     l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
 from l2_messenger_events as l2me full join l1_messenger_events as l1me 
     on l2me.msg_hash = l1me.msg_hash
-where l2me.number BETWEEN ? AND ? and l2me.type = ? and l2me.from_gateway = false;`
+where l2me.number BETWEEN ? AND ?;`
 )
 
 // DepositConfirm monitors the blockchain and confirms the deposit events.
@@ -67,6 +67,14 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 		time.Sleep(time.Second * 3)
 		return
 	}
+
+	// l2ScrollMessenger eth balance check.
+	failedNumber, err := ch.confirmL2ETHBalance(ctx, start, end)
+	if err != nil {
+		log.Error("failed to check l2ScrollMessenger eth balance", "start", start, "end", end, "err", err)
+		return
+	}
+
 	// Get unmatched deposit
 	failedNumbers, err := ch.confirmDepositEvents(ctx, start, end)
 	if err != nil {
@@ -90,6 +98,17 @@ func (ch *ChainMonitor) DepositConfirm(ctx context.Context) {
 				return fTx.Error
 			}
 		}
+
+		// update failed check balance status.
+		if failedNumber > 0 {
+			fTx := tx.Model(&orm.L2ChainConfirm{}).Select("balance_status").
+				Where("number = ?", failedNumber)
+			fTx = fTx.Update("balance_status", false)
+			if fTx.Error != nil {
+				return fTx.Error
+			}
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -208,13 +227,13 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 	}
 
 	// check no gateway events.
-	var noGateways []msgEvents
-	db = db.Raw(l2NoGatewaySQL, start, end, orm.L2SentMessage)
-	if err := db.Scan(noGateways).Error; err != nil {
+	var messengerEvents []msgEvents
+	db = db.Raw(l2MessengerSQL, start, end)
+	if err := db.Scan(messengerEvents).Error; err != nil {
 		return nil, err
 	}
-	for i := 0; i < len(noGateways); i++ {
-		msg := noGateways[i]
+	for i := 0; i < len(messengerEvents); i++ {
+		msg := messengerEvents[i]
 		if msg.L1Number == 0 || msg.L2Number == 0 || msg.L1Type == orm.L1FailedRelayedMessage {
 			if msg.L1Type != orm.L1FailedRelayedMessage && !flagNumbers[msg.L2Number] {
 				flagNumbers[msg.L2Number] = true
@@ -225,16 +244,6 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 			go controller.SlackNotify(fmt.Sprintf("l2chain's sentMessage event can't match l1chain relayMessage event, content: %s", string(data)))
 			log.Error("l2chain's sentMessage event can't match l1chain relayMessage event", "start", start, "end", end, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
-	}
-
-	// check l2ScrollMessenger eth balance.
-	failedNumber, err := ch.confirmL2ETHBalance(ctx, start, end)
-	if err != nil {
-		return nil, err
-	}
-	if flagNumbers[failedNumber] {
-		flagNumbers[failedNumber] = true
-		failedNumbers = append(failedNumbers, failedNumber)
 	}
 
 	return failedNumbers, nil

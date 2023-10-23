@@ -45,12 +45,12 @@ from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee
     on l1ee.msg_hash = l2ee.msg_hash 
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
 
-	l1NoGatewaySQL = `select
+	l1MessengerSQL = `select
     l1me.tx_hash as l1_tx_hash, l1me.number as l1_number,
     l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
 from l2_messenger_events as l2me full join l1_messenger_events as l1me 
     on l2me.msg_hash = l1me.msg_hash
-where l1me.number BETWEEN ? AND ? and l1me.type = ? and l1me.from_gateway = false;`
+where l1me.number BETWEEN ? AND ?;`
 )
 
 // WithdrawConfirm the loop in order to confirm withdraw events.
@@ -65,6 +65,13 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 	if end > ch.withdrawSafeNumber {
 		log.Debug("l1watcher is not ready", "l1_start_number", ch.withdrawSafeNumber)
 		time.Sleep(time.Second * 3)
+		return
+	}
+
+	// l1ScrollMessenger eth balance check.
+	failedNumber, err := ch.confirmL1ETHBalance(ctx, start, end)
+	if err != nil {
+		log.Error("failed to check l1ScrollMessenger eth balance", "start", start, "end", end, "err", err)
 		return
 	}
 
@@ -88,6 +95,16 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 			fTx := tx.Model(&orm.L1ChainConfirm{}).Select("withdraw_status").
 				Where("number in ?", failedNumbers)
 			fTx = fTx.Update("withdraw_status", false)
+			if fTx.Error != nil {
+				return fTx.Error
+			}
+		}
+
+		// update failed check balance status.
+		if failedNumber > 0 {
+			fTx := tx.Model(&orm.L1ChainConfirm{}).Select("balance_status").
+				Where("number = ?", failedNumber)
+			fTx = fTx.Update("balance_status", false)
 			if fTx.Error != nil {
 				return fTx.Error
 			}
@@ -213,7 +230,7 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 
 	// check no gateway sentMessage events.
 	var noGateways []msgEvents
-	db = db.Raw(l1NoGatewaySQL, start, end, orm.L1SentMessage)
+	db = db.Raw(l1MessengerSQL, start, end)
 	if err := db.Scan(&noGateways).Error; err != nil {
 		return nil, err
 	}
@@ -228,15 +245,6 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 			go controller.SlackNotify(fmt.Sprintf("l1chain's sentMessage event can't match l2chain relayMessage event, content: %s", string(data)))
 			log.Error("l1chain's sentMessage event can't match l2chain relayMessage event", "start", start, "end", end, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
 		}
-	}
-
-	failedNumber, err := ch.confirmL1ETHBalance(ctx, start, end)
-	if err != nil {
-		return nil, err
-	}
-	if flagNumbers[failedNumber] {
-		flagNumbers[failedNumber] = true
-		failedNumbers = append(failedNumbers, failedNumber)
 	}
 
 	return failedNumbers, nil
