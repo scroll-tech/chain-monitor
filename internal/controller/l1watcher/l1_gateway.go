@@ -105,6 +105,69 @@ func (l1 *l1Contracts) registerGatewayHandlers() {
 	})
 }
 
+func (l1 *l1Contracts) storeGatewayEvents() error {
+	// store l1 eth events.
+	if len(l1.ethEvents) > 0 {
+		for _, event := range l1.ethEvents {
+			if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
+		if err := l1.tx.Save(l1.ethEvents).Error; err != nil {
+			return err
+		}
+	}
+
+	// store l1 erc20 events.
+	if len(l1.erc20Events) > 0 {
+		for _, event := range l1.erc20Events {
+			if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
+		if err := l1.tx.Save(l1.erc20Events).Error; err != nil {
+			return err
+		}
+	}
+
+	// store l1 err721 events.
+	if len(l1.erc721Events) > 0 {
+		for _, event := range l1.erc721Events {
+			if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
+		if err := l1.tx.Save(l1.erc721Events).Error; err != nil {
+			return err
+		}
+	}
+
+	// store l1 erc1155 events.
+	if len(l1.erc1155Events) > 0 {
+		for _, event := range l1.erc1155Events {
+			if msg, exist := l1.msgSentEvents[event.TxHash]; exist {
+				event.MsgHash = msg.MsgHash
+			}
+		}
+		if err := l1.tx.Save(l1.erc1155Events).Error; err != nil {
+			return err
+		}
+	}
+
+	// store l1 scroll_messenger sentMessage events.
+	if length := len(l1.msgSentEvents); length > 0 {
+		var msgs = make([]*orm.L1MessengerEvent, 0, length)
+		for k := range l1.msgSentEvents {
+			msgs = append(msgs, l1.msgSentEvents[k])
+		}
+		if err := l1.tx.Save(msgs).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func newL1ETHEvent(eventType orm.EventType, vLog *types.Log, amount *big.Int) *orm.L1ETHEvent {
 	return &orm.L1ETHEvent{
 		TxHead: orm.NewTxHead(vLog, eventType),

@@ -114,8 +114,6 @@ func action(ctx *cli.Context) error {
 	}
 	_ = chainMonitor
 
-	l1Watcher.SetL2WatcherAPI(l2Watcher)
-	l2Watcher.SetL1WatcherAPI(l1Watcher)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.DepositConfirm)
