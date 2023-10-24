@@ -274,8 +274,20 @@ func (ch *ChainMonitor) confirmL2ETHBalance(ctx context.Context, start, end uint
 	if err = tx.Scan(&l1Msgs).Error; err != nil {
 		return 0, err
 	}
+
 	for i := range l1Msgs {
 		l1MsgsMap[l1Msgs[i].MsgHash] = &l1Msgs[i]
+	}
+
+	// l1_messenger_events doesn't has enough relayedMessenger events.
+	if len(relayHashes) > len(l1Msgs) {
+		lostMsgs := make([]string, 0, len(relayHashes)-len(l1Msgs))
+		for _, msgHash := range relayHashes {
+			if l1MsgsMap[msgHash] == nil {
+				lostMsgs = append(lostMsgs, msgHash)
+			}
+		}
+		go controller.SlackNotify(fmt.Sprintf("deposit_confirm l1_messenger_events table has that msg_hash, msg_hash_list: %v", lostMsgs))
 	}
 
 	var l2MsgsNumber = map[uint64][]*orm.L2MessengerEvent{}

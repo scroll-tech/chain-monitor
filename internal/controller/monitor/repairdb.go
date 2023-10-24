@@ -252,22 +252,22 @@ func (ch *ChainMonitor) fillL2Messenger(l2Msgs []orm.L2MessengerEvent) ([]string
 		if err != nil {
 			return nil, err
 		}
-		for _, log := range logs {
+		for _, vLog := range logs {
 			if msg.TxHash != "" {
 				break
 			}
-			switch log.Topics[0] {
+			switch vLog.Topics[0] {
 			case abi.Events["SentMessage"].ID:
 				if msg.Type != orm.L2SentMessage {
 					continue
 				}
 				event := new(L2.L2ScrollMessengerSentMessageEvent)
-				if err = msgBind.UnpackLog(event, "SentMessage", log); err != nil {
+				if err = msgBind.UnpackLog(event, "SentMessage", vLog); err != nil {
 					return nil, err
 				}
 				msgHash := utils.ComputeMessageHash(event.Sender, event.Target, event.Value, event.MessageNonce, event.Message)
 				if msgHash.String() == msg.MsgHash {
-					msg.TxHash = log.TxHash.String()
+					msg.TxHash = vLog.TxHash.String()
 					msg.Amount = event.Value.String()
 				}
 			case abi.Events["RelayedMessage"].ID:
@@ -275,24 +275,24 @@ func (ch *ChainMonitor) fillL2Messenger(l2Msgs []orm.L2MessengerEvent) ([]string
 					continue
 				}
 				event := new(L2.L2ScrollMessengerRelayedMessageEvent)
-				if err = msgBind.UnpackLog(event, "RelayedMessage", log); err != nil {
+				if err = msgBind.UnpackLog(event, "RelayedMessage", vLog); err != nil {
 					return nil, err
 				}
 				msgHash := common.BytesToHash(event.MessageHash[:]).String()
 				if msgHash == msg.MsgHash {
-					msg.TxHash = log.TxHash.String()
+					msg.TxHash = vLog.TxHash.String()
 				}
 			case abi.Events["FailedRelayedMessage"].ID:
 				if msg.Type != orm.L2FailedRelayedMessage {
 					continue
 				}
 				event := new(L1.L1ScrollMessengerFailedRelayedMessageEvent)
-				if err = msgBind.UnpackLog(event, "FailedRelayedMessage", log); err != nil {
+				if err = msgBind.UnpackLog(event, "FailedRelayedMessage", vLog); err != nil {
 					return nil, err
 				}
 				msgHash := common.BytesToHash(event.MessageHash[:]).String()
 				if msgHash == msg.MsgHash {
-					msg.TxHash = log.TxHash.String()
+					msg.TxHash = vLog.TxHash.String()
 				}
 			}
 		}
