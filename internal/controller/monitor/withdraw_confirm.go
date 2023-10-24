@@ -263,7 +263,7 @@ func (ch *ChainMonitor) confirmL1ETHBalance(ctx context.Context, start, end uint
 
 	var relayHashes []string
 	for _, msg := range l1Msgs {
-		if msg.Type == orm.L2RelayedMessage {
+		if msg.Type == orm.L1RelayedMessage {
 			relayHashes = append(relayHashes, msg.MsgHash)
 		}
 	}
