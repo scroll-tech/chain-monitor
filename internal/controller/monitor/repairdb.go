@@ -8,6 +8,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/scroll-tech/go-ethereum/log"
 
 	"chain-monitor/bytecode/scroll/L1"
 	"chain-monitor/bytecode/scroll/L2"
@@ -45,6 +46,8 @@ func (ch *ChainMonitor) repairL1Messenger() error {
 		if err != nil || len(l1Msgs) == 0 {
 			return err
 		}
+
+		log.Info("repairing l1_messenger_events", "start number", l1Msgs[len(l1Msgs)-1].Number, "end number", l1Msgs[0].Number)
 
 		_, err = ch.fillL1Messenger(l1Msgs)
 		if err != nil {
@@ -169,6 +172,8 @@ func (ch *ChainMonitor) repairL2Messenger() error {
 		if err != nil || len(l2Msgs) == 0 {
 			return err
 		}
+
+		log.Info("repairing l2_messenger_events", "start number", l2Msgs[len(l2Msgs)-1].Number, "end number", l2Msgs[0].Number)
 
 		_, err = ch.fillL2Messenger(l2Msgs)
 		if err != nil {
