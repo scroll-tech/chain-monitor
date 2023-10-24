@@ -1,11 +1,11 @@
 package monitor
 
 import (
-	"chain-monitor/internal/utils"
 	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
@@ -14,6 +14,7 @@ import (
 
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
+	"chain-monitor/internal/utils"
 )
 
 var (
@@ -70,7 +71,8 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 
 	// l1ScrollMessenger eth balance check.
 	failedNumber, err := ch.confirmL1ETHBalance(ctx, start, end)
-	if err != nil {
+	// ignore this kind of error.
+	if err != nil && !strings.HasPrefix(err.Error(), "missing trie node") {
 		log.Error("failed to check l1ScrollMessenger eth balance", "start", start, "end", end, "err", err)
 		return
 	}

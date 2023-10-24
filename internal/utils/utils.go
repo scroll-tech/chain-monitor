@@ -183,7 +183,7 @@ func GetBatchBalances(ctx context.Context, cli *rpc.Client, addr common.Address,
 		}
 	}
 
-	parallels := 8
+	parallels := mathutil.Min(len(numbers), 8)
 	eg := errgroup.Group{}
 	eg.SetLimit(parallels)
 	for i := 0; i < len(numbers); i += parallels {
@@ -200,6 +200,9 @@ func GetBatchBalances(ctx context.Context, cli *rpc.Client, addr common.Address,
 
 	balances := make([]*big.Int, len(numbers))
 	for i, str := range stringResults {
+		if err = reqs[i].Error; err != nil {
+			return nil, err
+		}
 		data, err := hexutil.Decode(str)
 		if err != nil {
 			return nil, err

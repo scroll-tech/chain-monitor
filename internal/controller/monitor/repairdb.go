@@ -16,7 +16,7 @@ import (
 	"chain-monitor/internal/utils"
 )
 
-const batch = 500
+const batch = 1000
 
 // repairEvent this struct is temporarily used for repairing messenger.
 type repairEvent struct {
