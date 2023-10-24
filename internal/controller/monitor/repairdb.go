@@ -88,7 +88,10 @@ func (ch *ChainMonitor) fillL1Messenger(l1Msgs []orm.L1MessengerEvent) ([]string
 	}
 	for _, event := range ethEvents {
 		msg := msgs[event.TxHash]
-		msg.MsgHash, msg.Amount = event.MsgHash, event.Amount
+		msg.MsgHash = event.MsgHash
+		if msg.Type == orm.L1SentMessage {
+			msg.Amount = event.Amount
+		}
 		delete(msgs, event.TxHash)
 	}
 
@@ -100,7 +103,10 @@ func (ch *ChainMonitor) fillL1Messenger(l1Msgs []orm.L1MessengerEvent) ([]string
 	}
 	for _, event := range erc20Event {
 		msg := msgs[event.TxHash]
-		msg.MsgHash, msg.Amount = event.MsgHash, event.Amount
+		msg.MsgHash = event.MsgHash
+		if msg.Type == orm.L1SentMessage {
+			msg.Amount = event.Amount
+		}
 		delete(msgs, event.TxHash)
 	}
 
@@ -206,7 +212,10 @@ func (ch *ChainMonitor) fillL2Messenger(l2Msgs []orm.L2MessengerEvent) ([]string
 	}
 	for _, event := range ethEvents {
 		msg := msgs[event.MsgHash]
-		msg.TxHash, msg.Amount = event.TxHash, event.Amount
+		msg.TxHash = event.TxHash
+		if msg.Type == orm.L2SentMessage {
+			msg.Amount = event.Amount
+		}
 		delete(msgs, event.MsgHash)
 	}
 
@@ -218,7 +227,10 @@ func (ch *ChainMonitor) fillL2Messenger(l2Msgs []orm.L2MessengerEvent) ([]string
 	}
 	for _, event := range erc20Event {
 		msg := msgs[event.MsgHash]
-		msg.TxHash, msg.Amount = event.TxHash, event.Amount
+		msg.TxHash = event.TxHash
+		if msg.Type == orm.L2SentMessage {
+			msg.Amount = event.Amount
+		}
 		delete(msgs, event.MsgHash)
 	}
 
