@@ -234,8 +234,8 @@ func (ch *ChainMonitor) confirmDepositEvents(ctx context.Context, start, end uin
 	}
 	for i := 0; i < len(messengerEvents); i++ {
 		msg := messengerEvents[i]
-		if msg.L1Number == 0 || msg.L2Number == 0 || msg.L1Type == orm.L1FailedRelayedMessage {
-			if msg.L1Type != orm.L1FailedRelayedMessage && !flagNumbers[msg.L2Number] {
+		if msg.L1Number == 0 || msg.L2Number == 0 {
+			if !flagNumbers[msg.L2Number] {
 				flagNumbers[msg.L2Number] = true
 				failedNumbers = append(failedNumbers, msg.L2Number)
 			}

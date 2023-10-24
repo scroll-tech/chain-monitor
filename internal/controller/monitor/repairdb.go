@@ -109,8 +109,8 @@ func (ch *ChainMonitor) fillL1Messenger(l1Msgs []orm.L1MessengerEvent) ([]string
 		delete(msgs, event.TxHash)
 	}
 
+	msgBind := bind.NewBoundContract(contracts.ScrollMessenger, *L1.L1ScrollMessengerABI, nil, nil, nil)
 	for _, msg := range msgs {
-		msgBind := bind.NewBoundContract(contracts.ScrollMessenger, *L1.L1ScrollMessengerABI, nil, nil, nil)
 		// get non gateway messenger events.
 		filter := ethereum.FilterQuery{
 			FromBlock: big.NewInt(int64(msg.Number)),
@@ -121,16 +121,16 @@ func (ch *ChainMonitor) fillL1Messenger(l1Msgs []orm.L1MessengerEvent) ([]string
 		if err != nil {
 			return nil, err
 		}
-		for _, log := range logs {
+		for _, vLog := range logs {
 			if msg.MsgHash != "" {
 				break
 			}
-			if log.TxHash.String() != msg.TxHash {
+			if vLog.TxHash.String() != msg.TxHash {
 				continue
 			}
 			if msg.Type == orm.L1SentMessage {
 				event := new(L1.L1ScrollMessengerSentMessageEvent)
-				if err = msgBind.UnpackLog(event, "SentMessage", log); err != nil {
+				if err = msgBind.UnpackLog(event, "SentMessage", vLog); err != nil {
 					return nil, err
 				}
 				msgHash := utils.ComputeMessageHash(event.Sender, event.Target, event.Value, event.MessageNonce, event.Message)
@@ -139,14 +139,14 @@ func (ch *ChainMonitor) fillL1Messenger(l1Msgs []orm.L1MessengerEvent) ([]string
 			}
 			if msg.Type == orm.L1RelayedMessage {
 				event := new(L1.L1ScrollMessengerRelayedMessageEvent)
-				if err = msgBind.UnpackLog(event, "RelayedMessage", log); err != nil {
+				if err = msgBind.UnpackLog(event, "RelayedMessage", vLog); err != nil {
 					return nil, err
 				}
 				msg.MsgHash = common.BytesToHash(event.MessageHash[:]).String()
 			}
 			if msg.Type == orm.L1FailedRelayedMessage {
 				event := new(L1.L1ScrollMessengerFailedRelayedMessageEvent)
-				if err = msgBind.UnpackLog(event, "FailedRelayedMessage", log); err != nil {
+				if err = msgBind.UnpackLog(event, "FailedRelayedMessage", vLog); err != nil {
 					return nil, err
 				}
 				msg.MsgHash = common.BytesToHash(event.MessageHash[:]).String()
@@ -232,9 +232,9 @@ func (ch *ChainMonitor) fillL2Messenger(l2Msgs []orm.L2MessengerEvent) ([]string
 		delete(msgs, event.MsgHash)
 	}
 
+	abi := L2.L2ScrollMessengerABI
+	msgBind := bind.NewBoundContract(contracts.ScrollMessenger, *abi, nil, nil, nil)
 	for _, msg := range msgs {
-		abi := L2.L2ScrollMessengerABI
-		msgBind := bind.NewBoundContract(contracts.ScrollMessenger, *abi, nil, nil, nil)
 		// get non gateway messenger events.
 		filter := ethereum.FilterQuery{
 			FromBlock: big.NewInt(int64(msg.Number)),

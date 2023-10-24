@@ -236,8 +236,8 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 	}
 	for i := 0; i < len(messengerEvents); i++ {
 		msg := messengerEvents[i]
-		if msg.L1Number == 0 || msg.L2Number == 0 || msg.L2Type == orm.L2FailedRelayedMessage {
-			if msg.L2Type != orm.L2FailedRelayedMessage && !flagNumbers[msg.L1Number] {
+		if msg.L1Number == 0 || msg.L2Number == 0 {
+			if !flagNumbers[msg.L1Number] {
 				flagNumbers[msg.L1Number] = true
 				failedNumbers = append(failedNumbers, msg.L1Number)
 			}
