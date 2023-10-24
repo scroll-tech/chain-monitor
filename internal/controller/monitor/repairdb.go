@@ -1,16 +1,18 @@
 package monitor
 
 import (
-	"chain-monitor/bytecode/scroll/L1"
-	"chain-monitor/bytecode/scroll/L2"
-	"chain-monitor/internal/orm"
-	"chain-monitor/internal/utils"
 	"context"
+	"math/big"
+
 	"github.com/scroll-tech/go-ethereum"
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
-	"math/big"
+
+	"chain-monitor/bytecode/scroll/L1"
+	"chain-monitor/bytecode/scroll/L2"
+	"chain-monitor/internal/orm"
+	"chain-monitor/internal/utils"
 )
 
 const batch = 500
@@ -53,7 +55,7 @@ func (ch *ChainMonitor) repairL1Messenger() error {
 		for i := range l1Msgs {
 			msg := &l1Msgs[i]
 			wTx := db.Model(&orm.L1MessengerEvent{}).Select("msg_hash", "amount").Where("tx_hash = ?", msg.TxHash)
-			err := wTx.Updates(msg).Error
+			err = wTx.Updates(msg).Error
 			if err != nil {
 				return err
 			}
