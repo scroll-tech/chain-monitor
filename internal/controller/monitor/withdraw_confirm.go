@@ -316,10 +316,10 @@ func (ch *ChainMonitor) confirmL1ETHBalance(ctx context.Context, start, end uint
 			if !ok {
 				amount = big.NewInt(0)
 			}
-			if msg.Type == orm.L2SentMessage {
+			if msg.Type == orm.L1SentMessage {
 				actualBalance.Add(actualBalance, amount)
 			}
-			if msg.Type == orm.L2RelayedMessage {
+			if msg.Type == orm.L1RelayedMessage {
 				actualBalance.Sub(actualBalance, amount)
 			}
 		}
@@ -351,8 +351,9 @@ func (ch *ChainMonitor) confirmL1ETHBalance(ctx context.Context, start, end uint
 		}
 		balance := balances[idx]
 		if actualBalance.Cmp(balance) != 0 {
-			controller.ETHBalanceFailedTotal.WithLabelValues("").Inc()
-			go controller.SlackNotify(fmt.Sprintf("l2ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), actualBalance.String()))
+			controller.ETHBalanceFailedTotal.WithLabelValues("withdraw_confirm").Inc()
+			go controller.SlackNotify(fmt.Sprintf("l1ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), actualBalance.String()))
+			log.Error("l1ScrollMessenger eth balance mismatch appeared", "number", number, "expect_balance", balance.String(), "actual_balance", actualBalance.String())
 			return number, nil
 		}
 	}

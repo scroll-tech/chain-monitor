@@ -351,8 +351,9 @@ func (ch *ChainMonitor) confirmL2ETHBalance(ctx context.Context, start, end uint
 		}
 		balance := balances[idx]
 		if actualBalance.Cmp(balance) != 0 {
-			controller.ETHBalanceFailedTotal.WithLabelValues("").Inc()
+			controller.ETHBalanceFailedTotal.WithLabelValues("deposit_confirm").Inc()
 			go controller.SlackNotify(fmt.Sprintf("l2ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), actualBalance.String()))
+			log.Error("l2ScrollMessenger eth balance mismatch appeared", "number", number, "expect_balance", balance.String(), "actual_balance", actualBalance.String())
 			return number, nil
 		}
 	}
