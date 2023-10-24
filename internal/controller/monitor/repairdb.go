@@ -117,6 +117,9 @@ func (ch *ChainMonitor) fillL1Messenger(l1Msgs []orm.L1MessengerEvent) ([]string
 			return nil, err
 		}
 		for _, log := range logs {
+			if msg.MsgHash != "" {
+				break
+			}
 			if log.TxHash.String() != msg.TxHash {
 				continue
 			}
@@ -233,19 +236,47 @@ func (ch *ChainMonitor) fillL2Messenger(l2Msgs []orm.L2MessengerEvent) ([]string
 			return nil, err
 		}
 		for _, log := range logs {
-			if msg.Type == orm.L2SentMessage && log.Topics[0] == abi.Events["SentMessage"].ID {
+			if msg.TxHash != "" {
+				break
+			}
+			switch log.Topics[0] {
+			case abi.Events["SentMessage"].ID:
+				if msg.Type != orm.L2SentMessage {
+					continue
+				}
 				event := new(L2.L2ScrollMessengerSentMessageEvent)
 				if err = msgBind.UnpackLog(event, "SentMessage", log); err != nil {
 					return nil, err
 				}
-				msg.TxHash = log.TxHash.String()
-				msg.Amount = event.Value.String()
-			}
-			if msg.Type == orm.L2RelayedMessage && log.Topics[0] == abi.Events["RelayedMessage"].ID {
-				msg.TxHash = log.TxHash.String()
-			}
-			if msg.Type == orm.L2FailedRelayedMessage && log.Topics[0] == abi.Events["FailedRelayedMessage"].ID {
-				msg.TxHash = log.TxHash.String()
+				msgHash := utils.ComputeMessageHash(event.Sender, event.Target, event.Value, event.MessageNonce, event.Message)
+				if msgHash.String() == msg.MsgHash {
+					msg.TxHash = log.TxHash.String()
+					msg.Amount = event.Value.String()
+				}
+			case abi.Events["RelayedMessage"].ID:
+				if msg.Type != orm.L2RelayedMessage {
+					continue
+				}
+				event := new(L2.L2ScrollMessengerRelayedMessageEvent)
+				if err = msgBind.UnpackLog(event, "RelayedMessage", log); err != nil {
+					return nil, err
+				}
+				msgHash := common.BytesToHash(event.MessageHash[:]).String()
+				if msgHash == msg.MsgHash {
+					msg.TxHash = log.TxHash.String()
+				}
+			case abi.Events["FailedRelayedMessage"].ID:
+				if msg.Type != orm.L2FailedRelayedMessage {
+					continue
+				}
+				event := new(L1.L1ScrollMessengerFailedRelayedMessageEvent)
+				if err = msgBind.UnpackLog(event, "FailedRelayedMessage", log); err != nil {
+					return nil, err
+				}
+				msgHash := common.BytesToHash(event.MessageHash[:]).String()
+				if msgHash == msg.MsgHash {
+					msg.TxHash = log.TxHash.String()
+				}
 			}
 		}
 	}
