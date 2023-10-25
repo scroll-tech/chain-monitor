@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strings"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
@@ -12,6 +14,7 @@ import (
 
 	"chain-monitor/internal/controller"
 	"chain-monitor/internal/orm"
+	"chain-monitor/internal/utils"
 )
 
 var (
@@ -42,6 +45,13 @@ where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
 from l2_erc1155_events as l2ee full join l1_erc1155_events as l1ee 
     on l1ee.msg_hash = l2ee.msg_hash 
 where l1ee.number BETWEEN ? AND ? and l1ee.type = ?;`
+
+	l1MessengerSQL = `select
+    l1me.tx_hash as l1_tx_hash, l1me.number as l1_number,
+    l2me.tx_hash as l2_tx_hash, l2me.number as l2_number 
+from l2_messenger_events as l2me join l1_messenger_events as l1me 
+    on l2me.msg_hash = l1me.msg_hash
+where l1me.number BETWEEN ? AND ? AND l1me.type != ?;`
 )
 
 // WithdrawConfirm the loop in order to confirm withdraw events.
@@ -56,6 +66,14 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 	if end > ch.withdrawSafeNumber {
 		log.Debug("l1watcher is not ready", "l1_start_number", ch.withdrawSafeNumber)
 		time.Sleep(time.Second * 3)
+		return
+	}
+
+	// l1ScrollMessenger eth balance check.
+	failedNumber, err := ch.confirmL1ETHBalance(ctx, start, end)
+	// ignore this kind of error.
+	if err != nil && !strings.HasPrefix(err.Error(), "missing trie node") {
+		log.Error("failed to check l1ScrollMessenger eth balance", "start", start, "end", end, "err", err)
 		return
 	}
 
@@ -79,6 +97,16 @@ func (ch *ChainMonitor) WithdrawConfirm(ctx context.Context) {
 			fTx := tx.Model(&orm.L1ChainConfirm{}).Select("withdraw_status").
 				Where("number in ?", failedNumbers)
 			fTx = fTx.Update("withdraw_status", false)
+			if fTx.Error != nil {
+				return fTx.Error
+			}
+		}
+
+		// update failed check balance status.
+		if failedNumber > 0 {
+			fTx := tx.Model(&orm.L1ChainConfirm{}).Select("balance_status").
+				Where("number = ?", failedNumber)
+			fTx = fTx.Update("balance_status", false)
 			if fTx.Error != nil {
 				return fTx.Error
 			}
@@ -202,7 +230,136 @@ func (ch *ChainMonitor) confirmWithdrawEvents(ctx context.Context, start, end ui
 		}
 	}
 
+	// check no gateway sentMessage events.
+	var messengerEvents []msgEvents
+	db = db.Raw(l1MessengerSQL, start, end, orm.L1FailedRelayedMessage)
+	if err := db.Scan(&messengerEvents).Error; err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(messengerEvents); i++ {
+		msg := messengerEvents[i]
+		if msg.L1Number == 0 || msg.L2Number == 0 {
+			if !flagNumbers[msg.L1Number] {
+				flagNumbers[msg.L1Number] = true
+				failedNumbers = append(failedNumbers, msg.L1Number)
+			}
+			data, _ := json.Marshal(msg)
+			go controller.SlackNotify(fmt.Sprintf("l1chain's sentMessage event can't match l2chain relayMessage event, content: %s", string(data)))
+			log.Error("l1chain's sentMessage event can't match l2chain relayMessage event", "start", start, "end", end, "l1_tx_hash", msg.L1TxHash, "l2_tx_hash", msg.L2TxHash)
+		}
+	}
+
 	return failedNumbers, nil
+}
+
+func (ch *ChainMonitor) confirmL1ETHBalance(ctx context.Context, start, end uint64) (uint64, error) {
+	client := ch.l1watcher.RPCClient()
+	contracts := ch.l1watcher.L1Contracts()
+
+	var l1Msgs []orm.L1MessengerEvent
+	tx := ch.db.Model(&orm.L1MessengerEvent{}).Select("number", "tx_hash", "msg_hash", "type", "amount").Where("number BETWEEN ? AND ?", start, end)
+	err := tx.Scan(&l1Msgs).Error
+	if err != nil {
+		return 0, err
+	}
+
+	var relayHashes []string
+	for _, msg := range l1Msgs {
+		if msg.Type == orm.L1RelayedMessage {
+			relayHashes = append(relayHashes, msg.MsgHash)
+		}
+	}
+	var (
+		l2Msgs    []orm.L2MessengerEvent
+		l2MsgsMap = map[string]*orm.L2MessengerEvent{}
+	)
+	tx = ch.db.Model(&orm.L2MessengerEvent{}).Select("msg_hash", "amount").Where("msg_hash in ?", relayHashes)
+	if err = tx.Scan(&l2Msgs).Error; err != nil {
+		return 0, err
+	}
+
+	for i := range l2Msgs {
+		l2MsgsMap[l2Msgs[i].MsgHash] = &l2Msgs[i]
+	}
+
+	if len(relayHashes) > len(l2MsgsMap) {
+		lostMsgs := make([]string, 0, len(relayHashes)-len(l2MsgsMap))
+		for _, hash := range relayHashes {
+			if l2MsgsMap[hash] == nil {
+				lostMsgs = append(lostMsgs, hash)
+			}
+		}
+		go controller.SlackNotify(fmt.Sprintf("withdraw_confirm l2_messenger_events table has that msg_hash, msg_hash_list: %v", lostMsgs))
+	}
+
+	var l1MsgsNumber = map[uint64][]*orm.L1MessengerEvent{}
+	for i := range l1Msgs {
+		msg := &l1Msgs[i]
+		if l1Msg := l2MsgsMap[msg.MsgHash]; l1Msg != nil {
+			msg.Amount = l1Msg.Amount
+		}
+		l1MsgsNumber[msg.Number] = append(l1MsgsNumber[msg.Number], msg)
+	}
+
+	// Get balance at start number.
+	balances, err := utils.GetBatchBalances(ctx, client, contracts.ScrollMessenger, []uint64{start - 1, end})
+	if err != nil {
+		return 0, err
+	}
+	sBalance, expectBalance := balances[0], balances[1]
+
+	actualBalance := big.NewInt(0).Set(sBalance)
+	for _, msgs := range l1MsgsNumber {
+		for _, msg := range msgs {
+			if msg.Type == orm.L1FailedRelayedMessage {
+				continue
+			}
+			amount, ok := big.NewInt(0).SetString(msg.Amount, 10)
+			if !ok {
+				amount = big.NewInt(0)
+			}
+			if msg.Type == orm.L1SentMessage {
+				actualBalance.Add(actualBalance, amount)
+			}
+			if msg.Type == orm.L1RelayedMessage {
+				actualBalance.Sub(actualBalance, amount)
+			}
+		}
+	}
+
+	if actualBalance.Cmp(expectBalance) == 0 {
+		return 0, nil
+	}
+
+	// Get eth batch balances.
+	numbers := make([]uint64, 0, end-start+1)
+	for number := start; number <= end; number++ {
+		numbers = append(numbers, number)
+	}
+	balances, err = utils.GetBatchBalances(ctx, client, contracts.ScrollMessenger, numbers)
+	if err != nil {
+		return 0, err
+	}
+	actualBalance = big.NewInt(0).Set(sBalance)
+	for idx, number := range numbers {
+		for _, msg := range l1MsgsNumber[number] {
+			amount, _ := big.NewInt(0).SetString(msg.Amount, 10)
+			if msg.Type == orm.L2SentMessage {
+				actualBalance.Add(actualBalance, amount)
+			}
+			if msg.Type == orm.L2RelayedMessage {
+				actualBalance.Sub(actualBalance, amount)
+			}
+		}
+		balance := balances[idx]
+		if actualBalance.Cmp(balance) != 0 {
+			controller.ETHBalanceFailedTotal.WithLabelValues("withdraw_confirm").Inc()
+			go controller.SlackNotify(fmt.Sprintf("l1ScrollMessenger eth balance mismatch appeared, number: %d, expect_balance: %s, actual_balance: %s", number, balance.String(), actualBalance.String()))
+			log.Error("l1ScrollMessenger eth balance mismatch appeared", "number", number, "expect_balance", balance.String(), "actual_balance", actualBalance.String())
+			return number, nil
+		}
+	}
+	return 0, nil
 }
 
 func (ch *ChainMonitor) getWithdrawStartAndEndNumber() (uint64, uint64) {

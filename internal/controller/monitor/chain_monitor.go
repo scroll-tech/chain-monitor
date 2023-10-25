@@ -17,7 +17,7 @@ type ChainMonitor struct {
 	db *gorm.DB
 
 	l1watcher controller.L1WatcherAPI
-	l2watcher controller.WatcherAPI
+	l2watcher controller.L2WatcherAPI
 
 	// Used for deposit confirm loop.
 	depositStartNumber uint64
@@ -29,7 +29,7 @@ type ChainMonitor struct {
 }
 
 // NewChainMonitor initializes a new instance of the ChainMonitor.
-func NewChainMonitor(db *gorm.DB, l1Watcher controller.L1WatcherAPI, l2Watcher controller.WatcherAPI) (*ChainMonitor, error) {
+func NewChainMonitor(db *gorm.DB, l1Watcher controller.L1WatcherAPI, l2Watcher controller.L2WatcherAPI) (*ChainMonitor, error) {
 	depositStartNumber, err := orm.GetL2ConfirmNumber(db)
 	if err != nil {
 		return nil, err
