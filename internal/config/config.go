@@ -12,45 +12,45 @@ import (
 // Gateway address list.
 type Gateway struct {
 	ETHGateway           common.Address `json:"eth_gateway"`
-	DAIGateway           common.Address `json:"dai_gateway"`
 	WETHGateway          common.Address `json:"weth_gateway"`
 	StandardERC20Gateway common.Address `json:"standard_erc20_gateway"`
 	CustomERC20Gateway   common.Address `json:"custom_erc20_gateway"`
-	USDCGateway          common.Address `json:"usdc_gateway"`
-	LIDOGateway          common.Address `json:"lido_gateway"`
 	ERC721Gateway        common.Address `json:"erc721_gateway"`
 	ERC1155Gateway       common.Address `json:"erc1155_gateway"`
+	DAIGateway           common.Address `json:"dai_gateway"`
+	USDCGateway          common.Address `json:"usdc_gateway"`
+	LIDOGateway          common.Address `json:"lido_gateway"`
 }
 
 // L1Contracts l1chain config.
 type L1Contracts struct {
-	*Gateway        `json:"l1_gateways"`
-	MessageQueue    common.Address `json:"message_queue"`
+	Gateway `json:"l1_gateways"`
+
 	ScrollMessenger common.Address `json:"scroll_messenger"`
+	MessageQueue    common.Address `json:"message_queue"`
 	L1ScrollChain   common.Address `json:"scroll_chain"`
 }
 
 // L1Config l1 chain config.
 type L1Config struct {
-	L1Contracts *L1Contracts `json:"l1_contracts"`
-	L1URL       string       `json:"l1_url"`
+	L1URL       string `json:"l1_url"`
 	Confirm     rpc.BlockNumber
-	StartNumber uint64 `json:"start_number"`
+	L1Contracts *L1Contracts `json:"l1_contracts"`
 }
 
 // L2Contracts l1chain config.
 type L2Contracts struct {
-	*Gateway        `json:"l2_gateways"`
-	MessageQueue    common.Address `json:"message_queue"`
+	Gateway `json:"l2_gateways"`
+
 	ScrollMessenger common.Address `json:"scroll_messenger"`
+	MessageQueue    common.Address `json:"message_queue"`
 }
 
 // L2Config l1 chain config.
 type L2Config struct {
-	L2Contracts *L2Contracts `json:"l2_contracts"`
-	L2URL       string       `json:"l2_url"`
+	L2URL       string `json:"l2_url"`
 	Confirm     rpc.BlockNumber
-	StartNumber uint64 `json:"start_number,omitempty"`
+	L2Contracts *L2Contracts `json:"l2_contracts"`
 }
 
 // DBConfig db config

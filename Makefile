@@ -16,11 +16,10 @@ lint:
 	GOBIN=$(PWD)/build/bin go run ./build/lint.go
 
 chain-monitor:
+	./build_abi.sh
 	go build -o build/bin/chain-monitor ./cmd/main.go
 
 abi:
-	cd $(SCROLL_PATH)/contracts && yarn install && forge build
-	make -C bytecode scroll $(SCROLL_PATH)
 
 docker:
 	docker build --platform linux/amd64 -t scrolltech/${IMAGE_NAME}:${IMAGE_VERSION} ./
