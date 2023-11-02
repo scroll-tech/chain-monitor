@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"github.com/scroll-tech/chain-monitor/internal/logic/checker"
+	"gorm.io/gorm"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -17,15 +19,17 @@ type ContractController struct {
 	conf             config.Config
 	eventGatherLogic *events.EventGather
 	contractsLogic   *contracts.Contracts
+	checker          *checker.Checker
 
 	l1EventCategoryList []types.TxEventCategory
 	l2EventCategoryList []types.TxEventCategory
 }
 
-func NewContractController(conf config.Config, client *ethclient.Client) *ContractController {
+func NewContractController(conf config.Config, db *gorm.DB, client *ethclient.Client) *ContractController {
 	c := &ContractController{
 		eventGatherLogic: events.NewEventGather(),
 		contractsLogic:   contracts.NewContracts(client),
+		checker:          checker.NewChecker(db),
 	}
 
 	if err := c.contractsLogic.Register(c.conf); err != nil {
@@ -62,6 +66,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uin
 			End:     end,
 			Context: ctx,
 		}
+
 		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opt, types.Layer1, eventCategory)
 		if err != nil {
 			log.Error("get contract iterator failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", err)
@@ -71,12 +76,15 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uin
 		// parse the event data
 		eventDataList := c.eventGatherLogic.Dispatch(ctx, types.Layer1, eventCategory, wrapIterList)
 		if eventDataList == nil {
-			log.Error("event gather deal event return empty data")
+			log.Error("event gather deal event return empty data", "layer", types.Layer1, "eventCategory", eventCategory)
 			continue
 		}
 
 		// match transfer event
-		// insert to db, wait the l1/l2 event match
+		if checkErr := c.checker.Check(ctx, eventCategory, eventDataList); checkErr != nil {
+			log.Error("event matcher deal failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", checkErr)
+			continue
+		}
 	}
 }
 

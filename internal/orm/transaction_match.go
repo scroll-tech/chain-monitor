@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"context"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -50,6 +51,6 @@ func (*TransactionMatch) TableName() string {
 	return "transaction_match"
 }
 
-func (t *TransactionMatch) Insert(transactions []TransactionMatch) (int, error) {
+func (t *TransactionMatch) InsertOrUpdate(ctx context.Context, transactions []TransactionMatch) (int, error) {
 	// insert or update
 }

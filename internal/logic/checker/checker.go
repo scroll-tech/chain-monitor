@@ -5,6 +5,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
@@ -53,7 +54,10 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 		transactionMatches = append(transactionMatches, tmpTransactionMatch)
 	}
 
-	c.transactionMatchOrm.Insert(ctx, transactionMatches)
+	effectRows, err := c.transactionMatchOrm.InsertOrUpdate(ctx, transactionMatches)
+	if err != nil || effectRows != len(transactionMatches) {
+		log.Error("erc20EventUnmarshaler orm insert failed, err:%w", err)
+	}
 
 	return c.transferMatcher.Erc20Matcher(erc20TransferEventMap, erc20GatewayEventMap)
 }
