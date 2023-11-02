@@ -2,14 +2,14 @@ package controller
 
 import (
 	"context"
-	"github.com/scroll-tech/chain-monitor/internal/logic/checker"
-	"gorm.io/gorm"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
+	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
+	"github.com/scroll-tech/chain-monitor/internal/logic/checker"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/types"
@@ -27,6 +27,7 @@ type ContractController struct {
 
 func NewContractController(conf config.Config, db *gorm.DB, client *ethclient.Client) *ContractController {
 	c := &ContractController{
+		conf:             conf,
 		eventGatherLogic: events.NewEventGather(),
 		contractsLogic:   contracts.NewContracts(client),
 		checker:          checker.NewChecker(db),
