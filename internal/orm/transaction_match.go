@@ -51,6 +51,10 @@ func (*TransactionMatch) TableName() string {
 	return "transaction_match"
 }
 
+func (t *TransactionMatch) GetTransactionMatch(ctx context.Context, layerType int, startBlockNum, endBlockNum uint64) []TransactionMatch {
+
+}
+
 func (t *TransactionMatch) InsertOrUpdate(ctx context.Context, transactions []TransactionMatch) (int, error) {
 	// insert or update
 }

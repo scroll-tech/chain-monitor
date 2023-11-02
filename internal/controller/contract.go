@@ -56,6 +56,7 @@ func NewContractController(conf config.Config, db *gorm.DB, client *ethclient.Cl
 // Watch the l1/l2 events, contains gateways events, transfer events, messenger events
 func (c *ContractController) Watch() error {
 	// todo 怎么处理 start end
+	return nil
 }
 
 // @param Start of the queried range

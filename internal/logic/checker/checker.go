@@ -13,16 +13,42 @@ import (
 type Checker struct {
 	transactionMatchOrm *orm.TransactionMatch
 	transferMatcher     *TransferEventMatcher
+	crossChainMatcher   *CrossEventMatcher
 }
 
 func NewChecker(db *gorm.DB) *Checker {
 	return &Checker{
 		transactionMatchOrm: orm.NewTransactionMatch(db),
 		transferMatcher:     NewTransferEventMatcher(),
+		crossChainMatcher:   NewCrossEventMatcher(),
 	}
 }
 
-func (c *Checker) Check(ctx context.Context, eventCategory types.TxEventCategory, eventDataList []events.EventUnmarshaler) error {
+func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, transactionMatch orm.TransactionMatch) types.MismatchType {
+	if layer == types.Layer1 {
+		if !c.crossChainMatcher.L1EventMatchL2(transactionMatch) {
+			return types.MismatchTypeL2EventNotExist
+		}
+	}
+
+	if layer == types.Layer2 {
+		if !c.crossChainMatcher.L2EventMatchL1(transactionMatch) {
+			return types.MismatchTypeL1EventNotExist
+		}
+	}
+
+	if !c.crossChainMatcher.CrossChainAmountMatch(transactionMatch) {
+		return types.MismatchTypeAmount
+	}
+
+	if !c.crossChainMatcher.EventTypeMatch(transactionMatch) {
+		return types.MismatchTypeCrossChainTypeNotMatch
+	}
+
+	return types.MismatchTypeUnknown
+}
+
+func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventCategory, eventDataList []events.EventUnmarshaler) error {
 	switch eventCategory {
 	case types.ERC20EventCategory:
 		return c.erc20EventUnmarshaler(ctx, eventDataList)
