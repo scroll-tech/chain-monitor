@@ -50,7 +50,7 @@ func NewContractController(conf config.Config, client *ethclient.Client) *Contra
 
 // Watch the l1/l2 events, contains gateways events, transfer events, messenger events
 func (c *ContractController) Watch() error {
-
+	// todo 怎么处理 start end
 }
 
 // @param Start of the queried range

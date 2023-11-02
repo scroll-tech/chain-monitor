@@ -14,8 +14,12 @@ type EventGather struct {
 }
 
 func NewEventGather() *EventGather {
-	g := &EventGather{}
+	g := &EventGather{
+		gathers: make(map[types.TxEventCategory]EventUnmarshaler),
+	}
+
 	g.gathers[types.ERC20EventCategory] = NewERC20GatewayEventUnmarshaler()
+
 	return g
 }
 

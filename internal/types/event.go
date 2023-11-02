@@ -1,5 +1,7 @@
 package types
 
+//go:generate stringer -type EventType
+
 // EventType represents the type of blockchain event.
 type EventType uint8
 

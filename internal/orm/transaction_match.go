@@ -17,14 +17,14 @@ type TransactionMatch struct {
 
 	// tx info of l1
 	L1EventType   int             `json:"l1_event_type" gorm:"l1_event_type"`
-	L1BlockNumber decimal.Decimal `json:"l1_block_number" gorm:"l1_block_number"`
+	L1BlockNumber uint64          `json:"l1_block_number" gorm:"l1_block_number"`
 	L1TxHash      string          `json:"l1_tx_hash" gorm:"l1_tx_hash"`
 	L1TokenId     string          `json:"l1_token_id" gorm:"l1_token_id"`
 	L1Value       decimal.Decimal `json:"l1_value" gorm:"l1_value"`
 
 	// tx info of l2
 	L2EventType   int             `json:"l2_event_type" gorm:"l2_event_type"`
-	L2BlockNumber decimal.Decimal `json:"l2_block_number" gorm:"l2_block_number"`
+	L2BlockNumber uint64          `json:"l2_block_number" gorm:"l2_block_number"`
 	L2TxHash      string          `json:"l2_tx_hash" gorm:"l2_tx_hash"`
 	L2TokenId     string          `json:"l2_token_id" gorm:"l2_token_id"`
 	L2Value       decimal.Decimal `json:"l2_value" gorm:"l2_value"`
@@ -48,4 +48,8 @@ func NewTransactionMatch(db *gorm.DB) *TransactionMatch {
 // TableName returns the table name for the Batch model.
 func (*TransactionMatch) TableName() string {
 	return "transaction_match"
+}
+
+func (t *TransactionMatch) Insert(transactions []TransactionMatch) (int, error) {
+	// insert or update
 }
