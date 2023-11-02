@@ -83,7 +83,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uin
 		}
 
 		// match transfer event
-		if checkErr := c.checker.Check(ctx, eventCategory, eventDataList); checkErr != nil {
+		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, eventDataList); checkErr != nil {
 			log.Error("event matcher deal failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}

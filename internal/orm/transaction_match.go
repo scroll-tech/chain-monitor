@@ -32,8 +32,10 @@ type TransactionMatch struct {
 
 	// status
 	WithdrawRootStatus int    `json:"withdraw_root_status" gorm:"withdraw_root_status"`
-	DepositStatus      int    `json:"deposit_status" gorm:"deposit_status"`
-	BalanceStatus      int    `json:"balance_status" gorm:"balance_status"`
+	L1GatewayStatus    int    `json:"l1_gateway_status" gorm:"l1_gateway_status"`
+	L2GatewayStatus    int    `json:"l2_gateway_status" gorm:"l2_gateway_status"`
+	L1CrossChainStatus int    `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`
+	L2CrossChainStatus int    `json:"l2_cross_chain_status" gorm:"l2_cross_chain_status"`
 	MessageProof       string `json:"msg_proof" gorm:"message_proof"`
 
 	CreatedAt time.Time      `json:"created_at" gorm:"column:created_at"`
@@ -57,4 +59,8 @@ func (t *TransactionMatch) GetTransactionMatch(ctx context.Context, layerType in
 
 func (t *TransactionMatch) InsertOrUpdate(ctx context.Context, transactions []TransactionMatch) (int, error) {
 	// insert or update
+}
+
+func (t *TransactionMatch) UpdateGatewayStatus() {
+
 }

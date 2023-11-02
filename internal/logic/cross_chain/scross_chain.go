@@ -34,6 +34,7 @@ func (c *CrossChainLogic) Fetcher(ctx context.Context, layerType types.LayerType
 			continue
 		}
 
+		// update status
 		// send to slack
 	}
 }
