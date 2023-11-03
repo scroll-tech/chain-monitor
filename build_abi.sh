@@ -33,13 +33,13 @@ mv $contracts_path/artifacts ./contracts_tmp
 l1_messenger=("IL1ScrollMessenger")
 
 # l1 gateway
-l1_gateway=("IL1ETHGateway" "IL1ERC20Gateway" "L1ERC721Gateway" "IL1ERC1155Gateway")
+l1_gateway=("IL1ETHGateway" "IL1ERC20Gateway" "IL1ERC721Gateway" "IL1ERC1155Gateway")
 
 # l2 messenger
 l2_messenger=("IL2ScrollMessenger")
 
 # l2 gateway
-l2_gateway=("IL2ETHGateway" "IL2ERC20Gateway" "L2ERC721Gateway" "L2ERC1155Gateway")
+l2_gateway=("IL2ETHGateway" "IL2ERC20Gateway" "IL2ERC721Gateway" "IL2ERC1155Gateway")
 
 # token list
 token_list=("IScrollERC20" "IScrollERC721" "IScrollERC1155")

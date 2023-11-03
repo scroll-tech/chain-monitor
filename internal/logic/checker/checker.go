@@ -2,12 +2,14 @@ package checker
 
 import (
 	"context"
-	"github.com/scroll-tech/chain-monitor/internal/logic/events"
-	"github.com/scroll-tech/chain-monitor/internal/orm"
-	"github.com/scroll-tech/chain-monitor/internal/types"
+
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+
+	"github.com/scroll-tech/chain-monitor/internal/logic/events"
+	"github.com/scroll-tech/chain-monitor/internal/orm"
+	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
 type Checker struct {
@@ -64,17 +66,31 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 		erc20EventUnmarshaler := eventData.(*events.ERC20GatewayEventUnmarshaler)
 		eventType := erc20EventUnmarshaler.Type
 		if erc20EventUnmarshaler.Transfer {
-			erc20TransferEventMap[erc20EventUnmarshaler.TxHash] = erc20EventUnmarshaler
+			erc20TransferEventMap[erc20EventUnmarshaler.TxHash.Hex()] = erc20EventUnmarshaler
 		} else {
-			erc20GatewayEventMap[erc20EventUnmarshaler.TxHash] = erc20EventUnmarshaler
+			erc20GatewayEventMap[erc20EventUnmarshaler.TxHash.Hex()] = erc20EventUnmarshaler
 		}
 
-		tmpTransactionMatch := orm.TransactionMatch{
-			TokenType:     int(types.TokenTypeERC20),
-			L1EventType:   int(eventType),
-			L1BlockNumber: erc20EventUnmarshaler.Number,
-			L1TxHash:      erc20EventUnmarshaler.TxHash,
-			L1Value:       decimal.NewFromBigInt(erc20EventUnmarshaler.Amount, 10),
+		var tmpTransactionMatch orm.TransactionMatch
+		if eventType == types.L1DepositERC20 || eventType == types.L1FinalizeWithdrawERC20 || eventType == types.L1RefundERC20 {
+			tmpTransactionMatch = orm.TransactionMatch{
+				TokenType:     int(types.TokenTypeERC20),
+				L1EventType:   int(eventType),
+				L1BlockNumber: erc20EventUnmarshaler.Number,
+				L1TxHash:      erc20EventUnmarshaler.TxHash.Hex(),
+				L1Amount:      decimal.NewFromBigInt(erc20EventUnmarshaler.Amount, 10),
+			}
+		} else if eventType == types.L2WithdrawERC20 || eventType == types.L2FinalizeDepositERC20 {
+			tmpTransactionMatch = orm.TransactionMatch{
+				TokenType:     int(types.TokenTypeERC20),
+				L2EventType:   int(eventType),
+				L2BlockNumber: erc20EventUnmarshaler.Number,
+				L2TxHash:      erc20EventUnmarshaler.TxHash.Hex(),
+				L2Amount:      decimal.NewFromBigInt(erc20EventUnmarshaler.Amount, 10),
+			}
+		} else {
+			log.Error("unknown erc20 event type")
+			continue
 		}
 
 		transactionMatches = append(transactionMatches, tmpTransactionMatch)

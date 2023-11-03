@@ -11,15 +11,22 @@ import (
 
 // Gateway address list.
 type Gateway struct {
-	ETHGateway           common.Address `json:"eth_gateway"`
+	// eth
+	ETHGateway common.Address `json:"eth_gateway"`
+
+	// erc20
 	WETHGateway          common.Address `json:"weth_gateway"`
 	StandardERC20Gateway common.Address `json:"standard_erc20_gateway"`
 	CustomERC20Gateway   common.Address `json:"custom_erc20_gateway"`
-	ERC721Gateway        common.Address `json:"erc721_gateway"`
-	ERC1155Gateway       common.Address `json:"erc1155_gateway"`
 	DAIGateway           common.Address `json:"dai_gateway"`
 	USDCGateway          common.Address `json:"usdc_gateway"`
 	LIDOGateway          common.Address `json:"lido_gateway"`
+
+	// erc721
+	ERC721Gateway common.Address `json:"erc721_gateway"`
+
+	// erc1155
+	ERC1155Gateway common.Address `json:"erc1155_gateway"`
 }
 
 // L1Contracts l1chain config.

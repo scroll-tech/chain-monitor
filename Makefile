@@ -19,8 +19,6 @@ chain-monitor:
 	./build_abi.sh
 	go build -o build/bin/chain-monitor ./cmd/main.go
 
-abi:
-
 docker:
 	docker build --platform linux/amd64 -t scrolltech/${IMAGE_NAME}:${IMAGE_VERSION} ./
 

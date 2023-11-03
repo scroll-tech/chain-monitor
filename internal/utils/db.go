@@ -13,8 +13,7 @@ import (
 // InitDB init the db handler
 func InitDB(config *config.DBConfig) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(config.DSN), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
-		Logger:                                   logger.Default.LogMode(logger.LogLevel(config.LogLevel)),
+		Logger: logger.Default.LogMode(logger.LogLevel(config.LogLevel)),
 	})
 	if err != nil {
 		return nil, err

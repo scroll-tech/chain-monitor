@@ -2,6 +2,7 @@ package checker
 
 import (
 	"errors"
+
 	"github.com/scroll-tech/go-ethereum/log"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
@@ -15,11 +16,12 @@ func NewTransferEventMatcher() *TransferEventMatcher {
 	return &TransferEventMatcher{}
 }
 
-func (t *TransferEventMatcher) Erc20Matcher(transferEvents map[string]*events.ERC20GatewayEventUnmarshaler, gatewayEvent map[string]*events.ERC20GatewayEventUnmarshaler) error {
+// @todo: handle one tx with multiple events.
+func (t *TransferEventMatcher) Erc20Matcher(transferEvents map[string]*events.ERC20GatewayEventUnmarshaler, gatewayEvents map[string]*events.ERC20GatewayEventUnmarshaler) error {
 	var transferNotMatchGateway, gatewayNotMatchTransfer []*events.ERC20GatewayEventUnmarshaler
 	var amountNotMatchList []*events.ERC20GatewayEventUnmarshaler
 	for txHash, transferEventUnmarshaler := range transferEvents {
-		gatewayEventUnmarshaler, exist := gatewayEvent[txHash]
+		gatewayEventUnmarshaler, exist := gatewayEvents[txHash]
 		if !exist {
 			transferNotMatchGateway = append(transferNotMatchGateway, transferEventUnmarshaler)
 			log.Error("Erc20Matcher failed relate gateway event not exist", "event type", transferEventUnmarshaler.Type.String(), "tx_hash", txHash)
@@ -34,7 +36,7 @@ func (t *TransferEventMatcher) Erc20Matcher(transferEvents map[string]*events.ER
 		}
 	}
 
-	for txHash, gatewayEventUnmarshaler := range gatewayEvent {
+	for txHash, gatewayEventUnmarshaler := range gatewayEvents {
 		transferEventUnmarshaler, exist := transferEvents[txHash]
 		if !exist {
 			gatewayNotMatchTransfer = append(gatewayNotMatchTransfer, transferEventUnmarshaler)

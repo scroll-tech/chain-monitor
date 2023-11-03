@@ -17,7 +17,7 @@ type TransactionMatch struct {
 	db *gorm.DB `gorm:"column:-"`
 
 	ID          int64  `json:"id" gorm:"column:id"`
-	MessageHash string `json:"messageHash" gorm:"message_hash"`
+	MessageHash string `json:"message_hash" gorm:"message_hash"`
 	TokenType   int    `json:"token_type" gorm:"token_type"`
 
 	// tx info of l1
@@ -25,14 +25,14 @@ type TransactionMatch struct {
 	L1BlockNumber uint64          `json:"l1_block_number" gorm:"l1_block_number"`
 	L1TxHash      string          `json:"l1_tx_hash" gorm:"l1_tx_hash"`
 	L1TokenId     string          `json:"l1_token_id" gorm:"l1_token_id"`
-	L1Value       decimal.Decimal `json:"l1_value" gorm:"l1_value"`
+	L1Amount      decimal.Decimal `json:"l1_amount" gorm:"l1_amount"`
 
 	// tx info of l2
 	L2EventType   int             `json:"l2_event_type" gorm:"l2_event_type"`
 	L2BlockNumber uint64          `json:"l2_block_number" gorm:"l2_block_number"`
 	L2TxHash      string          `json:"l2_tx_hash" gorm:"l2_tx_hash"`
 	L2TokenId     string          `json:"l2_token_id" gorm:"l2_token_id"`
-	L2Value       decimal.Decimal `json:"l2_value" gorm:"l2_value"`
+	L2Amount      decimal.Decimal `json:"l2_amount" gorm:"l2_amount"`
 
 	// status
 	CheckStatus        int    `json:"check_status" gorm:"check_status"`
@@ -41,7 +41,7 @@ type TransactionMatch struct {
 	L2GatewayStatus    int    `json:"l2_gateway_status" gorm:"l2_gateway_status"`
 	L1CrossChainStatus int    `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`
 	L2CrossChainStatus int    `json:"l2_cross_chain_status" gorm:"l2_cross_chain_status"`
-	MessageProof       string `json:"msg_proof" gorm:"message_proof"`
+	MessageProof       string `json:"message_proof" gorm:"message_proof"`
 
 	CreatedAt time.Time      `json:"created_at" gorm:"column:created_at"`
 	UpdatedAt time.Time      `json:"updated_at" gorm:"column:updated_at"`

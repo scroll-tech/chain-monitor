@@ -4,8 +4,11 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/scroll-tech/go-ethereum/common"
+
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1erc20gateway"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc20gateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc20"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
@@ -15,23 +18,12 @@ type ERC20GatewayEventUnmarshaler struct {
 	Layer    types.LayerType
 	Type     types.EventType
 	Number   uint64
-	TxHash   string
-	MsgHash  string
+	TxHash   common.Hash
 	Amount   *big.Int
-
-	erc20mapping map[types.EventType]types.ERC20
 }
 
 func NewERC20GatewayEventUnmarshaler() *ERC20GatewayEventUnmarshaler {
-	e := &ERC20GatewayEventUnmarshaler{
-		erc20mapping: make(map[types.EventType]types.ERC20),
-	}
-
-	e.erc20mapping[types.L1DepositWETH] = types.WETH
-	e.erc20mapping[types.L1FinalizeWithdrawWETH] = types.WETH
-	e.erc20mapping[types.L1RefundWETH] = types.WETH
-
-	return e
+	return &ERC20GatewayEventUnmarshaler{}
 }
 
 func (e *ERC20GatewayEventUnmarshaler) Unmarshal(context context.Context, layerType types.LayerType, iterators []contracts.WrapIterator) []EventUnmarshaler {
@@ -39,81 +31,80 @@ func (e *ERC20GatewayEventUnmarshaler) Unmarshal(context context.Context, layerT
 	for _, it := range iterators {
 		for it.Iter.Next() {
 			if it.Transfer {
-				transferEvent := e.transfer(layerType, it.Iter)
-				events = append(events, transferEvent)
-				continue
+				events = append(events, e.transfer(layerType, it.Iter))
+			} else {
+				events = append(events, e.erc20(layerType, it.Iter, it.EventType))
 			}
-
-			erc20Type := e.erc20mapping[it.EventType]
-			var erc20events []EventUnmarshaler
-			switch erc20Type {
-			case types.WETH:
-				erc20events = e.weth(layerType, it.Iter, it.EventType)
-			case types.DAI:
-			case types.LIDO:
-			case types.CustomERC20:
-			case types.StandardERC20:
-			case types.USDCERC20:
-			}
-			events = append(events, erc20events...)
 		}
-
 	}
 	return events
 }
 
 func (e *ERC20GatewayEventUnmarshaler) transfer(layerType types.LayerType, it contracts.Iterator) EventUnmarshaler {
-	transferIter := it.(*iscrollerc20.Iscrollerc20TransferIterator)
+	iter := it.(*iscrollerc20.Iscrollerc20TransferIterator)
 	event := &ERC20GatewayEventUnmarshaler{
 		Transfer: true,
 		Layer:    layerType,
-		Number:   transferIter.Event.Raw.BlockNumber,
-		TxHash:   transferIter.Event.Raw.TxHash.Hex(),
-		MsgHash:  "",
-		Amount:   transferIter.Event.Value,
+		Number:   iter.Event.Raw.BlockNumber,
+		TxHash:   iter.Event.Raw.TxHash,
+		Amount:   iter.Event.Value,
 	}
 	return event
 }
 
-func (e *ERC20GatewayEventUnmarshaler) weth(layerType types.LayerType, it contracts.Iterator, eventType types.EventType) []EventUnmarshaler {
-	var events []EventUnmarshaler
+func (e *ERC20GatewayEventUnmarshaler) erc20(layerType types.LayerType, it contracts.Iterator, eventType types.EventType) EventUnmarshaler {
+	var event EventUnmarshaler
 	switch eventType {
-	case types.L1DepositWETH:
-		erc20DepositIter := it.(*il1erc20gateway.Il1erc20gatewayDepositERC20Iterator)
-		event := &ERC20GatewayEventUnmarshaler{
+	case types.L1DepositERC20:
+		iter := it.(*il1erc20gateway.Il1erc20gatewayDepositERC20Iterator)
+		event = &ERC20GatewayEventUnmarshaler{
 			Transfer: false,
 			Layer:    layerType,
-			Type:     types.L1DepositWETH,
-			Number:   erc20DepositIter.Event.Raw.BlockNumber,
-			TxHash:   erc20DepositIter.Event.Raw.TxHash.Hex(),
-			MsgHash:  "",
-			Amount:   erc20DepositIter.Event.Amount,
+			Type:     eventType,
+			Number:   iter.Event.Raw.BlockNumber,
+			TxHash:   iter.Event.Raw.TxHash,
+			Amount:   iter.Event.Amount,
 		}
-		events = append(events, event)
-	case types.L1FinalizeWithdrawWETH:
-		erc20FinalizeWithdrawIter := it.(*il1erc20gateway.Il1erc20gatewayFinalizeWithdrawERC20Iterator)
-		event := &ERC20GatewayEventUnmarshaler{
+	case types.L1FinalizeWithdrawERC20:
+		iter := it.(*il1erc20gateway.Il1erc20gatewayFinalizeWithdrawERC20Iterator)
+		event = &ERC20GatewayEventUnmarshaler{
 			Transfer: false,
 			Layer:    layerType,
-			Type:     types.L1FinalizeWithdrawWETH,
-			Number:   erc20FinalizeWithdrawIter.Event.Raw.BlockNumber,
-			TxHash:   erc20FinalizeWithdrawIter.Event.Raw.TxHash.Hex(),
-			MsgHash:  "",
-			Amount:   erc20FinalizeWithdrawIter.Event.Amount,
+			Type:     eventType,
+			Number:   iter.Event.Raw.BlockNumber,
+			TxHash:   iter.Event.Raw.TxHash,
+			Amount:   iter.Event.Amount,
 		}
-		events = append(events, event)
-	case types.L1RefundWETH:
-		erc20RefundIter := it.(*il1erc20gateway.Il1erc20gatewayRefundERC20Iterator)
-		event := &ERC20GatewayEventUnmarshaler{
+	case types.L1RefundERC20:
+		iter := it.(*il1erc20gateway.Il1erc20gatewayRefundERC20Iterator)
+		event = &ERC20GatewayEventUnmarshaler{
 			Transfer: false,
 			Layer:    layerType,
-			Type:     types.L1RefundWETH,
-			Number:   erc20RefundIter.Event.Raw.BlockNumber,
-			TxHash:   erc20RefundIter.Event.Raw.TxHash.Hex(),
-			MsgHash:  "",
-			Amount:   erc20RefundIter.Event.Amount,
+			Type:     eventType,
+			Number:   iter.Event.Raw.BlockNumber,
+			TxHash:   iter.Event.Raw.TxHash,
+			Amount:   iter.Event.Amount,
 		}
-		events = append(events, event)
+	case types.L2WithdrawERC20:
+		iter := it.(*il2erc20gateway.Il2erc20gatewayWithdrawERC20Iterator)
+		event = &ERC20GatewayEventUnmarshaler{
+			Transfer: false,
+			Layer:    layerType,
+			Type:     eventType,
+			Number:   iter.Event.Raw.BlockNumber,
+			TxHash:   iter.Event.Raw.TxHash,
+			Amount:   iter.Event.Amount,
+		}
+	case types.L2FinalizeDepositERC20:
+		iter := it.(*il2erc20gateway.Il2erc20gatewayFinalizeDepositERC20Iterator)
+		event = &ERC20GatewayEventUnmarshaler{
+			Transfer: false,
+			Layer:    layerType,
+			Type:     eventType,
+			Number:   iter.Event.Raw.BlockNumber,
+			TxHash:   iter.Event.Raw.TxHash,
+			Amount:   iter.Event.Amount,
+		}
 	}
-	return events
+	return event
 }

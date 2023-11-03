@@ -2,9 +2,10 @@ package cross_chain
 
 import (
 	"context"
+	"time"
+
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
-	"time"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/checker"
 	"github.com/scroll-tech/chain-monitor/internal/orm"

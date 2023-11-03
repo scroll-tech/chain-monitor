@@ -90,6 +90,31 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uin
 	}
 }
 
-func (c *ContractController) l2Watch() {
+func (c *ContractController) l2Watch(ctx context.Context, start uint64, end *uint64) {
+	for _, eventCategory := range c.l2EventCategoryList {
+		opt := bind.FilterOpts{
+			Start:   start,
+			End:     end,
+			Context: ctx,
+		}
 
+		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opt, types.Layer2, eventCategory)
+		if err != nil {
+			log.Error("get contract iterator failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", err)
+			continue
+		}
+
+		// parse the event data
+		eventDataList := c.eventGatherLogic.Dispatch(ctx, types.Layer2, eventCategory, wrapIterList)
+		if eventDataList == nil {
+			log.Error("event gather deal event return empty data", "layer", types.Layer2, "eventCategory", eventCategory)
+			continue
+		}
+
+		// match transfer event
+		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, eventDataList); checkErr != nil {
+			log.Error("event matcher deal failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", checkErr)
+			continue
+		}
+	}
 }
