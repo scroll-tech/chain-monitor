@@ -45,7 +45,7 @@ func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, tran
 		return types.MismatchTypeCrossChainTypeNotMatch
 	}
 
-	return types.MismatchTypeUnknown
+	return types.MismatchTypeOk
 }
 
 func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventCategory, eventDataList []events.EventUnmarshaler) error {

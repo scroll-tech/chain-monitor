@@ -3,12 +3,13 @@ package contracts
 import (
 	"context"
 	"fmt"
-	"github.com/scroll-tech/chain-monitor/internal/types"
+
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
+	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
 // Contracts fetch/watch the logs from l1/l2

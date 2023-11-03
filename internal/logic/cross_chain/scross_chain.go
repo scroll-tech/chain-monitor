@@ -2,10 +2,9 @@ package cross_chain
 
 import (
 	"context"
-	"time"
-
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
+	"time"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/checker"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
@@ -49,12 +48,13 @@ func (c *CrossChainLogic) Fetcher(ctx context.Context, layerType types.LayerType
 			}
 		}
 
-		if utils.NowUTC().Sub(transaction.CreatedAt) > 10*time.Minute {
+		// todo remove or not?
+		if utils.NowUTC().Sub(transaction.CreatedAt) > 2*time.Hour {
 			log.Error("id:%d don't check more than 10 minutes", transaction.ID)
 		}
 
 		checkResult := c.checker.CrossChainCheck(ctx, layerType, transaction)
-		if checkResult == types.MismatchTypeUnknown {
+		if checkResult == types.MismatchTypeOk {
 			transactionMatchIds = append(transactionMatchIds, transaction.ID)
 			continue
 		}

@@ -4,6 +4,7 @@ type MismatchType int
 
 const (
 	MismatchTypeUnknown MismatchType = iota
+	MismatchTypeOk
 	MismatchTypeAmount
 	MismatchTypeL2EventNotExist
 	MismatchTypeL1EventNotExist

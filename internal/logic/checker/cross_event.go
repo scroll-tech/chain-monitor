@@ -33,6 +33,8 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	c.eventMatchMap[types.L1USDCDepositERC20] = types.L2USDCFinalizeDepositERC20
 	c.eventMatchMap[types.L1USDCFinalizeWithdrawERC20] = types.L2USDCWithdrawERC20
 
+	// add others
+
 	return c
 }
 
@@ -78,7 +80,7 @@ func (c *CrossEventMatcher) L2EventMatchL1(transactionMatch orm.TransactionMatch
 
 func (c *CrossEventMatcher) CrossChainAmountMatch(transactionMatch orm.TransactionMatch) bool {
 	// how to check erc1155
-	// todo need calculate the refund value
+	// todo need calculate the refund value to eth
 	return transactionMatch.L2Value == transactionMatch.L1Value
 }
 
