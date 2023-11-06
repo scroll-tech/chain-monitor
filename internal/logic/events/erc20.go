@@ -20,6 +20,8 @@ type ERC20GatewayEventUnmarshaler struct {
 	Number   uint64
 	TxHash   common.Hash
 	Amount   *big.Int
+
+	MsgHash common.Hash
 }
 
 func NewERC20GatewayEventUnmarshaler() *ERC20GatewayEventUnmarshaler {

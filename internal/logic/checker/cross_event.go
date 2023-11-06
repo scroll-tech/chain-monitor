@@ -26,57 +26,57 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	return c
 }
 
-func (c *CrossEventMatcher) L1EventMatchL2(transactionMatch orm.TransactionMatch) bool {
-	if transactionMatch.L2EventType == 0 {
+func (c *CrossEventMatcher) L1EventMatchL2(messageMatch orm.MessageMatch) bool {
+	if messageMatch.L2EventType == 0 {
 		return false
 	}
 
-	if transactionMatch.L2Amount == decimal.NewFromInt(0) {
+	if messageMatch.L2Amount == decimal.NewFromInt(0) {
 		return false
 	}
 
-	if transactionMatch.L2TxHash == "" {
+	if messageMatch.L2TxHash == "" {
 		return false
 	}
 
-	if transactionMatch.L2BlockNumber == 0 {
-		return false
-	}
-
-	return true
-}
-
-func (c *CrossEventMatcher) L2EventMatchL1(transactionMatch orm.TransactionMatch) bool {
-	if transactionMatch.L1EventType == 0 {
-		return false
-	}
-
-	if transactionMatch.L1Amount == decimal.NewFromInt(0) {
-		return false
-	}
-
-	if transactionMatch.L1TxHash == "" {
-		return false
-	}
-
-	if transactionMatch.L1BlockNumber == 0 {
+	if messageMatch.L2BlockNumber == 0 {
 		return false
 	}
 
 	return true
 }
 
-func (c *CrossEventMatcher) CrossChainAmountMatch(transactionMatch orm.TransactionMatch) bool {
+func (c *CrossEventMatcher) L2EventMatchL1(messageMatch orm.MessageMatch) bool {
+	if messageMatch.L1EventType == 0 {
+		return false
+	}
+
+	if messageMatch.L1Amount == decimal.NewFromInt(0) {
+		return false
+	}
+
+	if messageMatch.L1TxHash == "" {
+		return false
+	}
+
+	if messageMatch.L1BlockNumber == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch) bool {
 	// how to check erc1155
 	// todo need calculate the refund value to eth
-	return transactionMatch.L2Amount == transactionMatch.L1Amount
+	return messageMatch.L2Amount == messageMatch.L1Amount
 }
 
-func (c *CrossEventMatcher) EventTypeMatch(transactionMatch orm.TransactionMatch) bool {
-	checkType, ok := c.eventMatchMap[types.EventType(transactionMatch.L1EventType)]
+func (c *CrossEventMatcher) EventTypeMatch(messageMatch orm.MessageMatch) bool {
+	checkType, ok := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
 	if !ok {
 		return false
 	}
 
-	return checkType == types.EventType(transactionMatch.L2EventType)
+	return checkType == types.EventType(messageMatch.L2EventType)
 }

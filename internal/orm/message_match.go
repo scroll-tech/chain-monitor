@@ -12,22 +12,22 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-// TransactionMatch contains the tx of l1 & l2
-type TransactionMatch struct {
+// MessageMatch contains the tx of l1 & l2
+type MessageMatch struct {
 	db *gorm.DB `gorm:"column:-"`
 
 	ID          int64  `json:"id" gorm:"column:id"`
 	MessageHash string `json:"message_hash" gorm:"message_hash"`
 	TokenType   int    `json:"token_type" gorm:"token_type"`
 
-	// tx info of l1
+	// l1 event info
 	L1EventType   int             `json:"l1_event_type" gorm:"l1_event_type"`
 	L1BlockNumber uint64          `json:"l1_block_number" gorm:"l1_block_number"`
 	L1TxHash      string          `json:"l1_tx_hash" gorm:"l1_tx_hash"`
 	L1TokenId     string          `json:"l1_token_id" gorm:"l1_token_id"`
 	L1Amount      decimal.Decimal `json:"l1_amount" gorm:"l1_amount"`
 
-	// tx info of l2
+	// l2 event info
 	L2EventType   int             `json:"l2_event_type" gorm:"l2_event_type"`
 	L2BlockNumber uint64          `json:"l2_block_number" gorm:"l2_block_number"`
 	L2TxHash      string          `json:"l2_tx_hash" gorm:"l2_tx_hash"`
@@ -48,37 +48,37 @@ type TransactionMatch struct {
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
 }
 
-// NewTransactionMatch creates a new TransactionMatch database instance.
-func NewTransactionMatch(db *gorm.DB) *TransactionMatch {
-	return &TransactionMatch{db: db}
+// NewMessageMatch creates a new MessageMatch database instance.
+func NewMessageMatch(db *gorm.DB) *MessageMatch {
+	return &MessageMatch{db: db}
 }
 
 // TableName returns the table name for the Batch model.
-func (*TransactionMatch) TableName() string {
-	return "transaction_match"
+func (*MessageMatch) TableName() string {
+	return "message_match"
 }
 
-// GetLatestTransactionMatch get the latest uncheck transaction match record
-func (t *TransactionMatch) GetLatestTransactionMatch(ctx context.Context, limit int) ([]TransactionMatch, error) {
-	var transactions []TransactionMatch
+// GetLatestMessageMatch get the latest uncheck message match record
+func (t *MessageMatch) GetLatestMessageMatch(ctx context.Context, limit int) ([]MessageMatch, error) {
+	var messages []MessageMatch
 	db := t.db.WithContext(ctx)
 	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
 	db = db.Order("id asc")
 	db = db.Limit(limit)
-	if err := db.Find(&transactions).Error; err != nil {
-		log.Warn("TransactionMatch.GetLatestTransactionMatch failed", "error", err)
-		return nil, fmt.Errorf("TransactionMatch.GetLatestTransactionMatch failed err:%w", err)
+	if err := db.Find(&messages).Error; err != nil {
+		log.Warn("MessageMatch.GetLatestMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetLatestMessageMatch failed err:%w", err)
 	}
-	return transactions, nil
+	return messages, nil
 }
 
-func (t *TransactionMatch) InsertOrUpdate(ctx context.Context, transactions []TransactionMatch) (int, error) {
+func (t *MessageMatch) InsertOrUpdate(ctx context.Context, messages []MessageMatch) (int, error) {
 	// insert or update
 }
 
-func (t *TransactionMatch) UpdateGatewayStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.GatewayStatusType) error {
+func (t *MessageMatch) UpdateGatewayStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.GatewayStatusType) error {
 	db := t.db.WithContext(ctx)
-	db = db.Model(&TransactionMatch{})
+	db = db.Model(&MessageMatch{})
 	db = db.Where("id = (?)", id)
 
 	var err error
@@ -90,15 +90,15 @@ func (t *TransactionMatch) UpdateGatewayStatus(ctx context.Context, id []int64, 
 	}
 
 	if err != nil {
-		log.Warn("TransactionMatch.UpdateGatewayStatus failed", "error", err)
-		return fmt.Errorf("TransactionMatch.UpdateGatewayStatus failed err:%w", err)
+		log.Warn("MessageMatch.UpdateGatewayStatus failed", "error", err)
+		return fmt.Errorf("MessageMatch.UpdateGatewayStatus failed err:%w", err)
 	}
 	return nil
 }
 
-func (t *TransactionMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.CrossChainStatusType) error {
+func (t *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.CrossChainStatusType) error {
 	db := t.db.WithContext(ctx)
-	db = db.Model(&TransactionMatch{})
+	db = db.Model(&MessageMatch{})
 	db = db.Where("id in (?)", id)
 
 	var err error
@@ -110,8 +110,8 @@ func (t *TransactionMatch) UpdateCrossChainStatus(ctx context.Context, id []int6
 	}
 
 	if err != nil {
-		log.Warn("TransactionMatch.UpdateCrossChainStatus failed", "error", err)
-		return fmt.Errorf("TransactionMatch.UpdateCrossChainStatus failed err:%w", err)
+		log.Warn("MessageMatch.UpdateCrossChainStatus failed", "error", err)
+		return fmt.Errorf("MessageMatch.UpdateCrossChainStatus failed err:%w", err)
 	}
 	return nil
 }
