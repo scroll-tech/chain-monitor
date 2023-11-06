@@ -35,3 +35,11 @@ const (
 	GatewayStatusTypeInvalid
 	GatewayStatusTypeValid
 )
+
+type BlockStatus int
+
+const (
+	BlockStatusTypeUnknown BlockStatus = iota
+	BlockStatusTypeInvalid
+	BlockStatusTypeValid
+)
