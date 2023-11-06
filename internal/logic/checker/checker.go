@@ -13,37 +13,37 @@ import (
 )
 
 type Checker struct {
-	transactionMatchOrm *orm.TransactionMatch
-	transferMatcher     *TransferEventMatcher
-	crossChainMatcher   *CrossEventMatcher
+	messageMatchOrm   *orm.MessageMatch
+	transferMatcher   *TransferEventMatcher
+	crossChainMatcher *CrossEventMatcher
 }
 
 func NewChecker(db *gorm.DB) *Checker {
 	return &Checker{
-		transactionMatchOrm: orm.NewTransactionMatch(db),
-		transferMatcher:     NewTransferEventMatcher(),
-		crossChainMatcher:   NewCrossEventMatcher(),
+		messageMatchOrm:   orm.NewMessageMatch(db),
+		transferMatcher:   NewTransferEventMatcher(),
+		crossChainMatcher: NewCrossEventMatcher(),
 	}
 }
 
-func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, transactionMatch orm.TransactionMatch) types.MismatchType {
+func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, messageMatch orm.MessageMatch) types.MismatchType {
 	if layer == types.Layer1 {
-		if !c.crossChainMatcher.L1EventMatchL2(transactionMatch) {
+		if !c.crossChainMatcher.L1EventMatchL2(messageMatch) {
 			return types.MismatchTypeL2EventNotExist
 		}
 	}
 
 	if layer == types.Layer2 {
-		if !c.crossChainMatcher.L2EventMatchL1(transactionMatch) {
+		if !c.crossChainMatcher.L2EventMatchL1(messageMatch) {
 			return types.MismatchTypeL1EventNotExist
 		}
 	}
 
-	if !c.crossChainMatcher.CrossChainAmountMatch(transactionMatch) {
+	if !c.crossChainMatcher.CrossChainAmountMatch(messageMatch) {
 		return types.MismatchTypeAmount
 	}
 
-	if !c.crossChainMatcher.EventTypeMatch(transactionMatch) {
+	if !c.crossChainMatcher.EventTypeMatch(messageMatch) {
 		return types.MismatchTypeCrossChainTypeNotMatch
 	}
 
@@ -59,7 +59,7 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventC
 }
 
 func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []events.EventUnmarshaler) error {
-	var transactionMatches []orm.TransactionMatch
+	var messageMatches []orm.MessageMatch
 	erc20TransferEventMap := make(map[string]*events.ERC20GatewayEventUnmarshaler)
 	erc20GatewayEventMap := make(map[string]*events.ERC20GatewayEventUnmarshaler)
 	for _, eventData := range eventDataList {
@@ -71,9 +71,9 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 			erc20GatewayEventMap[erc20EventUnmarshaler.TxHash.Hex()] = erc20EventUnmarshaler
 		}
 
-		var tmpTransactionMatch orm.TransactionMatch
+		var tmpMessageMatch orm.MessageMatch
 		if eventType == types.L1DepositERC20 || eventType == types.L1FinalizeWithdrawERC20 || eventType == types.L1RefundERC20 {
-			tmpTransactionMatch = orm.TransactionMatch{
+			tmpMessageMatch = orm.MessageMatch{
 				TokenType:     int(types.TokenTypeERC20),
 				L1EventType:   int(eventType),
 				L1BlockNumber: erc20EventUnmarshaler.Number,
@@ -81,7 +81,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 				L1Amount:      decimal.NewFromBigInt(erc20EventUnmarshaler.Amount, 10),
 			}
 		} else if eventType == types.L2WithdrawERC20 || eventType == types.L2FinalizeDepositERC20 {
-			tmpTransactionMatch = orm.TransactionMatch{
+			tmpMessageMatch = orm.MessageMatch{
 				TokenType:     int(types.TokenTypeERC20),
 				L2EventType:   int(eventType),
 				L2BlockNumber: erc20EventUnmarshaler.Number,
@@ -93,11 +93,11 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 			continue
 		}
 
-		transactionMatches = append(transactionMatches, tmpTransactionMatch)
+		messageMatches = append(messageMatches, tmpMessageMatch)
 	}
 
-	effectRows, err := c.transactionMatchOrm.InsertOrUpdate(ctx, transactionMatches)
-	if err != nil || effectRows != len(transactionMatches) {
+	effectRows, err := c.messageMatchOrm.InsertOrUpdate(ctx, messageMatches)
+	if err != nil || effectRows != len(messageMatches) {
 		log.Error("erc20EventUnmarshaler orm insert failed, err:%w", err)
 	}
 
