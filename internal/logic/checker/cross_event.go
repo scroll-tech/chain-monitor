@@ -10,18 +10,23 @@ type CrossEventMatcher struct {
 	eventMatchMap map[types.EventType]types.EventType
 }
 
+// NewCrossEventMatcher initializes a new instance of CrossEventMatcher.
 func NewCrossEventMatcher() *CrossEventMatcher {
 	c := &CrossEventMatcher{
 		eventMatchMap: make(map[types.EventType]types.EventType),
 	}
 
-	c.eventMatchMap[types.L1DepositETH] = types.L2FinalizeDepositETH
+	c.eventMatchMap[types.L2FinalizeDepositETH] = types.L1DepositETH
 	c.eventMatchMap[types.L1FinalizeWithdrawETH] = types.L2WithdrawETH
 
-	c.eventMatchMap[types.L1DepositERC20] = types.L2FinalizeDepositERC20
+	c.eventMatchMap[types.L2FinalizeDepositERC20] = types.L1DepositERC20
 	c.eventMatchMap[types.L1FinalizeWithdrawERC20] = types.L2WithdrawERC20
 
-	// add others
+	c.eventMatchMap[types.L2FinalizeDepositERC721] = types.L1DepositERC721
+	c.eventMatchMap[types.L1FinalizeWithdrawERC721] = types.L2WithdrawERC721
+
+	c.eventMatchMap[types.L2FinalizeDepositERC1155] = types.L1DepositERC1155
+	c.eventMatchMap[types.L1FinalizeWithdrawERC1155] = types.L2WithdrawERC1155
 
 	return c
 }

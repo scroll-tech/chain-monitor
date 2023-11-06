@@ -12,9 +12,10 @@ import (
 )
 
 // CrossChainLogic check the l1/l2 event match from db
-// FinalizeWithdraw value ⇒ withdraw value (L1FinalizeWithdrawETH, L1FinalizeWithdrawERC721, L1FinalizeWithdrawERC1155), missing FinalizeBatchWithdraw.
-// FinalizeDeposit value ⇒ deposit value (L2FinalizeDepositETH, L2FinalizeDepositERC721, L2FinalizeDepositERC1155), missing FinalizeBatchDeposit
-// sent/relayed message
+// FinalizeWithdraw value ⇒ withdraw value.
+// FinalizeDeposit value ⇒ deposit value.
+// This is due to the fact that not every deposit/withdrawal event in the system will have a finalize event,
+// as users have the capability to independently refund deposits.
 type CrossChainLogic struct {
 	messageOrm *orm.MessageMatch
 	checker    *checker.Checker

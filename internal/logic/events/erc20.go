@@ -6,106 +6,143 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/common"
 
-	"github.com/scroll-tech/chain-monitor/internal/logic/contracts"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1erc20gateway"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1scrollmessenger"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc20gateway"
-	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc20"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2scrollmessenger"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
 type ERC20GatewayEventUnmarshaler struct {
-	Transfer bool
-	Layer    types.LayerType
-	Type     types.EventType
-	Number   uint64
-	TxHash   common.Hash
-	Amount   *big.Int
+	Layer  types.LayerType
+	Type   types.EventType
+	Number uint64
+	TxHash common.Hash
+	Amount *big.Int
+	Index  uint
 
-	MsgHash common.Hash
+	MessageHash  common.Hash
+	TokenAddress common.Address
 }
 
 func NewERC20GatewayEventUnmarshaler() *ERC20GatewayEventUnmarshaler {
 	return &ERC20GatewayEventUnmarshaler{}
 }
 
-func (e *ERC20GatewayEventUnmarshaler) Unmarshal(context context.Context, layerType types.LayerType, iterators []contracts.WrapIterator) []EventUnmarshaler {
+func (e *ERC20GatewayEventUnmarshaler) Unmarshal(context context.Context, layerType types.LayerType, iterators []types.WrapIterator) []EventUnmarshaler {
 	var events []EventUnmarshaler
 	for _, it := range iterators {
 		for it.Iter.Next() {
-			if it.Transfer {
-				events = append(events, e.transfer(layerType, it.Iter))
-			} else {
-				events = append(events, e.erc20(layerType, it.Iter, it.EventType))
-			}
+			events = append(events, e.erc20(layerType, it.Iter, it.EventType))
 		}
 	}
 	return events
 }
 
-func (e *ERC20GatewayEventUnmarshaler) transfer(layerType types.LayerType, it contracts.Iterator) EventUnmarshaler {
-	iter := it.(*iscrollerc20.Iscrollerc20TransferIterator)
-	event := &ERC20GatewayEventUnmarshaler{
-		Transfer: true,
-		Layer:    layerType,
-		Number:   iter.Event.Raw.BlockNumber,
-		TxHash:   iter.Event.Raw.TxHash,
-		Amount:   iter.Event.Value,
-	}
-	return event
-}
-
-func (e *ERC20GatewayEventUnmarshaler) erc20(layerType types.LayerType, it contracts.Iterator, eventType types.EventType) EventUnmarshaler {
+func (e *ERC20GatewayEventUnmarshaler) erc20(layerType types.LayerType, it types.Iterator, eventType types.EventType) EventUnmarshaler {
 	var event EventUnmarshaler
 	switch eventType {
 	case types.L1DepositERC20:
 		iter := it.(*il1erc20gateway.Il1erc20gatewayDepositERC20Iterator)
 		event = &ERC20GatewayEventUnmarshaler{
-			Transfer: false,
-			Layer:    layerType,
-			Type:     eventType,
-			Number:   iter.Event.Raw.BlockNumber,
-			TxHash:   iter.Event.Raw.TxHash,
-			Amount:   iter.Event.Amount,
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Amount:       iter.Event.Amount,
+			Index:        iter.Event.Raw.Index,
+			TokenAddress: iter.Event.Raw.Address,
 		}
 	case types.L1FinalizeWithdrawERC20:
 		iter := it.(*il1erc20gateway.Il1erc20gatewayFinalizeWithdrawERC20Iterator)
 		event = &ERC20GatewayEventUnmarshaler{
-			Transfer: false,
-			Layer:    layerType,
-			Type:     eventType,
-			Number:   iter.Event.Raw.BlockNumber,
-			TxHash:   iter.Event.Raw.TxHash,
-			Amount:   iter.Event.Amount,
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Amount:       iter.Event.Amount,
+			Index:        iter.Event.Raw.Index,
+			TokenAddress: iter.Event.Raw.Address,
 		}
 	case types.L1RefundERC20:
 		iter := it.(*il1erc20gateway.Il1erc20gatewayRefundERC20Iterator)
 		event = &ERC20GatewayEventUnmarshaler{
-			Transfer: false,
-			Layer:    layerType,
-			Type:     eventType,
-			Number:   iter.Event.Raw.BlockNumber,
-			TxHash:   iter.Event.Raw.TxHash,
-			Amount:   iter.Event.Amount,
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Amount:       iter.Event.Amount,
+			Index:        iter.Event.Raw.Index,
+			TokenAddress: iter.Event.Raw.Address,
 		}
 	case types.L2WithdrawERC20:
 		iter := it.(*il2erc20gateway.Il2erc20gatewayWithdrawERC20Iterator)
 		event = &ERC20GatewayEventUnmarshaler{
-			Transfer: false,
-			Layer:    layerType,
-			Type:     eventType,
-			Number:   iter.Event.Raw.BlockNumber,
-			TxHash:   iter.Event.Raw.TxHash,
-			Amount:   iter.Event.Amount,
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Amount:       iter.Event.Amount,
+			Index:        iter.Event.Raw.Index,
+			TokenAddress: iter.Event.Raw.Address,
 		}
 	case types.L2FinalizeDepositERC20:
 		iter := it.(*il2erc20gateway.Il2erc20gatewayFinalizeDepositERC20Iterator)
 		event = &ERC20GatewayEventUnmarshaler{
-			Transfer: false,
-			Layer:    layerType,
-			Type:     eventType,
-			Number:   iter.Event.Raw.BlockNumber,
-			TxHash:   iter.Event.Raw.TxHash,
-			Amount:   iter.Event.Amount,
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Amount:       iter.Event.Amount,
+			Index:        iter.Event.Raw.Index,
+			TokenAddress: iter.Event.Raw.Address,
+		}
+	case types.L1SentMessage:
+		iter := it.(*il1scrollmessenger.Il1scrollmessengerSentMessageIterator)
+		msgHash := utils.ComputeMessageHash(iter.Event.Sender, iter.Event.Target, iter.Event.Value, iter.Event.MessageNonce, iter.Event.Message)
+		event = &ERC20GatewayEventUnmarshaler{
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Index:        iter.Event.Raw.Index,
+			MessageHash:  msgHash,
+			TokenAddress: iter.Event.Raw.Address,
+		}
+	case types.L2SentMessage:
+		iter := it.(*il2scrollmessenger.Il2scrollmessengerSentMessageIterator)
+		msgHash := utils.ComputeMessageHash(iter.Event.Sender, iter.Event.Target, iter.Event.Value, iter.Event.MessageNonce, iter.Event.Message)
+		event = &ERC20GatewayEventUnmarshaler{
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Index:        iter.Event.Raw.Index,
+			MessageHash:  msgHash,
+			TokenAddress: iter.Event.Raw.Address,
+		}
+	case types.L1RelayedMessage:
+		iter := it.(*il1scrollmessenger.Il1scrollmessengerRelayedMessageIterator)
+		event = &ERC20GatewayEventUnmarshaler{
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Index:        iter.Event.Raw.Index,
+			MessageHash:  iter.Event.MessageHash,
+			TokenAddress: iter.Event.Raw.Address,
+		}
+	case types.L2RelayedMessage:
+		iter := it.(*il2scrollmessenger.Il2scrollmessengerRelayedMessageIterator)
+		event = &ERC20GatewayEventUnmarshaler{
+			Layer:        layerType,
+			Type:         eventType,
+			Number:       iter.Event.Raw.BlockNumber,
+			TxHash:       iter.Event.Raw.TxHash,
+			Index:        iter.Event.Raw.Index,
+			MessageHash:  iter.Event.MessageHash,
+			TokenAddress: iter.Event.Raw.Address,
 		}
 	}
 	return event

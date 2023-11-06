@@ -9,37 +9,59 @@ import (
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1erc20gateway"
-	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc20"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1scrollmessenger"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
+
+type ERC20GatewayMapping struct {
+	TokenType types.ERC20
+	Address   common.Address
+}
 
 type l1Contracts struct {
 	client *ethclient.Client
 
-	ERC20Gateways       map[types.ERC20]*il1erc20gateway.Il1erc20gateway
-	ERC20Transfer       map[types.ERC20]*iscrollerc20.Iscrollerc20
-	ERC20CategoryTokens []types.ERC20
+	Messenger *il1scrollmessenger.Il1scrollmessenger
+
+	ERC20Gateways      map[types.ERC20]*il1erc20gateway.Il1erc20gateway
+	ERC20GatewayTokens []ERC20GatewayMapping
 }
 
 func newL1Contracts(c *ethclient.Client) *l1Contracts {
 	return &l1Contracts{
-		client:              c,
-		ERC20Gateways:       make(map[types.ERC20]*il1erc20gateway.Il1erc20gateway),
-		ERC20Transfer:       make(map[types.ERC20]*iscrollerc20.Iscrollerc20),
-		ERC20CategoryTokens: []types.ERC20{},
+		client:        c,
+		ERC20Gateways: make(map[types.ERC20]*il1erc20gateway.Il1erc20gateway),
 	}
 }
 
 func (l *l1Contracts) register(conf config.Config) error {
-	// @todo: handle error.
-	l.registerERC20Gateway(conf.L1Config.L1Contracts.WETHGateway, types.WETH)
-	l.registerERC20Gateway(conf.L1Config.L1Contracts.StandardERC20Gateway, types.StandardERC20)
-	l.registerERC20Gateway(conf.L1Config.L1Contracts.CustomERC20Gateway, types.CustomERC20)
-	l.registerERC20Gateway(conf.L1Config.L1Contracts.DAIGateway, types.DAI)
-	l.registerERC20Gateway(conf.L1Config.L1Contracts.USDCGateway, types.USDC)
-	l.registerERC20Gateway(conf.L1Config.L1Contracts.LIDOGateway, types.LIDO)
+	var err error
+	l.Messenger, err = il1scrollmessenger.NewIl1scrollmessenger(conf.L1Config.L1Contracts.ScrollMessenger, l.client)
+	if err != nil {
+		log.Error("registerERC20Gateway failed", "address", conf.L1Config.L1Contracts.ScrollMessenger, "err", err)
+		return fmt.Errorf("register l2 scroll messenger contract failed, address:%v, err:%w", conf.L1Config.L1Contracts.ScrollMessenger.Hex(), err)
+	}
 
-	// TODO add others
+	gateways := []struct {
+		Address common.Address
+		Token   types.ERC20
+	}{
+		{conf.L1Config.L1Contracts.WETHGateway, types.WETH},
+		{conf.L1Config.L1Contracts.StandardERC20Gateway, types.StandardERC20},
+		{conf.L1Config.L1Contracts.CustomERC20Gateway, types.CustomERC20},
+		{conf.L1Config.L1Contracts.DAIGateway, types.DAI},
+		{conf.L1Config.L1Contracts.USDCGateway, types.USDC},
+		{conf.L1Config.L1Contracts.LIDOGateway, types.LIDO},
+	}
+
+	for _, gw := range gateways {
+		if err := l.registerERC20Gateway(gw.Address, gw.Token); err != nil {
+			log.Error("registerERC20Gateway failed", "address", gw.Address, "token", gw.Token, "err", err)
+			return err
+		}
+	}
+
+	// add others.
 	return nil
 }
 
@@ -50,17 +72,11 @@ func (l *l1Contracts) registerERC20Gateway(gatewayAddress common.Address, tokenT
 	}
 	erc20Gateway, err := il1erc20gateway.NewIl1erc20gateway(gatewayAddress, l.client)
 	if err != nil {
-		log.Error("register erc20 gateway contract failed", "address", gatewayAddress, "error", err)
 		return fmt.Errorf("register erc20 gateway contract failed, err:%w", err)
 	}
 
 	l.ERC20Gateways[tokenType] = erc20Gateway
-	l.ERC20Transfer[tokenType], err = iscrollerc20.NewIscrollerc20(gatewayAddress, l.client)
-	if err != nil {
-		log.Error("register erc20 transfer contract failed", "address", gatewayAddress, "error", err)
-		return fmt.Errorf("register erc20 transfer contract failed, err:%w", err)
-	}
-	l.ERC20CategoryTokens = append(l.ERC20CategoryTokens, tokenType)
+	l.ERC20GatewayTokens = append(l.ERC20GatewayTokens, ERC20GatewayMapping{TokenType: tokenType, Address: gatewayAddress})
 
 	return nil
 }

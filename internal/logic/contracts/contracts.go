@@ -3,12 +3,18 @@ package contracts
 import (
 	"context"
 	"fmt"
+	"math/big"
 
+	"github.com/scroll-tech/go-ethereum"
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
+	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc20"
+	"github.com/scroll-tech/chain-monitor/internal/logic/events"
+
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
@@ -41,7 +47,7 @@ func (l *Contracts) Register(conf config.Config) error {
 }
 
 // Iterator get the filter iterator
-func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]WrapIterator, error) {
+func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]types.WrapIterator, error) {
 	if layerType == types.Layer1 {
 		switch txEventCategory {
 		case types.ERC20EventCategory:
@@ -60,17 +66,154 @@ func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerTy
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("invalid type, layerType: %v, txEventCategory: %v", layerType, txEventCategory)
 }
 
-func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([]WrapIterator, error) {
-	var iterators []WrapIterator
-	erc20TokenList := l.l1Contracts.ERC20CategoryTokens
+func (l *Contracts) GetGatewayTransfer(ctx context.Context, opts *bind.FilterOpts, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]events.EventUnmarshaler, error) {
+	if layerType == types.Layer1 {
+		switch txEventCategory {
+		case types.ERC20EventCategory:
+			return l.getl1Erc20GatewayTransfer(ctx, opts)
+		case types.ERC721EventCategory:
+		case types.ERC1155EventCategory:
+		}
+	}
 
+	if layerType == types.Layer2 {
+		switch txEventCategory {
+		case types.ERC20EventCategory:
+			return l.getl2Erc20GatewayTransfer(ctx, opts)
+		case types.ERC721EventCategory:
+		case types.ERC1155EventCategory:
+		}
+	}
+
+	return nil, fmt.Errorf("invalid type, layerType: %v, txEventCategory: %v", layerType, txEventCategory)
+}
+
+func (l *Contracts) getl1Erc20GatewayTransfer(ctx context.Context, opts *bind.FilterOpts) ([]events.EventUnmarshaler, error) {
+	erc20ABI, err := iscrollerc20.Iscrollerc20MetaData.GetAbi()
+	if err != nil {
+		return nil, err
+	}
+	var toBlock *big.Int
+	if opts.End != nil {
+		toBlock = new(big.Int).SetUint64(*opts.End)
+	}
+	transferEventQuery := ethereum.FilterQuery{
+		FromBlock: new(big.Int).SetUint64(opts.Start),
+		ToBlock:   toBlock,
+		Topics:    [][]common.Hash{{erc20ABI.Events["Transfer"].ID}},
+	}
+	if opts.End != nil {
+		transferEventQuery.ToBlock = new(big.Int).SetUint64(*opts.End)
+	}
+
+	logs, err := l.l1Contracts.client.FilterLogs(ctx, transferEventQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenAddressMap := make(map[common.Address]struct{})
+	for _, token := range l.l1Contracts.ERC20GatewayTokens {
+		tokenAddressMap[token.Address] = struct{}{}
+	}
+
+	var transferEvents []events.EventUnmarshaler
+	for _, vLog := range logs {
+		event := struct {
+			From  common.Address
+			To    common.Address
+			Value *big.Int
+		}{}
+		err := erc20ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := tokenAddressMap[event.From]; ok {
+			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
+				// @todo: add other fields.
+				Amount:       new(big.Int).Neg(event.Value),
+				TokenAddress: vLog.Address,
+			})
+		} else if _, ok := tokenAddressMap[event.To]; ok {
+			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
+				Amount:       event.Value,
+				TokenAddress: vLog.Address,
+			})
+		}
+	}
+
+	return transferEvents, nil
+}
+
+func (l *Contracts) getl2Erc20GatewayTransfer(ctx context.Context, opts *bind.FilterOpts) ([]events.EventUnmarshaler, error) {
+	erc20ABI, err := iscrollerc20.Iscrollerc20MetaData.GetAbi()
+	if err != nil {
+		return nil, err
+	}
+	var toBlock *big.Int
+	if opts.End != nil {
+		toBlock = new(big.Int).SetUint64(*opts.End)
+	}
+	transferEventQuery := ethereum.FilterQuery{
+		FromBlock: new(big.Int).SetUint64(opts.Start),
+		ToBlock:   toBlock,
+		Topics:    [][]common.Hash{{erc20ABI.Events["Transfer"].ID}},
+	}
+	if opts.End != nil {
+		transferEventQuery.ToBlock = new(big.Int).SetUint64(*opts.End)
+	}
+
+	logs, err := l.l2Contracts.client.FilterLogs(ctx, transferEventQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenAddressMap := make(map[common.Address]struct{})
+	for _, token := range l.l2Contracts.ERC20GatewayTokens {
+		tokenAddressMap[token.Address] = struct{}{}
+	}
+
+	var transferEvents []events.EventUnmarshaler
+	for _, vLog := range logs {
+		event := struct {
+			From  common.Address
+			To    common.Address
+			Value *big.Int
+		}{}
+		err := erc20ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := tokenAddressMap[event.From]; ok {
+			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
+				// @todo: add other fields.
+				Amount:       new(big.Int).Neg(event.Value),
+				TokenAddress: vLog.Address,
+			})
+		}
+
+		if _, ok := tokenAddressMap[event.To]; ok {
+			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
+				Amount:       event.Value,
+				TokenAddress: vLog.Address,
+			})
+		}
+	}
+
+	return transferEvents, nil
+}
+
+func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+	var iterators []types.WrapIterator
+	erc20TokenList := l.l1Contracts.ERC20GatewayTokens
 	for _, erc20Token := range erc20TokenList {
-		gatewayFilter, filterExist := l.l1Contracts.ERC20Gateways[erc20Token]
+		gatewayFilter, filterExist := l.l1Contracts.ERC20Gateways[erc20Token.TokenType]
 		if !filterExist {
-			err := fmt.Errorf("can't get erc20 filter failed, erc20Token:%d", erc20Token)
+			err := fmt.Errorf("can't get erc20 filter failed, erc20Token type:%v, address:%v", erc20Token.TokenType, erc20Token.Address)
 			log.Error("get erc20 event filter from l1 contracts failed", "err", err)
 			return nil, err
 		}
@@ -78,12 +221,11 @@ func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// deposit
 		depositIter, err := gatewayFilter.FilterDepositERC20(opts, nil, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway deposit iterator failed", "token type", erc20Token, "error", err)
+			log.Error("get erc20 gateway deposit iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
 
-		depositWrapIter := WrapIterator{
-			Transfer:  false,
+		depositWrapIter := types.WrapIterator{
 			Iter:      depositIter,
 			EventType: types.L1DepositERC20,
 		}
@@ -92,12 +234,11 @@ func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// finalizeWithdraw
 		finalizeWithdrawIter, err := gatewayFilter.FilterFinalizeWithdrawERC20(opts, nil, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway finalizeWithdraw iterator failed", "token type", erc20Token, "error", err)
+			log.Error("get erc20 gateway finalizeWithdraw iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
 
-		finalizeWithdrawWrapIter := WrapIterator{
-			Transfer:  false,
+		finalizeWithdrawWrapIter := types.WrapIterator{
 			Iter:      finalizeWithdrawIter,
 			EventType: types.L1FinalizeWithdrawERC20,
 		}
@@ -106,47 +247,52 @@ func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// refund
 		refundIter, err := gatewayFilter.FilterRefundERC20(opts, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway refund iterator failed", "token type", erc20Token, "error", err)
+			log.Error("get erc20 gateway refund iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
 
-		refundWrapIter := WrapIterator{
-			Transfer:  false,
+		refundWrapIter := types.WrapIterator{
 			Iter:      refundIter,
 			EventType: types.L1RefundERC20,
 		}
 		iterators = append(iterators, refundWrapIter)
 
-		// transfer event
-		transferFilter, transferFilerExist := l.l1Contracts.ERC20Transfer[erc20Token]
-		if !transferFilerExist {
-			err := fmt.Errorf("can't get erc20 transfer filter failed, erc20Token:%d", erc20Token)
-			log.Error("get erc20 event transfer filter from l1 contracts failed", "err", err)
+		sentMessageIter, err := l.l1Contracts.Messenger.FilterSentMessage(opts, []common.Address{erc20Token.Address}, nil)
+		if err != nil {
+			log.Error("get messenger sentMessage iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
 
-		transferIter, err := transferFilter.FilterTransfer(opts, nil, nil)
+		sentMessageWrapIter := types.WrapIterator{
+			Iter:      sentMessageIter,
+			EventType: types.L1SentMessage,
+		}
+		iterators = append(iterators, sentMessageWrapIter)
+
+		// Note: can only select all relayed message within the block range.
+		relayedMessageIter, err := l.l1Contracts.Messenger.FilterRelayedMessage(opts, nil)
 		if err != nil {
-			log.Error("get erc20 gateway refund iterator failed", "token type", erc20Token, "error", err)
+			log.Error("get messenger relayedMessage iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
-		transferWrapIter := WrapIterator{
-			Transfer: true,
-			Iter:     transferIter,
+
+		relayedMessageWrapIter := types.WrapIterator{
+			Iter:      relayedMessageIter,
+			EventType: types.L1RelayedMessage,
 		}
-		iterators = append(iterators, transferWrapIter)
+		iterators = append(iterators, relayedMessageWrapIter)
 	}
 	return iterators, nil
 }
 
-func (l *Contracts) l2Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([]WrapIterator, error) {
-	var iterators []WrapIterator
-	erc20TokenList := l.l2Contracts.ERC20CategoryTokens
+func (l *Contracts) l2Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+	var iterators []types.WrapIterator
+	erc20TokenList := l.l2Contracts.ERC20GatewayTokens
 
 	for _, erc20Token := range erc20TokenList {
-		gatewayFilter, filterExist := l.l2Contracts.ERC20Gateways[erc20Token]
+		gatewayFilter, filterExist := l.l2Contracts.ERC20Gateways[erc20Token.TokenType]
 		if !filterExist {
-			err := fmt.Errorf("can't get erc20 filter failed, erc20Token:%d", erc20Token)
+			err := fmt.Errorf("can't get erc20 filter failed, erc20Token type:%v, address:%v", erc20Token.TokenType, erc20Token.Address)
 			log.Error("get erc20 event filter from l1 contracts failed", "err", err)
 			return nil, err
 		}
@@ -154,12 +300,11 @@ func (l *Contracts) l2Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// withdraw
 		depositIter, err := gatewayFilter.FilterWithdrawERC20(opts, nil, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway deposit iterator failed", "token type", erc20Token, "error", err)
+			log.Error("get erc20 gateway deposit iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
 
-		depositWrapIter := WrapIterator{
-			Transfer:  false,
+		depositWrapIter := types.WrapIterator{
 			Iter:      depositIter,
 			EventType: types.L2WithdrawERC20,
 		}
@@ -168,35 +313,40 @@ func (l *Contracts) l2Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// finalizeDeposit
 		finalizeWithdrawIter, err := gatewayFilter.FilterFinalizeDepositERC20(opts, nil, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway finalizeWithdraw iterator failed", "token type", erc20Token, "error", err)
+			log.Error("get erc20 gateway finalizeWithdraw iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
 
-		finalizeWithdrawWrapIter := WrapIterator{
-			Transfer:  false,
+		finalizeWithdrawWrapIter := types.WrapIterator{
 			Iter:      finalizeWithdrawIter,
 			EventType: types.L2FinalizeDepositERC20,
 		}
 		iterators = append(iterators, finalizeWithdrawWrapIter)
 
-		// transfer event
-		transferFilter, transferFilerExist := l.l2Contracts.ERC20Transfer[erc20Token]
-		if !transferFilerExist {
-			err := fmt.Errorf("can't get erc20 transfer filter failed, erc20Token:%d", erc20Token)
-			log.Error("get erc20 event transfer filter from l1 contracts failed", "err", err)
+		sentMessageIter, err := l.l2Contracts.Messenger.FilterSentMessage(opts, []common.Address{erc20Token.Address}, nil)
+		if err != nil {
+			log.Error("get messenger sentMessage iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
 
-		transferIter, err := transferFilter.FilterTransfer(opts, nil, nil)
+		sentMessageWrapIter := types.WrapIterator{
+			Iter:      sentMessageIter,
+			EventType: types.L2SentMessage,
+		}
+		iterators = append(iterators, sentMessageWrapIter)
+
+		// Note: can only select all relayed message within the block range.
+		relayedMessageIter, err := l.l2Contracts.Messenger.FilterRelayedMessage(opts, nil)
 		if err != nil {
-			log.Error("get erc20 gateway refund iterator failed", "token type", erc20Token, "error", err)
+			log.Error("get messenger relayedMessage iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
 			return nil, err
 		}
-		transferWrapIter := WrapIterator{
-			Transfer: true,
-			Iter:     transferIter,
+
+		relayedMessageWrapIter := types.WrapIterator{
+			Iter:      relayedMessageIter,
+			EventType: types.L2RelayedMessage,
 		}
-		iterators = append(iterators, transferWrapIter)
+		iterators = append(iterators, relayedMessageWrapIter)
 	}
 	return iterators, nil
 }

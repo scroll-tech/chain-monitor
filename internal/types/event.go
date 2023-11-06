@@ -8,6 +8,12 @@ type EventType uint8
 const (
 	EventTypeUnknown EventType = iota
 
+	L1SentMessage
+	L1RelayedMessage
+
+	L2SentMessage
+	L2RelayedMessage
+
 	// L1DepositETH represents the event for depositing ETH on Layer 1.
 	L1DepositETH
 	// L1FinalizeWithdrawETH represents the event for finalizing ETH withdrawal on Layer 1.
