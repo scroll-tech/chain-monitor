@@ -29,7 +29,7 @@ func NewCrossChainLogic(db *gorm.DB) *CrossChainLogic {
 }
 
 func (c *CrossChainLogic) Fetcher(ctx context.Context, layerType types.LayerType, start, end uint64) {
-	messages, err := c.messageOrm.GetLatestMessageMatch(ctx, 100)
+	messages, err := c.messageOrm.GetUncheckedLatestMessageMatch(ctx, 100)
 	if err != nil {
 		log.Error("CrossChainLogic.Fetcher failed", "error", err)
 		return

@@ -21,6 +21,7 @@ type MessageMatch struct {
 	TokenType   int    `json:"token_type" gorm:"token_type"`
 
 	// l1 event info
+	L1BlockStatus int             `json:"l1_block_status" gorm:"l1_block_status"`
 	L1EventType   int             `json:"l1_event_type" gorm:"l1_event_type"`
 	L1BlockNumber uint64          `json:"l1_block_number" gorm:"l1_block_number"`
 	L1TxHash      string          `json:"l1_tx_hash" gorm:"l1_tx_hash"`
@@ -28,6 +29,7 @@ type MessageMatch struct {
 	L1Amount      decimal.Decimal `json:"l1_amount" gorm:"l1_amount"`
 
 	// l2 event info
+	L2BlockStatus int             `json:"l2_block_status" gorm:"l2_block_status"`
 	L2EventType   int             `json:"l2_event_type" gorm:"l2_event_type"`
 	L2BlockNumber uint64          `json:"l2_block_number" gorm:"l2_block_number"`
 	L2TxHash      string          `json:"l2_tx_hash" gorm:"l2_tx_hash"`
@@ -58,22 +60,40 @@ func (*MessageMatch) TableName() string {
 	return "message_match"
 }
 
-// GetLatestMessageMatch get the latest uncheck message match record
-func (t *MessageMatch) GetLatestMessageMatch(ctx context.Context, limit int) ([]MessageMatch, error) {
-	var messages []MessageMatch
+// GetLatestBlockValidMessageMatch get the latest layer message match record
+func (t *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, layer1 types.LayerType) (*MessageMatch, error) {
+	var transaction MessageMatch
+	db := t.db.WithContext(ctx)
+	switch layer1 {
+	case types.Layer1:
+		db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
+	case types.Layer2:
+		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
+	}
+	if err := db.Last(&transaction).Error; err != nil {
+		log.Warn("TransactionMatch.GetLatestBlockValidTransactionMatch failed", "error", err)
+		return nil, fmt.Errorf("TransactionMatch.GetLatestBlockValidTransactionMatch failed err:%w", err)
+	}
+	return &transaction, nil
+}
+
+// GetUncheckedLatestMessageMatch get the latest uncheck message match record
+func (t *MessageMatch) GetUncheckedLatestMessageMatch(ctx context.Context, limit int) ([]MessageMatch, error) {
+	var transactions []MessageMatch
 	db := t.db.WithContext(ctx)
 	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
 	db = db.Order("id asc")
 	db = db.Limit(limit)
-	if err := db.Find(&messages).Error; err != nil {
-		log.Warn("MessageMatch.GetLatestMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetLatestMessageMatch failed err:%w", err)
+	if err := db.Find(&transactions).Error; err != nil {
+		log.Warn("TransactionMatch.GetUncheckedLatestTransactionMatch failed", "error", err)
+		return nil, fmt.Errorf("TransactionMatch.GetUncheckedLatestTransactionMatch failed err:%w", err)
 	}
-	return messages, nil
+	return transactions, nil
 }
 
 func (t *MessageMatch) InsertOrUpdate(ctx context.Context, messages []MessageMatch) (int, error) {
 	// insert or update
+	return 0, nil
 }
 
 func (t *MessageMatch) UpdateGatewayStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.GatewayStatusType) error {
