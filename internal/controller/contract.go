@@ -75,7 +75,13 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uin
 			continue
 		}
 
-		// parse the event data
+		transferEvents, err := c.contractsLogic.GetGatewayTransfer(ctx, &opt, types.Layer1, eventCategory)
+		if err != nil {
+			log.Error("get gateway related transfer events failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", err)
+			continue
+		}
+
+		// parse the gateway and messenger event data
 		eventDataList := c.eventGatherLogic.Dispatch(ctx, types.Layer1, eventCategory, wrapIterList)
 		if eventDataList == nil {
 			log.Error("event gather deal event return empty data", "layer", types.Layer1, "eventCategory", eventCategory)
@@ -83,7 +89,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uin
 		}
 
 		// match transfer event
-		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, eventDataList); checkErr != nil {
+		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, eventDataList, transferEvents); checkErr != nil {
 			log.Error("event matcher deal failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
@@ -104,6 +110,12 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end *uin
 			continue
 		}
 
+		transferEvents, err := c.contractsLogic.GetGatewayTransfer(ctx, &opt, types.Layer2, eventCategory)
+		if err != nil {
+			log.Error("get gateway related transfer events failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", err)
+			continue
+		}
+
 		// parse the event data
 		eventDataList := c.eventGatherLogic.Dispatch(ctx, types.Layer2, eventCategory, wrapIterList)
 		if eventDataList == nil {
@@ -112,7 +124,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end *uin
 		}
 
 		// match transfer event
-		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, eventDataList); checkErr != nil {
+		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, eventDataList, transferEvents); checkErr != nil {
 			log.Error("event matcher deal failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
