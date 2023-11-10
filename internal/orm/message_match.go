@@ -78,12 +78,12 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 	return &transaction, nil
 }
 
-// GetMessageMatchByL2BlockNumber gets message match record by L2 block number.
+// GetMessageMatchByL2BlockNumber gets message match record by L2 block number with the maximum id.
 func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, blockNumber uint64) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("l2_block_number = ?", blockNumber)
-	db = db.Order("id asc")
+	db = db.Order("id desc")
 	db = db.Limit(1)
 	if err := db.Find(&message).Error; err != nil {
 		log.Warn("GetMessageMatchByL2BlockNumber failed", "block number", blockNumber, "error", err)
