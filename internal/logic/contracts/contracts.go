@@ -14,7 +14,6 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc20"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
-
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
@@ -25,10 +24,10 @@ type Contracts struct {
 }
 
 // NewContracts create contracts filter logs fetcher
-func NewContracts(client *ethclient.Client) *Contracts {
+func NewContracts(l1Client, l2Client *ethclient.Client) *Contracts {
 	c := &Contracts{
-		l1Contracts: newL1Contracts(client),
-		l2Contracts: newL2Contracts(client),
+		l1Contracts: newL1Contracts(l1Client),
+		l2Contracts: newL2Contracts(l2Client),
 	}
 	return c
 }
@@ -54,6 +53,8 @@ func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerTy
 			return l.l1Erc20Filter(ctx, opts)
 		case types.ERC721EventCategory:
 		case types.ERC1155EventCategory:
+		case types.MessengerEventCategory:
+			return l.l1MessengerFilter(ctx, opts)
 		}
 	}
 
@@ -63,17 +64,19 @@ func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerTy
 			return l.l2Erc20Filter(ctx, opts)
 		case types.ERC721EventCategory:
 		case types.ERC1155EventCategory:
+		case types.MessengerEventCategory:
+			return l.l2MessengerFilter(ctx, opts)
 		}
 	}
 
 	return nil, fmt.Errorf("invalid type, layerType: %v, txEventCategory: %v", layerType, txEventCategory)
 }
 
-func (l *Contracts) GetGatewayTransfer(ctx context.Context, opts *bind.FilterOpts, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]events.EventUnmarshaler, error) {
+func (l *Contracts) GetGatewayTransfer(ctx context.Context, startBlockNumber, endBlockNumber uint64, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]events.EventUnmarshaler, error) {
 	if layerType == types.Layer1 {
 		switch txEventCategory {
 		case types.ERC20EventCategory:
-			return l.getl1Erc20GatewayTransfer(ctx, opts)
+			return l.getl1Erc20GatewayTransfer(ctx, startBlockNumber, endBlockNumber)
 		case types.ERC721EventCategory:
 		case types.ERC1155EventCategory:
 		}
@@ -82,7 +85,7 @@ func (l *Contracts) GetGatewayTransfer(ctx context.Context, opts *bind.FilterOpt
 	if layerType == types.Layer2 {
 		switch txEventCategory {
 		case types.ERC20EventCategory:
-			return l.getl2Erc20GatewayTransfer(ctx, opts)
+			return l.getl2Erc20GatewayTransfer(ctx, startBlockNumber, endBlockNumber)
 		case types.ERC721EventCategory:
 		case types.ERC1155EventCategory:
 		}
@@ -91,22 +94,15 @@ func (l *Contracts) GetGatewayTransfer(ctx context.Context, opts *bind.FilterOpt
 	return nil, fmt.Errorf("invalid type, layerType: %v, txEventCategory: %v", layerType, txEventCategory)
 }
 
-func (l *Contracts) getl1Erc20GatewayTransfer(ctx context.Context, opts *bind.FilterOpts) ([]events.EventUnmarshaler, error) {
+func (l *Contracts) getl1Erc20GatewayTransfer(ctx context.Context, startBlockNumber, endBlockNumber uint64) ([]events.EventUnmarshaler, error) {
 	erc20ABI, err := iscrollerc20.Iscrollerc20MetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
-	var toBlock *big.Int
-	if opts.End != nil {
-		toBlock = new(big.Int).SetUint64(*opts.End)
-	}
 	transferEventQuery := ethereum.FilterQuery{
-		FromBlock: new(big.Int).SetUint64(opts.Start),
-		ToBlock:   toBlock,
+		FromBlock: new(big.Int).SetUint64(startBlockNumber),
+		ToBlock:   new(big.Int).SetUint64(endBlockNumber),
 		Topics:    [][]common.Hash{{erc20ABI.Events["Transfer"].ID}},
-	}
-	if opts.End != nil {
-		transferEventQuery.ToBlock = new(big.Int).SetUint64(*opts.End)
 	}
 
 	logs, err := l.l1Contracts.client.FilterLogs(ctx, transferEventQuery)
@@ -148,22 +144,15 @@ func (l *Contracts) getl1Erc20GatewayTransfer(ctx context.Context, opts *bind.Fi
 	return transferEvents, nil
 }
 
-func (l *Contracts) getl2Erc20GatewayTransfer(ctx context.Context, opts *bind.FilterOpts) ([]events.EventUnmarshaler, error) {
+func (l *Contracts) getl2Erc20GatewayTransfer(ctx context.Context, startBlockNumber, endBlockNumber uint64) ([]events.EventUnmarshaler, error) {
 	erc20ABI, err := iscrollerc20.Iscrollerc20MetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
-	var toBlock *big.Int
-	if opts.End != nil {
-		toBlock = new(big.Int).SetUint64(*opts.End)
-	}
 	transferEventQuery := ethereum.FilterQuery{
-		FromBlock: new(big.Int).SetUint64(opts.Start),
-		ToBlock:   toBlock,
+		FromBlock: new(big.Int).SetUint64(startBlockNumber),
+		ToBlock:   new(big.Int).SetUint64(endBlockNumber),
 		Topics:    [][]common.Hash{{erc20ABI.Events["Transfer"].ID}},
-	}
-	if opts.End != nil {
-		transferEventQuery.ToBlock = new(big.Int).SetUint64(*opts.End)
 	}
 
 	logs, err := l.l2Contracts.client.FilterLogs(ctx, transferEventQuery)
@@ -256,31 +245,6 @@ func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 			EventType: types.L1RefundERC20,
 		}
 		iterators = append(iterators, refundWrapIter)
-
-		sentMessageIter, err := l.l1Contracts.Messenger.FilterSentMessage(opts, []common.Address{erc20Token.Address}, nil)
-		if err != nil {
-			log.Error("get messenger sentMessage iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
-			return nil, err
-		}
-
-		sentMessageWrapIter := types.WrapIterator{
-			Iter:      sentMessageIter,
-			EventType: types.L1SentMessage,
-		}
-		iterators = append(iterators, sentMessageWrapIter)
-
-		// Note: can only select all relayed message within the block range.
-		relayedMessageIter, err := l.l1Contracts.Messenger.FilterRelayedMessage(opts, nil)
-		if err != nil {
-			log.Error("get messenger relayedMessage iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
-			return nil, err
-		}
-
-		relayedMessageWrapIter := types.WrapIterator{
-			Iter:      relayedMessageIter,
-			EventType: types.L1RelayedMessage,
-		}
-		iterators = append(iterators, relayedMessageWrapIter)
 	}
 	return iterators, nil
 }
@@ -322,31 +286,62 @@ func (l *Contracts) l2Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 			EventType: types.L2FinalizeDepositERC20,
 		}
 		iterators = append(iterators, finalizeWithdrawWrapIter)
-
-		sentMessageIter, err := l.l2Contracts.Messenger.FilterSentMessage(opts, []common.Address{erc20Token.Address}, nil)
-		if err != nil {
-			log.Error("get messenger sentMessage iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
-			return nil, err
-		}
-
-		sentMessageWrapIter := types.WrapIterator{
-			Iter:      sentMessageIter,
-			EventType: types.L2SentMessage,
-		}
-		iterators = append(iterators, sentMessageWrapIter)
-
-		// Note: can only select all relayed message within the block range.
-		relayedMessageIter, err := l.l2Contracts.Messenger.FilterRelayedMessage(opts, nil)
-		if err != nil {
-			log.Error("get messenger relayedMessage iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
-			return nil, err
-		}
-
-		relayedMessageWrapIter := types.WrapIterator{
-			Iter:      relayedMessageIter,
-			EventType: types.L2RelayedMessage,
-		}
-		iterators = append(iterators, relayedMessageWrapIter)
 	}
+	return iterators, nil
+}
+
+func (l *Contracts) l1MessengerFilter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+	var iterators []types.WrapIterator
+	sentMessageIter, err := l.l1Contracts.Messenger.FilterSentMessage(opts, nil, nil)
+	if err != nil {
+		log.Error("get messenger sentMessage iterator failed", "error", err)
+		return nil, err
+	}
+
+	sentMessageWrapIter := types.WrapIterator{
+		Iter:      sentMessageIter,
+		EventType: types.L1SentMessage,
+	}
+	iterators = append(iterators, sentMessageWrapIter)
+
+	relayedMessageIter, err := l.l1Contracts.Messenger.FilterRelayedMessage(opts, nil)
+	if err != nil {
+		log.Error("get messenger relayedMessage iterator failed", "error", err)
+		return nil, err
+	}
+
+	relayedMessageWrapIter := types.WrapIterator{
+		Iter:      relayedMessageIter,
+		EventType: types.L1RelayedMessage,
+	}
+	iterators = append(iterators, relayedMessageWrapIter)
+	return iterators, nil
+}
+
+func (l *Contracts) l2MessengerFilter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+	var iterators []types.WrapIterator
+	sentMessageIter, err := l.l2Contracts.Messenger.FilterSentMessage(opts, nil, nil)
+	if err != nil {
+		log.Error("get messenger sentMessage iterator failed", "error", err)
+		return nil, err
+	}
+
+	sentMessageWrapIter := types.WrapIterator{
+		Iter:      sentMessageIter,
+		EventType: types.L1SentMessage,
+	}
+	iterators = append(iterators, sentMessageWrapIter)
+
+	relayedMessageIter, err := l.l2Contracts.Messenger.FilterRelayedMessage(opts, nil)
+	if err != nil {
+		log.Error("get messenger relayedMessage iterator failed", "error", err)
+		return nil, err
+	}
+
+	relayedMessageWrapIter := types.WrapIterator{
+		Iter:      relayedMessageIter,
+		EventType: types.L1RelayedMessage,
+	}
+	iterators = append(iterators, relayedMessageWrapIter)
 	return iterators, nil
 }

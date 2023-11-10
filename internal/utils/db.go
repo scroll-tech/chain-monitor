@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"chain-monitor/internal/config"
+	"github.com/scroll-tech/chain-monitor/internal/config"
 )
 
 // InitDB init the db handler

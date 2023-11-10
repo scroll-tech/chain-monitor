@@ -25,11 +25,13 @@ CREATE TABLE message_match
     l2_gateway_status        INTEGER         NOT NULL,
     l1_cross_chain_status    INTEGER         NOT NULL,
     l2_cross_chain_status    INTEGER         NOT NULL,
-    message_proof            TEXT            NOT NULL DEFAULT '',
+    message_proof            BYTEA           DEFAULT NULl,
+    message_nonce            BIGINT          DEFAULT NULL,
 
     created_at               TIMESTAMP(0)    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at               TIMESTAMP(0)    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at               TIMESTAMP(0)    DEFAULT NULL
 );
 
-CREATE INDEX idx_message_match_message_hash ON message_match (message_hash);
+CREATE UNIQUE INDEX idx_message_match_message_hash ON message_match (message_hash);
+CREATE INDEX idx_message_l2_block_number ON message_match (l2_block_number);
