@@ -22,8 +22,8 @@ import (
 const maxBlockFetchSize uint64 = 200
 
 type ContractController struct {
-	l1ETHClient       *ethclient.Client
-	l2ETHClient       *ethclient.Client
+	l1Client          *rpc.Client
+	l2Client          *rpc.Client
 	conf              config.Config
 	eventGatherLogic  *events.EventGather
 	contractsLogic    *contracts.Contracts
@@ -34,15 +34,13 @@ type ContractController struct {
 	l2EventCategoryList []types.TxEventCategory
 }
 
-func NewContractController(conf config.Config, db *gorm.DB, l1RPCClient, l2RPCClient *rpc.Client) *ContractController {
-	l1ETHClient := ethclient.NewClient(l1RPCClient)
-	l2ETHClient := ethclient.NewClient(l2RPCClient)
+func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *rpc.Client) *ContractController {
 	c := &ContractController{
-		l1ETHClient:       l1ETHClient,
-		l2ETHClient:       l2ETHClient,
+		l1Client:          l1Client,
+		l2Client:          l2Client,
 		conf:              conf,
 		eventGatherLogic:  events.NewEventGather(),
-		contractsLogic:    contracts.NewContracts(l1RPCClient, l2RPCClient),
+		contractsLogic:    contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
 		checker:           checker.NewChecker(db),
 		messageMatchLogic: message_match.NewTransactionsMatchLogic(db),
 	}
@@ -52,23 +50,22 @@ func NewContractController(conf config.Config, db *gorm.DB, l1RPCClient, l2RPCCl
 		return nil
 	}
 
+	// eth balance is checked by other means.
 	c.l1EventCategoryList = append(c.l1EventCategoryList, types.ERC20EventCategory)
 	c.l1EventCategoryList = append(c.l1EventCategoryList, types.ERC721EventCategory)
 	c.l1EventCategoryList = append(c.l1EventCategoryList, types.ERC1155EventCategory)
-	c.l1EventCategoryList = append(c.l1EventCategoryList, types.ETHEventCategory)
 
 	c.l2EventCategoryList = append(c.l2EventCategoryList, types.ERC20EventCategory)
 	c.l2EventCategoryList = append(c.l2EventCategoryList, types.ERC721EventCategory)
 	c.l2EventCategoryList = append(c.l2EventCategoryList, types.ERC1155EventCategory)
-	c.l2EventCategoryList = append(c.l2EventCategoryList, types.ETHEventCategory)
 
 	return c
 }
 
 // Watch the l1/l2 events, contains gateways events, transfer events, messenger events
 func (c *ContractController) Watch(ctx context.Context) error {
-	go c.WatcherStart(ctx, c.l1ETHClient, types.Layer1, c.conf.L1Config.Confirm)
-	go c.WatcherStart(ctx, c.l2ETHClient, types.Layer2, c.conf.L2Config.Confirm)
+	go c.WatcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
+	go c.WatcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
 	return nil
 }
 
@@ -108,17 +105,25 @@ func (c *ContractController) WatcherStart(ctx context.Context, client *ethclient
 	}
 }
 
-// @param Start of the queried range
-// @param End of the range (nil = latest)
 func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint64) {
-	for _, eventCategory := range c.l1EventCategoryList {
-		opt := bind.FilterOpts{
-			Start:   start,
-			End:     &end,
-			Context: ctx,
-		}
+	opts := bind.FilterOpts{
+		Start:   start,
+		End:     &end,
+		Context: ctx,
+	}
 
-		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opt, types.Layer1, eventCategory)
+	messengerIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer2, types.MessengerEventCategory)
+	if err != nil {
+		log.Error("get gateway related transfer events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
+	}
+	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
+	if messengerEvents == nil {
+		log.Info("dispatch messenger events returns empty data", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory)
+	}
+
+	for _, eventCategory := range c.l1EventCategoryList {
+		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer1, eventCategory)
 		if err != nil {
 			log.Error("get contract iterator failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", err)
 			continue
@@ -131,14 +136,14 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		}
 
 		// parse the gateway and messenger event data
-		eventDataList := c.eventGatherLogic.Dispatch(ctx, types.Layer1, eventCategory, wrapIterList)
-		if eventDataList == nil {
+		gatewayEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, eventCategory, wrapIterList)
+		if gatewayEvents == nil {
 			log.Error("event gather deal event return empty data", "layer", types.Layer1, "eventCategory", eventCategory)
 			continue
 		}
 
 		// match transfer event
-		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, eventDataList, transferEvents); checkErr != nil {
+		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, gatewayEvents, messengerEvents, transferEvents); checkErr != nil {
 			log.Error("event matcher deal failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
@@ -146,16 +151,24 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 }
 
 func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) {
-	// @todo: sent/relayed message events -> use iterator.
+	opts := bind.FilterOpts{
+		Start:   start,
+		End:     &end,
+		Context: ctx,
+	}
+
+	messengerIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer2, types.MessengerEventCategory)
+	if err != nil {
+		log.Error("get gateway related transfer events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
+	}
+	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
+	if messengerEvents == nil {
+		log.Info("dispatch messenger events returns empty data", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory)
+	}
 
 	for _, eventCategory := range c.l2EventCategoryList {
-		opt := bind.FilterOpts{
-			Start:   start,
-			End:     &end,
-			Context: ctx,
-		}
-
-		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opt, types.Layer2, eventCategory)
+		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer2, eventCategory)
 		if err != nil {
 			log.Error("get contract iterator failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", err)
 			continue
@@ -168,26 +181,26 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		}
 
 		// parse the event data
-		eventDataList := c.eventGatherLogic.Dispatch(ctx, types.Layer2, eventCategory, wrapIterList)
-		if eventDataList == nil {
-			log.Error("event gather deal event return empty data", "layer", types.Layer2, "eventCategory", eventCategory)
+		gatewayEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, eventCategory, wrapIterList)
+		if gatewayEvents == nil {
+			log.Info("dispatch gateway events returns empty data", "layer", types.Layer2, "eventCategory", eventCategory)
 			continue
 		}
 
 		// match transfer event
-		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, eventDataList, transferEvents); checkErr != nil {
+		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, gatewayEvents, messengerEvents, transferEvents); checkErr != nil {
 			log.Error("event matcher deal failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
 	}
 
-	sentMessageEventsMap, withdrawRootsMap, err := c.contractsLogic.GetL2SentMessageEventsAndWithdrawRoots(ctx, start, end)
+	withdrawRootsMap, err := utils.GetL2WithdrawRootsInRange(ctx, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue, start, end)
 	if err != nil {
-		log.Error("get messenger sent message events failed", "layer", types.Layer2, "error", err)
+		log.Error("get l2 withdraw roots in range failed", "message queue addr", c.conf.L2Config.L2Contracts.MessageQueue, "start", start, "end", end, "error", err)
 		return
 	}
 
-	if checkErr := c.checker.CheckL2WithdrawRoots(ctx, start, end, sentMessageEventsMap, withdrawRootsMap); checkErr != nil {
+	if checkErr := c.checker.CheckL2WithdrawRoots(ctx, start, end, messengerEvents, withdrawRootsMap); checkErr != nil {
 		log.Error("check withdraw roots failed", "layer", types.Layer2, "error", checkErr)
 		return
 	}

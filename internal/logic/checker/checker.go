@@ -52,17 +52,20 @@ func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, mess
 	return types.MismatchTypeOk
 }
 
-func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventCategory, eventDataList []events.EventUnmarshaler, transferDataList []events.EventUnmarshaler) error {
+func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) error {
 	switch eventCategory {
 	case types.ERC20EventCategory:
-		return c.erc20EventUnmarshaler(ctx, eventDataList, transferDataList)
+		return c.erc20EventUnmarshaler(ctx, gatewayEvents, messengerEvents, transferEvents)
+	case types.ERC721EventCategory:
+	case types.ERC1155EventCategory:
 	}
 	return nil
 }
 
-func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, sentMessageEvents map[uint64][]events.SentMessageEvent, withdrawRoots map[uint64]common.Hash) error {
+func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, messengerEventsData []events.EventUnmarshaler, withdrawRoots map[uint64]common.Hash) error {
+	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
-	if startBlockNumber > 1 { // ignore genesis block itself and block whose parent is genesis block.
+	if startBlockNumber > 1 {
 		msg, err := c.messageMatchOrm.GetMessageMatchByL2BlockNumber(ctx, startBlockNumber-1)
 		if err != nil {
 			return err
@@ -70,14 +73,22 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 		withdrawTrie.Initialize(msg.MessageNonce, common.HexToHash(msg.MessageHash), msg.MessageProof)
 	}
 
+	sentMessageEventHashesMap := make(map[uint64][]common.Hash)
+	for _, eventData := range messengerEventsData {
+		erc20EventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
+		if !ok {
+			return fmt.Errorf("eventData is not of type *events.ERC20GatewayEventUnmarshaler")
+		}
+		if erc20EventUnmarshaler.Type == types.L2SentMessage {
+			blockNum := erc20EventUnmarshaler.Number
+			sentMessageEventHashesMap[blockNum] = append(sentMessageEventHashesMap[blockNum], erc20EventUnmarshaler.MessageHash)
+		}
+	}
+
 	var messageMatches []orm.MessageMatch
 	lastWithdrawRoot := withdrawTrie.MessageRoot()
 	for blockNum := startBlockNumber; blockNum <= endBlockNumber; blockNum++ {
-		events := sentMessageEvents[blockNum]
-		eventHashes := make([]common.Hash, len(events))
-		for i, event := range events {
-			eventHashes[i] = event.MessageHash
-		}
+		eventHashes := sentMessageEventHashesMap[blockNum]
 		proofs := withdrawTrie.AppendMessages(eventHashes)
 		lastWithdrawRoot = withdrawTrie.MessageRoot()
 		if lastWithdrawRoot != withdrawRoots[blockNum] {
@@ -103,38 +114,31 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 	return nil
 }
 
-func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []events.EventUnmarshaler, transferDataList []events.EventUnmarshaler) error {
-	var messageMatches []orm.MessageMatch
-	type EventKey struct {
+func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) error {
+	type messageEventKey struct {
 		TxHash   common.Hash
 		LogIndex uint
 	}
-	messageHashes := make(map[EventKey]common.Hash)
-
-	var gatewayEvents []events.ERC20GatewayEventUnmarshaler
-	for _, eventData := range eventDataList {
+	messageHashes := make(map[messageEventKey]common.Hash)
+	for _, eventData := range messengerEventsData {
 		erc20EventUnmarshaler, ok := eventData.(*events.ERC20GatewayEventUnmarshaler)
 		if !ok {
 			return fmt.Errorf("eventData is not of type *events.ERC20GatewayEventUnmarshaler")
 		}
-		switch erc20EventUnmarshaler.Type {
-		case types.L1SentMessage, types.L2SentMessage, types.L1RelayedMessage, types.L2RelayedMessage:
-			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index}
-			messageHashes[key] = erc20EventUnmarshaler.MessageHash
-		case types.L1DepositERC20, types.L1FinalizeWithdrawERC20, types.L1RefundERC20, types.L2WithdrawERC20, types.L2FinalizeDepositERC20:
-			gatewayEvents = append(gatewayEvents, *erc20EventUnmarshaler)
-		default:
-			return fmt.Errorf("unknown erc20 event type: %v", erc20EventUnmarshaler.Type)
-		}
+		key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index}
+		messageHashes[key] = erc20EventUnmarshaler.MessageHash
 	}
 
-	for _, eventData := range eventDataList {
+	var messageMatches []orm.MessageMatch
+	var gatewayEvents []events.ERC20GatewayEventUnmarshaler
+	for _, eventData := range gatewayEventsData {
 		erc20EventUnmarshaler := eventData.(*events.ERC20GatewayEventUnmarshaler)
+		gatewayEvents = append(gatewayEvents, *erc20EventUnmarshaler)
 
 		var tmpMessageMatch orm.MessageMatch
 		switch erc20EventUnmarshaler.Type {
 		case types.L1DepositERC20:
-			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index + 1}
+			key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index + 1}
 			messageHash, exists := messageHashes[key]
 			if !exists {
 				return fmt.Errorf("message hash does not exist for key %d", key)
@@ -149,7 +153,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L1FinalizeWithdrawERC20:
-			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index - 1}
+			key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index - 1}
 			messageHash, exists := messageHashes[key]
 			if !exists {
 				return fmt.Errorf("message hash does not exist for key %d", key)
@@ -164,7 +168,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2WithdrawERC20:
-			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index + 1}
+			key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index + 1}
 			messageHash, exists := messageHashes[key]
 			if !exists {
 				return fmt.Errorf("message hash does not exist for key %d", key)
@@ -179,7 +183,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2FinalizeDepositERC20:
-			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index - 1}
+			key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index - 1}
 			messageHash, exists := messageHashes[key]
 			if !exists {
 				return fmt.Errorf("message hash does not exist for key %d", key)
@@ -202,7 +206,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 	}
 
 	var transferEvents []events.ERC20GatewayEventUnmarshaler
-	for _, eventData := range eventDataList {
+	for _, eventData := range transferEventsData {
 		transferEventUnmarshaler, ok := eventData.(*events.ERC20GatewayEventUnmarshaler)
 		if !ok {
 			return fmt.Errorf("eventData is not of type *events.ERC20GatewayEventUnmarshaler")

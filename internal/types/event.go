@@ -95,6 +95,7 @@ const (
 	ERC721EventCategory
 	ERC1155EventCategory
 	ETHEventCategory
+	MessengerEventCategory
 )
 
 type ERC20 int

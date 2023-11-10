@@ -127,8 +127,8 @@ func toBlockNumArg(number *big.Int) string {
 
 var emptyHash = common.BigToHash(big.NewInt(0))
 
-// GetBatchWithdrawRootsInRange gets batch withdraw roots within a block range (inclusive) from the geth node.
-func GetBatchWithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
+// GetL2WithdrawRootsInRange gets batch withdraw roots within a block range (inclusive) from the geth node.
+func GetL2WithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
 	blockNumbers := make([]uint64, endBlockNumber-startBlockNumber+1)
 	for i := startBlockNumber; i <= endBlockNumber; i++ {
 		blockNumbers[i-startBlockNumber] = i
