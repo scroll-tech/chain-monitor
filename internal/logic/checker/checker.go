@@ -106,8 +106,8 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []events.EventUnmarshaler, transferDataList []events.EventUnmarshaler) error {
 	var messageMatches []orm.MessageMatch
 	type EventKey struct {
-		BlockNumber uint64
-		LogIndex    uint
+		TxHash   common.Hash
+		LogIndex uint
 	}
 	messageHashes := make(map[EventKey]common.Hash)
 
@@ -119,7 +119,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 		}
 		switch erc20EventUnmarshaler.Type {
 		case types.L1SentMessage, types.L2SentMessage, types.L1RelayedMessage, types.L2RelayedMessage:
-			key := EventKey{BlockNumber: erc20EventUnmarshaler.Number, LogIndex: erc20EventUnmarshaler.Index}
+			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index}
 			messageHashes[key] = erc20EventUnmarshaler.MessageHash
 		case types.L1DepositERC20, types.L1FinalizeWithdrawERC20, types.L1RefundERC20, types.L2WithdrawERC20, types.L2FinalizeDepositERC20:
 			gatewayEvents = append(gatewayEvents, *erc20EventUnmarshaler)
@@ -134,7 +134,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 		var tmpMessageMatch orm.MessageMatch
 		switch erc20EventUnmarshaler.Type {
 		case types.L1DepositERC20:
-			key := EventKey{BlockNumber: erc20EventUnmarshaler.Number, LogIndex: erc20EventUnmarshaler.Index + 1}
+			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index + 1}
 			messageHash, exists := messageHashes[key]
 			if !exists {
 				return fmt.Errorf("message hash does not exist for key %d", key)
@@ -149,7 +149,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L1FinalizeWithdrawERC20:
-			key := EventKey{BlockNumber: erc20EventUnmarshaler.Number, LogIndex: erc20EventUnmarshaler.Index - 1}
+			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index - 1}
 			messageHash, exists := messageHashes[key]
 			if !exists {
 				return fmt.Errorf("message hash does not exist for key %d", key)
@@ -164,7 +164,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2WithdrawERC20:
-			key := EventKey{BlockNumber: erc20EventUnmarshaler.Number, LogIndex: erc20EventUnmarshaler.Index + 1}
+			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index + 1}
 			messageHash, exists := messageHashes[key]
 			if !exists {
 				return fmt.Errorf("message hash does not exist for key %d", key)
@@ -179,7 +179,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, eventDataList []eve
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2FinalizeDepositERC20:
-			key := EventKey{BlockNumber: erc20EventUnmarshaler.Number, LogIndex: erc20EventUnmarshaler.Index - 1}
+			key := EventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index - 1}
 			messageHash, exists := messageHashes[key]
 			if !exists {
 				return fmt.Errorf("message hash does not exist for key %d", key)

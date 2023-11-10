@@ -56,13 +56,11 @@ func NewContractController(conf config.Config, db *gorm.DB, l1RPCClient, l2RPCCl
 	c.l1EventCategoryList = append(c.l1EventCategoryList, types.ERC721EventCategory)
 	c.l1EventCategoryList = append(c.l1EventCategoryList, types.ERC1155EventCategory)
 	c.l1EventCategoryList = append(c.l1EventCategoryList, types.ETHEventCategory)
-	c.l1EventCategoryList = append(c.l1EventCategoryList, types.MessengerEventCategory)
 
 	c.l2EventCategoryList = append(c.l2EventCategoryList, types.ERC20EventCategory)
 	c.l2EventCategoryList = append(c.l2EventCategoryList, types.ERC721EventCategory)
 	c.l2EventCategoryList = append(c.l2EventCategoryList, types.ERC1155EventCategory)
 	c.l2EventCategoryList = append(c.l2EventCategoryList, types.ETHEventCategory)
-	c.l2EventCategoryList = append(c.l2EventCategoryList, types.MessengerEventCategory)
 
 	return c
 }
@@ -148,6 +146,8 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 }
 
 func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) {
+	// @todo: sent/relayed message events -> use iterator.
+
 	for _, eventCategory := range c.l2EventCategoryList {
 		opt := bind.FilterOpts{
 			Start:   start,
