@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"modernc.org/mathutil"
 
-	"chain-monitor/bytecode/scroll/L2"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2scrollmessenger"
 )
 
 // TryTimes try run several times until the function return true.
@@ -56,7 +56,8 @@ func ComputeMessageHash(
 	messageNonce *big.Int,
 	message []byte,
 ) common.Hash {
-	data, _ := L2.L2ScrollMessengerABI.Pack("relayMessage", sender, target, value, messageNonce, message)
+	parsed, _ := il2scrollmessenger.Il2scrollmessengerMetaData.GetAbi()
+	data, _ := parsed.Pack("relayMessage", sender, target, value, messageNonce, message)
 	return common.BytesToHash(crypto.Keccak256(data))
 }
 
@@ -126,52 +127,36 @@ func toBlockNumArg(number *big.Int) string {
 
 var emptyHash = common.BigToHash(big.NewInt(0))
 
-// GetBatchWithdrawRoots get batch withdraw roots.
-func GetBatchWithdrawRoots(ctx context.Context, cli *rpc.Client, queueAddr common.Address, numbers []uint64) ([]common.Hash, error) {
-	// If the numbers count is too less, just get them.
-	if len(numbers) == 1 {
-		client := ethclient.NewClient(cli)
-		root, err := client.StorageAt(ctx, queueAddr, emptyHash, big.NewInt(0).SetUint64(numbers[0]))
-		if err != nil {
-			return nil, err
-		}
-		return []common.Hash{common.BytesToHash(root)}, nil
+// GetBatchWithdrawRootsInRange gets batch withdraw roots within a block range (inclusive) from the geth node.
+func GetBatchWithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
+	blockNumbers := make([]uint64, endBlockNumber-startBlockNumber+1)
+	for i := startBlockNumber; i <= endBlockNumber; i++ {
+		blockNumbers[i-startBlockNumber] = i
 	}
-
-	withdrawRoots := make([]common.Hash, len(numbers))
-	reqs := make([]rpc.BatchElem, len(numbers))
-	for i, number := range numbers {
+	reqs := make([]rpc.BatchElem, len(blockNumbers))
+	withdrawRootsMap := make(map[uint64]common.Hash)
+	for i, number := range blockNumbers {
 		nb := big.NewInt(0).SetUint64(number)
 		reqs[i] = rpc.BatchElem{
 			Method: "eth_getStorageAt",
 			Args:   []interface{}{queueAddr, emptyHash, toBlockNumArg(nb)},
-			Result: &withdrawRoots[i],
+			Result: withdrawRootsMap[number],
 		}
 	}
 	parallels := 8
 	eg := errgroup.Group{}
 	eg.SetLimit(parallels)
-	for i := 0; i < len(numbers); i += parallels {
+	for i := 0; i < len(blockNumbers); i += parallels {
 		start := i
 		eg.Go(func() error {
 			return cli.BatchCallContext(ctx, reqs[start:mathutil.Min(start+parallels, len(reqs))])
 		})
 	}
-
-	return withdrawRoots, eg.Wait()
+	return withdrawRootsMap, eg.Wait()
 }
 
 // GetBatchBalances get batch account balances at given block numbers.
 func GetBatchBalances(ctx context.Context, cli *rpc.Client, addr common.Address, numbers []uint64) ([]*big.Int, error) {
-	if len(numbers) == 1 {
-		client := ethclient.NewClient(cli)
-		bls, err := client.BalanceAt(ctx, addr, big.NewInt(0).SetUint64(numbers[0]))
-		if err != nil {
-			return nil, err
-		}
-		return []*big.Int{bls}, nil
-	}
-
 	stringResults := make([]string, len(numbers))
 	reqs := make([]rpc.BatchElem, len(numbers))
 	for i, number := range numbers {

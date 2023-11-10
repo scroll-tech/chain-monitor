@@ -6,6 +6,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/scroll-tech/go-ethereum/rpc"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1erc20gateway"
@@ -19,7 +20,8 @@ type ERC20GatewayMapping struct {
 }
 
 type l1Contracts struct {
-	client *ethclient.Client
+	rpcClient *rpc.Client // used for batch json rpc requests.
+	client    *ethclient.Client
 
 	Messenger *il1scrollmessenger.Il1scrollmessenger
 
@@ -27,9 +29,10 @@ type l1Contracts struct {
 	ERC20GatewayTokens []ERC20GatewayMapping
 }
 
-func newL1Contracts(c *ethclient.Client) *l1Contracts {
+func newL1Contracts(c *rpc.Client) *l1Contracts {
 	return &l1Contracts{
-		client:        c,
+		rpcClient:     c,
+		client:        ethclient.NewClient(c),
 		ERC20Gateways: make(map[types.ERC20]*il1erc20gateway.Il1erc20gateway),
 	}
 }

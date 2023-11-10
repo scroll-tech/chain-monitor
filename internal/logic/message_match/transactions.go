@@ -11,18 +11,18 @@ import (
 
 // MessageMatchLogic define the message match logics
 type MessageMatchLogic struct {
-	transactionMatchOrm *orm.MessageMatch
+	messageMatchOrm *orm.MessageMatch
 }
 
 func NewTransactionsMatchLogic(db *gorm.DB) *MessageMatchLogic {
 	return &MessageMatchLogic{
-		transactionMatchOrm: orm.NewMessageMatch(db),
+		messageMatchOrm: orm.NewMessageMatch(db),
 	}
 }
 
 // GetLatestBlockNumber get the latest number
 func (t *MessageMatchLogic) GetLatestBlockNumber(ctx context.Context, layer types.LayerType) (uint64, error) {
-	blockValidTransactionMatch, blockValidErr := t.transactionMatchOrm.GetLatestBlockValidMessageMatch(ctx, layer)
+	blockValidMessageMatch, blockValidErr := t.messageMatchOrm.GetLatestBlockValidMessageMatch(ctx, layer)
 	if blockValidErr != nil {
 		return 0, blockValidErr
 	}
@@ -30,9 +30,9 @@ func (t *MessageMatchLogic) GetLatestBlockNumber(ctx context.Context, layer type
 	var number uint64
 	switch layer {
 	case types.Layer1:
-		number = blockValidTransactionMatch.L1BlockNumber
+		number = blockValidMessageMatch.L1BlockNumber
 	case types.Layer2:
-		number = blockValidTransactionMatch.L2BlockNumber
+		number = blockValidMessageMatch.L2BlockNumber
 	}
 
 	return number, nil

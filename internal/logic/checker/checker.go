@@ -11,6 +11,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/chain-monitor/internal/utils/msgproof"
 )
 
 type Checker struct {
@@ -55,6 +56,49 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventC
 	switch eventCategory {
 	case types.ERC20EventCategory:
 		return c.erc20EventUnmarshaler(ctx, eventDataList, transferDataList)
+	}
+	return nil
+}
+
+func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, sentMessageEvents map[uint64][]events.SentMessageEvent, withdrawRoots map[uint64]common.Hash) error {
+	withdrawTrie := msgproof.NewWithdrawTrie()
+	if startBlockNumber > 1 { // ignore genesis block itself and block whose parent is genesis block.
+		msg, err := c.messageMatchOrm.GetMessageMatchByL2BlockNumber(ctx, startBlockNumber-1)
+		if err != nil {
+			return err
+		}
+		withdrawTrie.Initialize(msg.MessageNonce, common.HexToHash(msg.MessageHash), msg.MessageProof)
+	}
+
+	var messageMatches []orm.MessageMatch
+	lastWithdrawRoot := withdrawTrie.MessageRoot()
+	for blockNum := startBlockNumber; blockNum <= endBlockNumber; blockNum++ {
+		events := sentMessageEvents[blockNum]
+		eventHashes := make([]common.Hash, len(events))
+		for i, event := range events {
+			eventHashes[i] = event.MessageHash
+		}
+		proofs := withdrawTrie.AppendMessages(eventHashes)
+		lastWithdrawRoot = withdrawTrie.MessageRoot()
+		if lastWithdrawRoot != withdrawRoots[blockNum] {
+			// @todo: send slack message.
+			return fmt.Errorf("withdraw root mismatch in %v, got: %v, expected %v", blockNum, lastWithdrawRoot, withdrawRoots[blockNum])
+		}
+		// current block has SentMessage events.
+		numEvents := len(eventHashes)
+		if numEvents > 0 {
+			// only update the last message of each block (which contains at least one SentMessage event).
+			messageMatches = append(messageMatches, orm.MessageMatch{
+				MessageHash:  eventHashes[numEvents-1].Hex(),
+				MessageProof: proofs[numEvents-1],
+				MessageNonce: withdrawTrie.NextMessageNonce,
+			})
+		}
+	}
+
+	effectRows, err := c.messageMatchOrm.InsertOrUpdate(ctx, messageMatches)
+	if err != nil || effectRows != len(messageMatches) {
+		return fmt.Errorf("erc20EventUnmarshaler orm insert failed, err: %w", err)
 	}
 	return nil
 }

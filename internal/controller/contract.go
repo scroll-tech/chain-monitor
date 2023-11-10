@@ -22,8 +22,8 @@ import (
 const maxBlockFetchSize uint64 = 200
 
 type ContractController struct {
-	l1Client          *ethclient.Client
-	l2Client          *ethclient.Client
+	l1ETHClient       *ethclient.Client
+	l2ETHClient       *ethclient.Client
 	conf              config.Config
 	eventGatherLogic  *events.EventGather
 	contractsLogic    *contracts.Contracts
@@ -34,11 +34,15 @@ type ContractController struct {
 	l2EventCategoryList []types.TxEventCategory
 }
 
-func NewContractController(conf config.Config, db *gorm.DB, client *ethclient.Client) *ContractController {
+func NewContractController(conf config.Config, db *gorm.DB, l1RPCClient, l2RPCClient *rpc.Client) *ContractController {
+	l1ETHClient := ethclient.NewClient(l1RPCClient)
+	l2ETHClient := ethclient.NewClient(l2RPCClient)
 	c := &ContractController{
+		l1ETHClient:       l1ETHClient,
+		l2ETHClient:       l2ETHClient,
 		conf:              conf,
 		eventGatherLogic:  events.NewEventGather(),
-		contractsLogic:    contracts.NewContracts(client),
+		contractsLogic:    contracts.NewContracts(l1RPCClient, l2RPCClient),
 		checker:           checker.NewChecker(db),
 		messageMatchLogic: message_match.NewTransactionsMatchLogic(db),
 	}
@@ -65,8 +69,8 @@ func NewContractController(conf config.Config, db *gorm.DB, client *ethclient.Cl
 
 // Watch the l1/l2 events, contains gateways events, transfer events, messenger events
 func (c *ContractController) Watch(ctx context.Context) error {
-	go c.WatcherStart(ctx, c.l1Client, types.Layer1, c.conf.L1Config.Confirm)
-	go c.WatcherStart(ctx, c.l2Client, types.Layer2, c.conf.L2Config.Confirm)
+	go c.WatcherStart(ctx, c.l1ETHClient, types.Layer1, c.conf.L1Config.Confirm)
+	go c.WatcherStart(ctx, c.l2ETHClient, types.Layer2, c.conf.L2Config.Confirm)
 	return nil
 }
 
@@ -100,19 +104,19 @@ func (c *ContractController) WatcherStart(ctx context.Context, client *ethclient
 
 	switch layer {
 	case types.Layer1:
-		c.l1Watch(ctx, start, &end)
+		c.l1Watch(ctx, start, end)
 	case types.Layer2:
-		c.l2Watch(ctx, start, &end)
+		c.l2Watch(ctx, start, end)
 	}
 }
 
 // @param Start of the queried range
 // @param End of the range (nil = latest)
-func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uint64) {
+func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint64) {
 	for _, eventCategory := range c.l1EventCategoryList {
 		opt := bind.FilterOpts{
 			Start:   start,
-			End:     end,
+			End:     &end,
 			Context: ctx,
 		}
 
@@ -122,7 +126,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uin
 			continue
 		}
 
-		transferEvents, err := c.contractsLogic.GetGatewayTransfer(ctx, &opt, types.Layer1, eventCategory)
+		transferEvents, err := c.contractsLogic.GetGatewayTransfer(ctx, start, end, types.Layer1, eventCategory)
 		if err != nil {
 			log.Error("get gateway related transfer events failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", err)
 			continue
@@ -143,11 +147,11 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end *uin
 	}
 }
 
-func (c *ContractController) l2Watch(ctx context.Context, start uint64, end *uint64) {
+func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) {
 	for _, eventCategory := range c.l2EventCategoryList {
 		opt := bind.FilterOpts{
 			Start:   start,
-			End:     end,
+			End:     &end,
 			Context: ctx,
 		}
 
@@ -157,7 +161,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end *uin
 			continue
 		}
 
-		transferEvents, err := c.contractsLogic.GetGatewayTransfer(ctx, &opt, types.Layer2, eventCategory)
+		transferEvents, err := c.contractsLogic.GetGatewayTransfer(ctx, start, end, types.Layer2, eventCategory)
 		if err != nil {
 			log.Error("get gateway related transfer events failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", err)
 			continue
@@ -175,5 +179,16 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end *uin
 			log.Error("event matcher deal failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
+	}
+
+	sentMessageEventsMap, withdrawRootsMap, err := c.contractsLogic.GetL2SentMessageEventsAndWithdrawRoots(ctx, start, end)
+	if err != nil {
+		log.Error("get messenger sent message events failed", "layer", types.Layer2, "error", err)
+		return
+	}
+
+	if checkErr := c.checker.CheckL2WithdrawRoots(ctx, start, end, sentMessageEventsMap, withdrawRootsMap); checkErr != nil {
+		log.Error("check withdraw roots failed", "layer", types.Layer2, "error", checkErr)
+		return
 	}
 }

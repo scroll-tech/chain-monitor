@@ -31,11 +31,8 @@ type Gateway struct {
 
 // L1Contracts l1chain config.
 type L1Contracts struct {
-	Gateway `json:"l1_gateways"`
-
+	Gateway         `json:"l1_gateways"`
 	ScrollMessenger common.Address `json:"scroll_messenger"`
-	MessageQueue    common.Address `json:"message_queue"`
-	L1ScrollChain   common.Address `json:"scroll_chain"`
 }
 
 // L1Config l1 chain config.
@@ -47,8 +44,7 @@ type L1Config struct {
 
 // L2Contracts l1chain config.
 type L2Contracts struct {
-	Gateway `json:"l2_gateways"`
-
+	Gateway         `json:"l2_gateways"`
 	ScrollMessenger common.Address `json:"scroll_messenger"`
 	MessageQueue    common.Address `json:"message_queue"`
 }
@@ -65,10 +61,9 @@ type DBConfig struct {
 	// data source name
 	DSN        string `json:"dsn"`
 	DriverName string `json:"driver_name"`
-
-	MaxOpenNum int `json:"maxOpenNum"`
-	MaxIdleNum int `json:"maxIdleNum"`
-	LogLevel   int `json:"logLevel,omitempty"`
+	MaxOpenNum int    `json:"maxOpenNum"`
+	MaxIdleNum int    `json:"maxIdleNum"`
+	LogLevel   int    `json:"logLevel,omitempty"`
 }
 
 // SlackWebhookConfig slack webhook config.

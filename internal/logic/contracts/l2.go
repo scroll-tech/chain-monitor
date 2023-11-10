@@ -6,6 +6,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/scroll-tech/go-ethereum/rpc"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc20gateway"
@@ -14,7 +15,10 @@ import (
 )
 
 type l2Contracts struct {
-	client *ethclient.Client
+	l2Config *config.L2Config
+
+	rpcClient *rpc.Client
+	client    *ethclient.Client
 
 	Messenger *il2scrollmessenger.Il2scrollmessenger
 
@@ -22,14 +26,17 @@ type l2Contracts struct {
 	ERC20GatewayTokens []ERC20GatewayMapping
 }
 
-func newL2Contracts(c *ethclient.Client) *l2Contracts {
+func newL2Contracts(c *rpc.Client) *l2Contracts {
 	return &l2Contracts{
-		client:        c,
+		rpcClient:     c,
+		client:        ethclient.NewClient(c),
 		ERC20Gateways: make(map[types.ERC20]*il2erc20gateway.Il2erc20gateway),
 	}
 }
 
 func (l *l2Contracts) register(conf config.Config) error {
+	l.l2Config = conf.L2Config
+
 	var err error
 	l.Messenger, err = il2scrollmessenger.NewIl2scrollmessenger(conf.L2Config.L2Contracts.ScrollMessenger, l.client)
 	if err != nil {
