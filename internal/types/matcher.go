@@ -43,3 +43,11 @@ const (
 	BlockStatusTypeInvalid
 	BlockStatusTypeValid
 )
+
+type ETHBalanceStatus int
+
+const (
+	ETHBalanceStatusTypeUnknown ETHBalanceStatus = iota
+	ETHBalanceStatusTypeInvalid
+	ETHBalanceStatusTypeValid
+)

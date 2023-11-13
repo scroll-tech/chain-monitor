@@ -9,6 +9,7 @@ import (
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1erc20gateway"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1ethgateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1scrollmessenger"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
@@ -22,6 +23,8 @@ type l1Contracts struct {
 	client *ethclient.Client
 
 	Messenger *il1scrollmessenger.Il1scrollmessenger
+
+	ETHGateway *il1ethgateway.Il1ethgateway
 
 	ERC20Gateways      map[types.ERC20]*il1erc20gateway.Il1erc20gateway
 	ERC20GatewayTokens []ERC20GatewayMapping
@@ -67,7 +70,7 @@ func (l *l1Contracts) register(conf config.Config) error {
 
 func (l *l1Contracts) registerERC20Gateway(gatewayAddress common.Address, tokenType types.ERC20) error {
 	if gatewayAddress == (common.Address{}) {
-		log.Warn("gateway unconfigured", "address", gatewayAddress, "token type", tokenType)
+		log.Warn("gateway address unconfigured", "token type", tokenType)
 		return nil
 	}
 	erc20Gateway, err := il1erc20gateway.NewIl1erc20gateway(gatewayAddress, l.client)

@@ -36,6 +36,13 @@ type MessageMatch struct {
 	L2TokenId     string          `json:"l2_token_id" gorm:"l2_token_id"`
 	L2Amount      decimal.Decimal `json:"l2_amount" gorm:"l2_amount"`
 
+	// eth info
+	ETHValue              decimal.Decimal `json:"eth_value" gorm:"eth_value"`
+	L1MessengerETHBalance decimal.Decimal `json:"l1_messenger_eth_balance" gorm:"l1_messenger_eth_balance"`
+	L2MessengerETHBalance decimal.Decimal `json:"l2_messenger_eth_balance" gorm:"l2_messenger_eth_balance"`
+	L1ETHBalanceStatus    int             `json:"l1_eth_balance_status" gorm:"l1_eth_balance_status"`
+	L2ETHBalanceStatus    int             `json:"l2_eth_balance_status" gorm:"l2_eth_balance_status"`
+
 	// status
 	CheckStatus        int    `json:"check_status" gorm:"check_status"`
 	WithdrawRootStatus int    `json:"withdraw_root_status" gorm:"withdraw_root_status"`
@@ -62,20 +69,70 @@ func (*MessageMatch) TableName() string {
 }
 
 // GetLatestBlockValidMessageMatch get the latest layer message match record
-func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, layer1 types.LayerType) (*MessageMatch, error) {
-	var transaction MessageMatch
+func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
+	var message MessageMatch
 	db := m.db.WithContext(ctx)
-	switch layer1 {
+	switch layer {
 	case types.Layer1:
 		db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
 	case types.Layer2:
 		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
 	}
-	if err := db.Last(&transaction).Error; err != nil {
+	if err := db.Last(&message).Error; err != nil {
 		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
 		return nil, fmt.Errorf("MessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
 	}
-	return &transaction, nil
+	return &message, nil
+}
+
+// GetLatestDoubleValidMessageMatch get the latest message match record where both layers are valid
+func (m *MessageMatch) GetLatestDoubleValidMessageMatch(ctx context.Context) (*MessageMatch, error) {
+	var message MessageMatch
+	db := m.db.WithContext(ctx)
+
+	// Look for records where both layers are valid
+	db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
+	db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
+
+	if err := db.Last(&message).Error; err != nil {
+		log.Warn("MessageMatch.GetLatestDoubleValidMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetLatestDoubleValidMessageMatch failed err:%w", err)
+	}
+	return &message, nil
+}
+
+// GetLatesETHBalanceMatchMessage get the latest eth balance match record
+func (m *MessageMatch) GetLatesETHBalanceMatchMessage(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
+	var message MessageMatch
+	db := m.db.WithContext(ctx)
+	switch layer {
+	case types.Layer1:
+		db = db.Where("l1_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
+	case types.Layer2:
+		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
+	}
+	if err := db.Last(&message).Error; err != nil {
+		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
+	}
+	return &message, nil
+}
+
+// GetMessageMatchesByBlockNumberRange gets all MessageMatch records in the block number range (inclusive).
+func (m *MessageMatch) GetMessageMatchesByBlockNumberRange(ctx context.Context, layer types.LayerType, startHeight, endHeight uint64) ([]MessageMatch, error) {
+	var messages []MessageMatch
+	db := m.db.WithContext(ctx)
+	switch layer {
+	case types.Layer1:
+		db = db.Where("l1_block_number >= ?", startHeight).Where("l1_block_number <= ?", endHeight)
+	case types.Layer2:
+		db = db.Where("l2_block_number >= ?", startHeight).Where("l2_block_number <= ?", endHeight)
+	}
+	if err := db.Find(&messages).Error; err != nil {
+		log.Warn("MessageMatch.GetMessageMatchesByBlockNumberRange failed", "start height", startHeight, "end height", endHeight, "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetMessageMatchesByBlockNumberRange failed, start height: %v, end height: %v, err: %w", startHeight, endHeight, err)
+	}
+	return messages, nil
 }
 
 // GetMessageMatchByL2BlockNumber gets message match record by L2 block number with the maximum id.
@@ -106,6 +163,7 @@ func (m *MessageMatch) GetUncheckedLatestMessageMatch(ctx context.Context, limit
 	return messages, nil
 }
 
+// @todo: message insert everywhere, ensure l1_block_status & l2_block_status are updated correctly.
 func (m *MessageMatch) InsertOrUpdate(ctx context.Context, messages []MessageMatch) (int, error) {
 	// insert or update
 	return 0, nil

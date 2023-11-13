@@ -16,9 +16,6 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 		eventMatchMap: make(map[types.EventType]types.EventType),
 	}
 
-	c.eventMatchMap[types.L2FinalizeDepositETH] = types.L1DepositETH
-	c.eventMatchMap[types.L1FinalizeWithdrawETH] = types.L2WithdrawETH
-
 	c.eventMatchMap[types.L2FinalizeDepositERC20] = types.L1DepositERC20
 	c.eventMatchMap[types.L1FinalizeWithdrawERC20] = types.L2WithdrawERC20
 
