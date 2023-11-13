@@ -135,7 +135,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 		var tmpMessageMatch orm.MessageMatch
 		switch erc20EventUnmarshaler.Type {
 		case types.L1DepositERC20:
-			messageHash, exists := findPreviousMessageEvent(erc20EventUnmarshaler, messageHashes)
+			messageHash, exists := findPrevMessageEvent(erc20EventUnmarshaler, messageHashes)
 			if !exists {
 				return fmt.Errorf("message hash does not exist for erc20 event %v", erc20EventUnmarshaler)
 			}
@@ -163,7 +163,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2WithdrawERC20:
-			messageHash, exists := findPreviousMessageEvent(erc20EventUnmarshaler, messageHashes)
+			messageHash, exists := findPrevMessageEvent(erc20EventUnmarshaler, messageHashes)
 			if !exists {
 				return fmt.Errorf("message hash does not exist for erc20 event %v", erc20EventUnmarshaler)
 			}
@@ -231,7 +231,7 @@ func findNextMessageEvent(erc20EventUnmarshaler *events.ERC20GatewayEventUnmarsh
 	return nextMessageHash, found
 }
 
-func findPreviousMessageEvent(erc20EventUnmarshaler *events.ERC20GatewayEventUnmarshaler, messageHashes map[messageEventKey]common.Hash) (common.Hash, bool) {
+func findPrevMessageEvent(erc20EventUnmarshaler *events.ERC20GatewayEventUnmarshaler, messageHashes map[messageEventKey]common.Hash) (common.Hash, bool) {
 	var prevMessageHash common.Hash
 	var found bool
 	var smallestDiff uint = math.MaxUint
