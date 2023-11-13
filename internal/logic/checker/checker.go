@@ -3,7 +3,6 @@ package checker
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/shopspring/decimal"
@@ -116,6 +115,10 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 }
 
 func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) error {
+	type messageEventKey struct {
+		TxHash   common.Hash
+		LogIndex uint
+	}
 	messageHashes := make(map[messageEventKey]common.Hash)
 	for _, eventData := range messengerEventsData {
 		erc20EventUnmarshaler, ok := eventData.(*events.ERC20GatewayEventUnmarshaler)
@@ -135,9 +138,10 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 		var tmpMessageMatch orm.MessageMatch
 		switch erc20EventUnmarshaler.Type {
 		case types.L1DepositERC20:
-			messageHash, exists := findNextMessageEvent(erc20EventUnmarshaler, messageHashes)
+			key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index - 1}
+			messageHash, exists := messageHashes[key]
 			if !exists {
-				return fmt.Errorf("message hash does not exist for erc20 event %v", erc20EventUnmarshaler)
+				return fmt.Errorf("message hash does not exist for key %d", key)
 			}
 			tmpMessageMatch = orm.MessageMatch{
 				MessageHash:   messageHash.Hex(),
@@ -149,9 +153,10 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L1FinalizeWithdrawERC20:
-			messageHash, exists := findPreviousMessageEvent(erc20EventUnmarshaler, messageHashes)
+			key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index + 1}
+			messageHash, exists := messageHashes[key]
 			if !exists {
-				return fmt.Errorf("message hash does not exist for erc20 event %v", erc20EventUnmarshaler)
+				return fmt.Errorf("message hash does not exist for key %d", key)
 			}
 			tmpMessageMatch = orm.MessageMatch{
 				MessageHash:   messageHash.Hex(),
@@ -163,9 +168,10 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2WithdrawERC20:
-			messageHash, exists := findNextMessageEvent(erc20EventUnmarshaler, messageHashes)
+			key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index - 1}
+			messageHash, exists := messageHashes[key]
 			if !exists {
-				return fmt.Errorf("message hash does not exist for erc20 event %v", erc20EventUnmarshaler)
+				return fmt.Errorf("message hash does not exist for key %d", key)
 			}
 			tmpMessageMatch = orm.MessageMatch{
 				MessageHash:   messageHash.Hex(),
@@ -177,9 +183,10 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2FinalizeDepositERC20:
-			messageHash, exists := findPreviousMessageEvent(erc20EventUnmarshaler, messageHashes)
+			key := messageEventKey{TxHash: erc20EventUnmarshaler.TxHash, LogIndex: erc20EventUnmarshaler.Index + 1}
+			messageHash, exists := messageHashes[key]
 			if !exists {
-				return fmt.Errorf("message hash does not exist for erc20 event %v", erc20EventUnmarshaler)
+				return fmt.Errorf("message hash does not exist for key %d", key)
 			}
 			tmpMessageMatch = orm.MessageMatch{
 				MessageHash:   messageHash.Hex(),
@@ -208,41 +215,4 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 	}
 
 	return c.transferMatcher.Erc20Matcher(transferEvents, gatewayEvents)
-}
-
-type messageEventKey struct {
-	TxHash   common.Hash
-	LogIndex uint
-}
-
-func findNextMessageEvent(erc20EventUnmarshaler *events.ERC20GatewayEventUnmarshaler, messageHashes map[messageEventKey]common.Hash) (common.Hash, bool) {
-	var nextMessageHash common.Hash
-	var found bool
-	var smallestDiff uint = math.MaxUint
-	for key, msgHash := range messageHashes {
-		if key.TxHash == erc20EventUnmarshaler.TxHash && key.LogIndex > erc20EventUnmarshaler.Index {
-			if diff := key.LogIndex - erc20EventUnmarshaler.Index; diff < smallestDiff {
-				smallestDiff = diff
-				nextMessageHash = msgHash
-				found = true
-			}
-		}
-	}
-	return nextMessageHash, found
-}
-
-func findPreviousMessageEvent(erc20EventUnmarshaler *events.ERC20GatewayEventUnmarshaler, messageHashes map[messageEventKey]common.Hash) (common.Hash, bool) {
-	var prevMessageHash common.Hash
-	var found bool
-	var smallestDiff uint = math.MaxUint
-	for key, msgHash := range messageHashes {
-		if key.TxHash == erc20EventUnmarshaler.TxHash && key.LogIndex < erc20EventUnmarshaler.Index {
-			if diff := erc20EventUnmarshaler.Index - key.LogIndex; diff < smallestDiff {
-				smallestDiff = diff
-				prevMessageHash = msgHash
-				found = true
-			}
-		}
-	}
-	return prevMessageHash, found
 }
