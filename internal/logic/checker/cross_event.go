@@ -24,6 +24,12 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	c.eventMatchMap[types.L2FinalizeDepositERC1155] = types.L1DepositERC1155
 	c.eventMatchMap[types.L1FinalizeWithdrawERC1155] = types.L2WithdrawERC1155
 
+	c.eventMatchMap[types.L2FinalizeBatchDepositERC721] = types.L1BatchDepositERC721
+	c.eventMatchMap[types.L1FinalizeBatchWithdrawERC721] = types.L2BatchWithdrawERC721
+
+	c.eventMatchMap[types.L2FinalizeBatchDepositERC1155] = types.L1BatchDepositERC1155
+	c.eventMatchMap[types.L1FinalizeBatchWithdrawERC1155] = types.L2BatchWithdrawERC1155
+
 	c.eventMatchMap[types.L2RelayedMessage] = types.L1SentMessage
 	c.eventMatchMap[types.L1RelayedMessage] = types.L2SentMessage
 
