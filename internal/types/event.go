@@ -28,12 +28,12 @@ const (
 
 	// L1DepositERC20 represents the event for depositing ERC20 tokens (e.g., WETH, standard erc20, custom erc20, usdc, dai, lido, etc) on Layer 1.
 	L1DepositERC20
-	// L1FinalizeWithdrawStandardERC20 represents the event for finalizing ERC20 tokens withdrawal on Layer 1.
+	// L1FinalizeWithdrawERC20 represents the event for finalizing ERC20 tokens withdrawal on Layer 1.
 	L1FinalizeWithdrawERC20
-	// L1RefundStandardERC20 the event for refund erc20 on Layer 1.
+	// L1RefundERC20 the event for refund erc20 on Layer 1.
 	L1RefundERC20
 
-	// L2FinalizeDepositStandardERC20 represents the event for finalizing ERC20 tokens (e.g., WETH, standard erc20, custom erc20, usdc, dai, lido, etc) deposit on Layer 2.
+	// L2FinalizeDepositERC20 represents the event for finalizing ERC20 tokens (e.g., WETH, standard erc20, custom erc20, usdc, dai, lido, etc) deposit on Layer 2.
 	L2FinalizeDepositERC20
 	// L2WithdrawERC20 represents the event for withdrawing ERC20 tokens on Layer 2.
 	L2WithdrawERC20
@@ -62,7 +62,6 @@ const (
 	// L2WithdrawERC1155 represents the event for withdrawing ERC1155 tokens on Layer 2.
 	L2WithdrawERC1155
 
-	// @todo: handle batch events
 	// L1BatchDepositERC721 represents the event for batch depositing ERC721 tokens on Layer 1.
 	L1BatchDepositERC721
 	// L1FinalizeBatchWithdrawERC721 represents the event for batch finalizing ERC721 token withdrawals on Layer 1.

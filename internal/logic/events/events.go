@@ -19,6 +19,9 @@ func NewEventGather() *EventGather {
 	}
 
 	g.gathers[types.ERC20EventCategory] = NewERC20GatewayEventUnmarshaler()
+	g.gathers[types.ERC721EventCategory] = NewERC721GatewayEventUnmarshaler()
+	g.gathers[types.ERC1155EventCategory] = NewERC1155GatewayEventUnmarshaler()
+	g.gathers[types.MessengerEventCategory] = NewMessengerEventUnmarshaler()
 
 	return g
 }
