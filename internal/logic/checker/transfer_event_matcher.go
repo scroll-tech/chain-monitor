@@ -97,9 +97,11 @@ func (t *TransferEventMatcher) Erc721Matcher(transferEvents, gatewayEvents []eve
 				tokenID:      tokenID,
 			}
 
-			if event.Type == types.L1DepositERC721 || event.Type == types.L2WithdrawERC721 {
+			if event.Type == types.L1DepositERC721 || event.Type == types.L2WithdrawERC721 ||
+				event.Type == types.L1BatchDepositERC721 || event.Type == types.L2BatchWithdrawERC721 {
 				gatewayTokenIds[key].Add(gatewayTokenIds[key], event.Amounts[idx])
-			} else if event.Type == types.L2FinalizeDepositERC721 || event.Type == types.L1FinalizeWithdrawERC721 || event.Type == types.L1RefundERC721 {
+			} else if event.Type == types.L2FinalizeDepositERC721 || event.Type == types.L1FinalizeWithdrawERC721 || event.Type == types.L1RefundERC721 ||
+				event.Type == types.L2FinalizeBatchDepositERC721 || event.Type == types.L1FinalizeBatchWithdrawERC721 || event.Type == types.L1BatchRefundERC721 {
 				gatewayTokenIds[key].Sub(gatewayTokenIds[key], event.Amounts[idx])
 			}
 		}
@@ -114,14 +116,6 @@ func (t *TransferEventMatcher) Erc721Matcher(transferEvents, gatewayEvents []eve
 		}
 	}
 
-	for key, gatewayAmount := range gatewayTokenIds {
-		transferAmount, exists := transferTokenIds[key]
-		if !exists || gatewayAmount.Cmp(transferAmount) != 0 {
-			// send slack.
-			return fmt.Errorf("erc721 mismatch for token %s: gateway amount = %s, transfer amount = %s",
-				key.tokenAddress.Hex(), gatewayAmount.String(), transferAmount.String())
-		}
-	}
 	for key, gatewayAmount := range gatewayTokenIds {
 		transferAmount, exists := transferTokenIds[key]
 		if !exists || gatewayAmount.Cmp(transferAmount) != 0 {
@@ -171,9 +165,11 @@ func (t *TransferEventMatcher) Erc1155Matcher(transferEvents, gatewayEvents []ev
 				tokenID:      tokenID,
 			}
 
-			if event.Type == types.L1DepositERC1155 || event.Type == types.L2WithdrawERC1155 {
+			if event.Type == types.L1DepositERC1155 || event.Type == types.L2WithdrawERC1155 ||
+				event.Type == types.L1BatchDepositERC1155 || event.Type == types.L2BatchWithdrawERC1155 {
 				gatewayTokenIds[key].Add(gatewayTokenIds[key], event.Amounts[idx])
-			} else if event.Type == types.L2FinalizeDepositERC1155 || event.Type == types.L1FinalizeWithdrawERC1155 || event.Type == types.L1RefundERC1155 {
+			} else if event.Type == types.L2FinalizeDepositERC1155 || event.Type == types.L1FinalizeWithdrawERC1155 || event.Type == types.L1RefundERC1155 ||
+				event.Type == types.L2FinalizeBatchDepositERC1155 || event.Type == types.L1FinalizeBatchWithdrawERC1155 || event.Type == types.L1BatchRefundERC1155 {
 				gatewayTokenIds[key].Sub(gatewayTokenIds[key], event.Amounts[idx])
 			}
 		}
