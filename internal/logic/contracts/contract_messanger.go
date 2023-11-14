@@ -3,9 +3,10 @@ package contracts
 import (
 	"context"
 
-	"github.com/scroll-tech/chain-monitor/internal/types"
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/log"
+
+	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
 func (l *Contracts) l1MessengerFilter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {

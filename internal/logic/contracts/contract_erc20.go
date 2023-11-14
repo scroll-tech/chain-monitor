@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/scroll-tech/go-ethereum"
+	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
+	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/log"
+
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc20"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
-	"github.com/scroll-tech/go-ethereum"
-	"github.com/scroll-tech/go-ethereum/common"
-
 	"github.com/scroll-tech/chain-monitor/internal/types"
-	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
-	"github.com/scroll-tech/go-ethereum/log"
 )
 
 func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
@@ -148,7 +148,9 @@ func (l *Contracts) getL1Erc20GatewayTransfer(ctx context.Context, startBlockNum
 				Amount:       new(big.Int).Neg(event.Value),
 				TokenAddress: vLog.Address,
 			})
-		} else if _, ok := tokenAddressMap[event.To]; ok {
+		}
+
+		if _, ok := tokenAddressMap[event.To]; ok {
 			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
 				Amount:       event.Value,
 				TokenAddress: vLog.Address,

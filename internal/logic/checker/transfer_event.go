@@ -60,3 +60,142 @@ func (t *TransferEventMatcher) Erc20Matcher(transferEvents, gatewayEvents []even
 
 	return nil
 }
+
+func (t *TransferEventMatcher) Erc721Matcher(transferEvents, gatewayEvents []events.ERC721GatewayEventUnmarshaler) error {
+	type erc721MatchKey struct {
+		tokenAddress common.Address
+		tokenID      *big.Int
+	}
+	transferTokenIds := make(map[erc721MatchKey]*big.Int)
+	gatewayTokenIds := make(map[erc721MatchKey]*big.Int)
+
+	for _, event := range transferEvents {
+		if len(event.TokenIds) != len(event.Amounts) {
+			return fmt.Errorf("erc721 transfer event tokenIds and amounts not match, %v", event)
+		}
+
+		for idx, tokenID := range event.TokenIds {
+			key := erc721MatchKey{
+				tokenAddress: event.TokenAddress,
+				tokenID:      tokenID,
+			}
+			if _, exists := transferTokenIds[key]; !exists {
+				transferTokenIds[key] = new(big.Int)
+			}
+			transferTokenIds[key].Add(transferTokenIds[key], event.Amounts[idx])
+		}
+	}
+
+	for _, event := range gatewayEvents {
+		if len(event.TokenIds) != len(event.Amounts) {
+			return fmt.Errorf("erc1155 gateway event tokenIds and amounts not match, %v", event)
+		}
+
+		for idx, tokenID := range event.TokenIds {
+			key := erc721MatchKey{
+				tokenAddress: event.TokenAddress,
+				tokenID:      tokenID,
+			}
+
+			if event.Type == types.L1DepositERC721 || event.Type == types.L2WithdrawERC721 {
+				gatewayTokenIds[key].Add(gatewayTokenIds[key], event.Amounts[idx])
+			} else if event.Type == types.L2FinalizeDepositERC721 || event.Type == types.L1FinalizeWithdrawERC721 || event.Type == types.L1RefundERC721 {
+				gatewayTokenIds[key].Sub(gatewayTokenIds[key], event.Amounts[idx])
+			}
+		}
+	}
+
+	for key, transferAmount := range transferTokenIds {
+		gatewayAmount, exists := gatewayTokenIds[key]
+		if !exists || transferAmount.Cmp(gatewayAmount) != 0 {
+			// send slack.
+			return fmt.Errorf("erc721 mismatch for tokenAddress %s: transfer amount = %s, gateway amount = %s",
+				key.tokenAddress.Hex(), transferAmount.String(), gatewayAmount.String())
+		}
+	}
+
+	for key, gatewayAmount := range gatewayTokenIds {
+		transferAmount, exists := transferTokenIds[key]
+		if !exists || gatewayAmount.Cmp(transferAmount) != 0 {
+			// send slack.
+			return fmt.Errorf("erc721 mismatch for token %s: gateway amount = %s, transfer amount = %s",
+				key.tokenAddress.Hex(), gatewayAmount.String(), transferAmount.String())
+		}
+	}
+	for key, gatewayAmount := range gatewayTokenIds {
+		transferAmount, exists := transferTokenIds[key]
+		if !exists || gatewayAmount.Cmp(transferAmount) != 0 {
+			// send slack.
+			return fmt.Errorf("erc721 mismatch for tokenAddress %s: gateway amount = %s, transfer amount = %s",
+				key.tokenAddress.Hex(), gatewayAmount.String(), transferAmount.String())
+		}
+	}
+
+	return nil
+}
+
+func (t *TransferEventMatcher) Erc1155Matcher(transferEvents, gatewayEvents []events.ERC1155GatewayEventUnmarshaler) error {
+	type erc1155MatchKey struct {
+		tokenAddress common.Address
+		tokenID      *big.Int
+	}
+
+	transferTokenIds := make(map[erc1155MatchKey]*big.Int)
+	gatewayTokenIds := make(map[erc1155MatchKey]*big.Int)
+
+	for _, event := range transferEvents {
+		if len(event.TokenIds) != len(event.Amounts) {
+			return fmt.Errorf("erc1155 transfer event tokenIds and amounts not match, %v", event)
+		}
+
+		for idx, tokenID := range event.TokenIds {
+			key := erc1155MatchKey{
+				tokenAddress: event.TokenAddress,
+				tokenID:      tokenID,
+			}
+			if _, exists := transferTokenIds[key]; !exists {
+				transferTokenIds[key] = new(big.Int)
+			}
+			transferTokenIds[key].Add(transferTokenIds[key], event.Amounts[idx])
+		}
+	}
+
+	for _, event := range gatewayEvents {
+		if len(event.TokenIds) != len(event.Amounts) {
+			return fmt.Errorf("erc1155 gateway event tokenIds and amounts not match, %v", event)
+		}
+
+		for idx, tokenID := range event.TokenIds {
+			key := erc1155MatchKey{
+				tokenAddress: event.TokenAddress,
+				tokenID:      tokenID,
+			}
+
+			if event.Type == types.L1DepositERC1155 || event.Type == types.L2WithdrawERC1155 {
+				gatewayTokenIds[key].Add(gatewayTokenIds[key], event.Amounts[idx])
+			} else if event.Type == types.L2FinalizeDepositERC1155 || event.Type == types.L1FinalizeWithdrawERC1155 || event.Type == types.L1RefundERC1155 {
+				gatewayTokenIds[key].Sub(gatewayTokenIds[key], event.Amounts[idx])
+			}
+		}
+	}
+
+	for key, transferAmount := range transferTokenIds {
+		gatewayAmount, exists := gatewayTokenIds[key]
+		if !exists || transferAmount.Cmp(gatewayAmount) != 0 {
+			// send slack.
+			return fmt.Errorf("erc1155 mismatch for tokenAddress %s: transfer amount = %s, gateway amount = %s",
+				key.tokenAddress.Hex(), transferAmount.String(), gatewayAmount.String())
+		}
+	}
+
+	for key, gatewayAmount := range gatewayTokenIds {
+		transferAmount, exists := transferTokenIds[key]
+		if !exists || gatewayAmount.Cmp(transferAmount) != 0 {
+			// send slack.
+			return fmt.Errorf("erc1155 mismatch for token %s: gateway amount = %s, transfer amount = %s",
+				key.tokenAddress.Hex(), gatewayAmount.String(), transferAmount.String())
+		}
+	}
+
+	return nil
+}

@@ -3,11 +3,13 @@ package contracts
 import (
 	"context"
 	"fmt"
+
+	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
+	"github.com/scroll-tech/go-ethereum/ethclient"
+
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/types"
-	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
-	"github.com/scroll-tech/go-ethereum/ethclient"
 )
 
 // Contracts fetch/watch the logs from l1/l2
@@ -75,6 +77,7 @@ func (l *Contracts) GetGatewayTransfer(ctx context.Context, startBlockNumber, en
 		case types.ERC721EventCategory:
 			return l.getL1Erc721GatewayTransfer(ctx, startBlockNumber, endBlockNumber)
 		case types.ERC1155EventCategory:
+			return l.getL1Erc1155GatewayTransfer(ctx, startBlockNumber, endBlockNumber)
 		}
 	}
 
@@ -85,6 +88,7 @@ func (l *Contracts) GetGatewayTransfer(ctx context.Context, startBlockNumber, en
 		case types.ERC721EventCategory:
 			return l.getL2Erc721GatewayTransfer(ctx, startBlockNumber, endBlockNumber)
 		case types.ERC1155EventCategory:
+			return l.getL2Erc1155GatewayTransfer(ctx, startBlockNumber, endBlockNumber)
 		}
 	}
 

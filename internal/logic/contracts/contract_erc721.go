@@ -4,13 +4,13 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc721"
-	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/go-ethereum"
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/log"
 
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc721"
+	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
@@ -185,12 +185,16 @@ func (l *Contracts) getL1Erc721GatewayTransfer(ctx context.Context, startBlockNu
 
 		if l.l1Contracts.ERC721GatewayAddress == event.From {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenId:      new(big.Int).Neg(event.TokenId),
+				TokenIds:     []*big.Int{event.TokenId},
+				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
 				TokenAddress: vLog.Address,
 			})
-		} else if l.l1Contracts.ERC721GatewayAddress == event.To {
+		}
+
+		if l.l1Contracts.ERC721GatewayAddress == event.To {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenId:      event.TokenId,
+				TokenIds:     []*big.Int{event.TokenId},
+				Amounts:      []*big.Int{big.NewInt(1)},
 				TokenAddress: vLog.Address,
 			})
 		}
@@ -218,9 +222,9 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
 		event := struct {
-			From  common.Address
-			To    common.Address
-			Value *big.Int
+			From    common.Address
+			To      common.Address
+			TokenId *big.Int
 		}{}
 		if err := erc721ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data); err != nil {
 			return nil, err
@@ -228,14 +232,16 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 
 		if event.From == l.l2Contracts.ERC721GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenId:      new(big.Int).Neg(event.Value),
+				TokenIds:     []*big.Int{event.TokenId},
+				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
 				TokenAddress: vLog.Address,
 			})
 		}
 
 		if event.To == l.l2Contracts.ERC721GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenId:      event.Value,
+				TokenIds:     []*big.Int{event.TokenId},
+				Amounts:      []*big.Int{big.NewInt(1)},
 				TokenAddress: vLog.Address,
 			})
 		}
