@@ -24,12 +24,12 @@ func NewCrossChainController(db *gorm.DB, client *ethclient.Client, l1MessengerA
 func (c *CrossChainController) Proposer() {
 }
 
-func (c *CrossChainController) l1Proposer(ctx context.Context, start, end uint64) {
-	c.crossChainLogic.Fetcher(ctx, types.Layer1, start, end)
+func (c *CrossChainController) l1Proposer(ctx context.Context) {
+	c.crossChainLogic.CheckCrossChainMessage(ctx, types.Layer1)
 }
 
-func (c *CrossChainController) l2Proposer(ctx context.Context, start, end uint64) {
-	c.crossChainLogic.Fetcher(ctx, types.Layer2, start, end)
+func (c *CrossChainController) l2Proposer(ctx context.Context) {
+	c.crossChainLogic.CheckCrossChainMessage(ctx, types.Layer2)
 }
 
 func (c *CrossChainController) l1ETHBalanceChecker(ctx context.Context) {

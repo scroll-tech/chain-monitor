@@ -101,8 +101,25 @@ func (m *MessageMatch) GetLatestDoubleValidMessageMatch(ctx context.Context) (*M
 	return &message, nil
 }
 
-// GetLatesETHBalanceMessageMatch get the latest eth balance match record
-func (m *MessageMatch) GetLatesETHBalanceMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
+// GetLatestValidCrossChainMessageMatch gets the latest valid cross chain message match
+func (m *MessageMatch) GetLatestValidCrossChainMessageMatch(ctx context.Context, layerType types.LayerType) (*MessageMatch, error) {
+	var message MessageMatch
+	db := m.db.WithContext(ctx)
+	switch layerType {
+	case types.Layer1:
+		db = db.Where("l1_cross_chain_status = ?", types.CrossChainStatusTypeValid)
+	case types.Layer2:
+		db = db.Where("l2_cross_chain_status = ?", types.CrossChainStatusTypeValid)
+	}
+	if err := db.Last(&message).Error; err != nil {
+		log.Warn("MessageMatch.GetLatestValidCrossChainMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetLatestValidCrossChainMessageMatch failed err:%w", err)
+	}
+	return &message, nil
+}
+
+// GetLatesValidETHBalanceMessageMatch get the latest eth balance match record
+func (m *MessageMatch) GetLatesValidETHBalanceMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	switch layer {
@@ -147,20 +164,6 @@ func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, block
 		return nil, fmt.Errorf("GetMessageMatchByL2BlockNumber failed, block number:%v, err:%w", blockNumber, err)
 	}
 	return &message, nil
-}
-
-// GetUncheckedLatestMessageMatch get the latest uncheck message match record
-func (m *MessageMatch) GetUncheckedLatestMessageMatch(ctx context.Context, limit int) ([]MessageMatch, error) {
-	var messages []MessageMatch
-	db := m.db.WithContext(ctx)
-	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
-	db = db.Order("id asc")
-	db = db.Limit(limit)
-	if err := db.Find(&messages).Error; err != nil {
-		log.Warn("MessageMatch.GetUncheckedLatestMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetUncheckedLatestMessageMatch failed err:%w", err)
-	}
-	return messages, nil
 }
 
 // @todo: message insert everywhere, ensure l1_block_status & l2_block_status are updated correctly.

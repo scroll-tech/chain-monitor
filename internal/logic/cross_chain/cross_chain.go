@@ -38,37 +38,47 @@ func NewCrossChainLogic(db *gorm.DB, client *ethclient.Client, l1MessengerAddr, 
 	}
 }
 
-func (c *CrossChainLogic) Fetcher(ctx context.Context, layerType types.LayerType, start, end uint64) {
-	messages, err := c.messageOrm.GetUncheckedLatestMessageMatch(ctx, 100)
+func (c *CrossChainLogic) CheckCrossChainMessage(ctx context.Context, layerType types.LayerType) {
+	latestValidMsg, err := c.messageOrm.GetLatestValidCrossChainMessageMatch(ctx, layerType)
 	if err != nil {
-		log.Error("CrossChainLogic.Fetcher failed", "error", err)
+		log.Error("c.messageOrm GetLatestValidCrossChainMessageMatch failed", "layer", layerType, "error", err)
+		return
+	}
+
+	latestMsg, err := c.messageOrm.GetLatestDoubleValidMessageMatch(ctx)
+	if err != nil {
+		log.Error("c.messageOrm GetLatestDoubleValidMessageMatch failed", "error", err)
+		return
+	}
+
+	var startHeight, endHeight uint64
+	if layerType == types.Layer1 {
+		startHeight = latestValidMsg.L1BlockNumber
+		endHeight = latestMsg.L1BlockNumber
+	} else {
+		startHeight = latestValidMsg.L2BlockNumber
+		endHeight = latestMsg.L2BlockNumber
+	}
+
+	messages, err := c.messageOrm.GetMessageMatchesByBlockNumberRange(ctx, layerType, startHeight, endHeight)
+	if err != nil {
+		log.Error("GetMessageMatchesByBlockNumberRange failed", "layer type", layerType, "start height", startHeight, "end height", endHeight, "error", err)
 		return
 	}
 
 	var messageMatchIds []int64
 	for _, message := range messages {
-		switch layerType {
-		case types.Layer1:
-			if message.L1BlockNumber < start || message.L1BlockNumber > end {
-				continue
-			}
-		case types.Layer2:
-			if message.L2BlockNumber < start || message.L2BlockNumber > end {
-				continue
-			}
-		}
-
 		checkResult := c.checker.CrossChainCheck(ctx, layerType, message)
 		if checkResult == types.MismatchTypeOk {
 			messageMatchIds = append(messageMatchIds, message.ID)
 			continue
 		}
 
-		// todo send to slack
+		// @todo send to slack
 	}
 
 	if err := c.messageOrm.UpdateCrossChainStatus(ctx, messageMatchIds, layerType, types.CrossChainStatusTypeValid); err != nil {
-		log.Error("CrossChainLogic.Fetcher UpdateCrossChainStatus failed", "error", err)
+		log.Error("CrossChainLogic.CheckCrossChainMessage UpdateCrossChainStatus failed", "error", err)
 		return
 	}
 }
@@ -80,20 +90,20 @@ func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.L
 		return
 	}
 
-	latestMatchMessage, err := c.messageOrm.GetLatesETHBalanceMessageMatch(ctx, layerType)
+	latestValidMessage, err := c.messageOrm.GetLatesValidETHBalanceMessageMatch(ctx, layerType)
 	if err != nil {
-		log.Error("c.messageOrm GetLatesETHBalanceMessageMatch failed", "layer type", layerType, "error", err)
+		log.Error("c.messageOrm GetLatesValidETHBalanceMessageMatch failed", "layer type", layerType, "error", err)
 		return
 	}
 
 	if layerType == types.Layer1 {
-		startHeight := latestMatchMessage.L1BlockNumber
+		startHeight := latestValidMessage.L1BlockNumber
 		endHeight := latestMsg.L1BlockNumber
 		if startHeight >= endHeight {
 			log.Info("no ready block to check", "layer types", layerType, "start height", startHeight, "end height", endHeight)
 			return
 		}
-		startBalance := new(big.Int).SetInt64(latestMatchMessage.L1MessengerETHBalance.IntPart())
+		startBalance := new(big.Int).SetInt64(latestValidMessage.L1MessengerETHBalance.IntPart())
 		endBalance, err := c.client.BalanceAt(ctx, c.l1MessengerAddr, new(big.Int).SetUint64(endHeight))
 		if err != nil {
 			log.Error("get messenger balance failed", "layer types", layerType, "addr", c.l1MessengerAddr, "err", err)
@@ -139,13 +149,13 @@ func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.L
 			log.Error("insert eth balance result failed", "err", err)
 		}
 	} else {
-		startHeight := latestMatchMessage.L2BlockNumber
+		startHeight := latestValidMessage.L2BlockNumber
 		endHeight := latestMsg.L2BlockNumber
 		if startHeight >= endHeight {
 			log.Info("no ready block to check", "layer types", layerType, "start height", startHeight, "end height", endHeight)
 			return
 		}
-		startBalance := new(big.Int).SetInt64(latestMatchMessage.L2MessengerETHBalance.IntPart())
+		startBalance := new(big.Int).SetInt64(latestValidMessage.L2MessengerETHBalance.IntPart())
 		endBalance, err := c.client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(endHeight))
 		if err != nil {
 			log.Error("get messenger balance failed", "layer types", layerType, "addr", c.l2MessengerAddr, "err", err)

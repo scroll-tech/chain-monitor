@@ -31,23 +31,15 @@ func NewChecker(db *gorm.DB) *Checker {
 
 func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, messageMatch orm.MessageMatch) types.MismatchType {
 	if layer == types.Layer1 {
-		if !c.crossChainMatcher.L1EventMatchL2(messageMatch) {
+		if !c.crossChainMatcher.checkL1EventMatchL2(messageMatch) {
 			return types.MismatchTypeL2EventNotExist
 		}
 	}
 
 	if layer == types.Layer2 {
-		if !c.crossChainMatcher.L2EventMatchL1(messageMatch) {
+		if !c.crossChainMatcher.checkL2EventMatchL1(messageMatch) {
 			return types.MismatchTypeL1EventNotExist
 		}
-	}
-
-	if !c.crossChainMatcher.CrossChainAmountMatch(messageMatch) {
-		return types.MismatchTypeAmount
-	}
-
-	if !c.crossChainMatcher.EventTypeMatch(messageMatch) {
-		return types.MismatchTypeCrossChainTypeNotMatch
 	}
 
 	return types.MismatchTypeOk

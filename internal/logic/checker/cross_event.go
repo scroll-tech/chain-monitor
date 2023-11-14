@@ -3,7 +3,6 @@ package checker
 import (
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
-	"github.com/shopspring/decimal"
 )
 
 type CrossEventMatcher struct {
@@ -25,15 +24,22 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	c.eventMatchMap[types.L2FinalizeDepositERC1155] = types.L1DepositERC1155
 	c.eventMatchMap[types.L1FinalizeWithdrawERC1155] = types.L2WithdrawERC1155
 
+	c.eventMatchMap[types.L2RelayedMessage] = types.L1SentMessage
+	c.eventMatchMap[types.L1RelayedMessage] = types.L2SentMessage
+
 	return c
 }
 
-func (c *CrossEventMatcher) L1EventMatchL2(messageMatch orm.MessageMatch) bool {
-	if messageMatch.L2EventType == 0 {
-		return false
+// check every L1FializedWithdraw/L1RelayedMessage has corresponding L2 event.
+func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) bool {
+	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
+	if !isPresent {
+		// If the L1 event type is not in the checklist, skip the check
+		return true
 	}
 
-	if messageMatch.L2Amount == decimal.NewFromInt(0) {
+	if matchingEvent != types.EventType(messageMatch.L2EventType) {
+		// If the matching event is not equal to the L2 event type, return false
 		return false
 	}
 
@@ -45,15 +51,27 @@ func (c *CrossEventMatcher) L1EventMatchL2(messageMatch orm.MessageMatch) bool {
 		return false
 	}
 
-	return true
-}
-
-func (c *CrossEventMatcher) L2EventMatchL1(messageMatch orm.MessageMatch) bool {
-	if messageMatch.L1EventType == 0 {
+	if messageMatch.L1Amount != messageMatch.L2Amount {
 		return false
 	}
 
-	if messageMatch.L1Amount == decimal.NewFromInt(0) {
+	if messageMatch.L1TokenId != messageMatch.L2TokenId {
+		return false
+	}
+
+	return true
+}
+
+// check every L2FializedDeposit/L2RelayedMessage has corresponding L1 event.
+func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) bool {
+	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L2EventType)]
+	if !isPresent {
+		// If the L2 event type is not in the checklist, skip the check
+		return true
+	}
+
+	if matchingEvent != types.EventType(messageMatch.L1EventType) {
+		// If the matching event is not equal to the L1 event type, return false
 		return false
 	}
 
@@ -65,20 +83,13 @@ func (c *CrossEventMatcher) L2EventMatchL1(messageMatch orm.MessageMatch) bool {
 		return false
 	}
 
-	return true
-}
-
-func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch) bool {
-	// how to check erc1155
-	// todo need calculate the refund value to eth
-	return messageMatch.L2Amount == messageMatch.L1Amount
-}
-
-func (c *CrossEventMatcher) EventTypeMatch(messageMatch orm.MessageMatch) bool {
-	checkType, ok := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
-	if !ok {
+	if messageMatch.L1Amount != messageMatch.L2Amount {
 		return false
 	}
 
-	return checkType == types.EventType(messageMatch.L2EventType)
+	if messageMatch.L1TokenId != messageMatch.L2TokenId {
+		return false
+	}
+
+	return true
 }
