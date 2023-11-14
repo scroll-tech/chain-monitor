@@ -101,8 +101,8 @@ func (m *MessageMatch) GetLatestDoubleValidMessageMatch(ctx context.Context) (*M
 	return &message, nil
 }
 
-// GetLatesETHBalanceMatchMessage get the latest eth balance match record
-func (m *MessageMatch) GetLatesETHBalanceMatchMessage(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
+// GetLatesETHBalanceMessageMatch get the latest eth balance match record
+func (m *MessageMatch) GetLatesETHBalanceMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	switch layer {

@@ -80,9 +80,9 @@ func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.L
 		return
 	}
 
-	latestMatchMessage, err := c.messageOrm.GetLatesETHBalanceMatchMessage(ctx, layerType)
+	latestMatchMessage, err := c.messageOrm.GetLatesETHBalanceMessageMatch(ctx, layerType)
 	if err != nil {
-		log.Error("c.messageOrm GetLatesETHBalanceMatchMessage failed", "layer type", layerType, "error", err)
+		log.Error("c.messageOrm GetLatesETHBalanceMessageMatch failed", "layer type", layerType, "error", err)
 		return
 	}
 
