@@ -71,13 +71,13 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 
 	sentMessageEventHashesMap := make(map[uint64][]common.Hash)
 	for _, eventData := range messengerEventsData {
-		erc20EventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
+		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
 		if !ok {
-			return fmt.Errorf("eventData is not of type *events.ERC20GatewayEventUnmarshaler")
+			return fmt.Errorf("eventData is not of type *events.MessengerEventUnmarshaler")
 		}
-		if erc20EventUnmarshaler.Type == types.L2SentMessage {
-			blockNum := erc20EventUnmarshaler.Number
-			sentMessageEventHashesMap[blockNum] = append(sentMessageEventHashesMap[blockNum], erc20EventUnmarshaler.MessageHash)
+		if messengerEventUnmarshaler.Type == types.L2SentMessage {
+			blockNum := messengerEventUnmarshaler.Number
+			sentMessageEventHashesMap[blockNum] = append(sentMessageEventHashesMap[blockNum], messengerEventUnmarshaler.MessageHash)
 		}
 	}
 
@@ -172,12 +172,12 @@ func (c *Checker) MessengerCheck(ctx context.Context, messengerEvents []events.E
 func (c *Checker) erc1155EventUnmarshaler(ctx context.Context, gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) error {
 	messageHashes := make(map[messageEventKey]common.Hash)
 	for _, eventData := range messengerEventsData {
-		erc1155EventUnmarshaler, ok := eventData.(*events.ERC1155GatewayEventUnmarshaler)
+		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
 		if !ok {
-			return fmt.Errorf("eventData is not of type *events.ERC1155GatewayEventUnmarshaler")
+			return fmt.Errorf("eventData is not of type *events.MessengerEventUnmarshaler")
 		}
-		key := messageEventKey{TxHash: erc1155EventUnmarshaler.TxHash, LogIndex: erc1155EventUnmarshaler.Index}
-		messageHashes[key] = erc1155EventUnmarshaler.MessageHash
+		key := messageEventKey{TxHash: messengerEventUnmarshaler.TxHash, LogIndex: messengerEventUnmarshaler.Index}
+		messageHashes[key] = messengerEventUnmarshaler.MessageHash
 	}
 
 	var messageMatches []orm.MessageMatch
@@ -303,12 +303,12 @@ func (c *Checker) erc1155EventUnmarshaler(ctx context.Context, gatewayEventsData
 func (c *Checker) erc721EventUnmarshaler(ctx context.Context, gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) error {
 	messageHashes := make(map[messageEventKey]common.Hash)
 	for _, eventData := range messengerEventsData {
-		erc721EventUnmarshaler, ok := eventData.(*events.ERC721GatewayEventUnmarshaler)
+		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
 		if !ok {
-			return fmt.Errorf("eventData is not of type *events.ERC721GatewayEventUnmarshaler")
+			return fmt.Errorf("eventData is not of type *events.MessengerEventUnmarshaler")
 		}
-		key := messageEventKey{TxHash: erc721EventUnmarshaler.TxHash, LogIndex: erc721EventUnmarshaler.Index}
-		messageHashes[key] = erc721EventUnmarshaler.MessageHash
+		key := messageEventKey{TxHash: messengerEventUnmarshaler.TxHash, LogIndex: messengerEventUnmarshaler.Index}
+		messageHashes[key] = messengerEventUnmarshaler.MessageHash
 	}
 
 	var messageMatches []orm.MessageMatch
