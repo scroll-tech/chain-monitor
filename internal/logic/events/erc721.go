@@ -11,23 +11,21 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
+// ERC721GatewayEventUnmarshaler is a struct that helps unmarshal events from the ERC721 Gateway.
 type ERC721GatewayEventUnmarshaler struct {
-	Layer    types.LayerType
-	Type     types.EventType
-	Number   uint64
-	TxHash   common.Hash
-	TokenIds []*big.Int
-	Amounts  []*big.Int
-	Index    uint
-
+	Layer        types.LayerType
+	Type         types.EventType
+	Number       uint64
+	TxHash       common.Hash
+	TokenIds     []*big.Int
+	Amounts      []*big.Int
+	Index        uint
 	MessageHash  common.Hash
 	TokenAddress common.Address
 }
 
-func NewERC721GatewayEventUnmarshaler() *ERC721GatewayEventUnmarshaler {
-	return &ERC721GatewayEventUnmarshaler{}
-}
-
+// Unmarshal takes a context, layer type, and a list of iterators and unmarshals each iterator
+// into an EventUnmarshaler, returning a list of these unmarshaled events.
 func (e *ERC721GatewayEventUnmarshaler) Unmarshal(context context.Context, layerType types.LayerType, iterators []types.WrapIterator) []EventUnmarshaler {
 	var events []EventUnmarshaler
 	for _, it := range iterators {

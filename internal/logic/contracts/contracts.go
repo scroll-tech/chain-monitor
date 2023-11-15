@@ -12,13 +12,14 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-// Contracts fetch/watch the logs from l1/l2
+// Contracts is a struct that helps fetch and watch logs from Layer 1 and Layer 2 contracts.
 type Contracts struct {
 	l1Contracts *l1Contracts
 	l2Contracts *l2Contracts
 }
 
-// NewContracts create contracts filter logs fetcher
+// NewContracts creates a new instance of Contracts which can be used to filter log fetchers
+// from L1 and L2 smart contracts.
 func NewContracts(l1Client, l2Client *ethclient.Client) *Contracts {
 	c := &Contracts{
 		l1Contracts: newL1Contracts(l1Client),
@@ -27,7 +28,7 @@ func NewContracts(l1Client, l2Client *ethclient.Client) *Contracts {
 	return c
 }
 
-// Register all gateway/messenger/transfer contracts
+// Register registers all gateway/messenger/transfer contracts present in the configuration.
 func (l *Contracts) Register(conf config.Config) error {
 	if err := l.l1Contracts.register(conf); err != nil {
 		return err
@@ -40,7 +41,7 @@ func (l *Contracts) Register(conf config.Config) error {
 	return nil
 }
 
-// Iterator get the filter iterator
+// Iterator returns a filter iterator for the provided layer type and transaction event category.
 func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]types.WrapIterator, error) {
 	if layerType == types.Layer1 {
 		switch txEventCategory {
@@ -49,6 +50,7 @@ func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerTy
 		case types.ERC721EventCategory:
 			return l.l1Erc721Filter(ctx, opts)
 		case types.ERC1155EventCategory:
+			return l.l1Erc1155Filter(ctx, opts)
 		case types.MessengerEventCategory:
 			return l.l1MessengerFilter(ctx, opts)
 		}
@@ -61,6 +63,7 @@ func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerTy
 		case types.ERC721EventCategory:
 			return l.l2Erc721Filter(ctx, opts)
 		case types.ERC1155EventCategory:
+			return l.l2Erc1155Filter(ctx, opts)
 		case types.MessengerEventCategory:
 			return l.l2MessengerFilter(ctx, opts)
 		}
@@ -69,6 +72,9 @@ func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerTy
 	return nil, fmt.Errorf("invalid type, layerType: %v, txEventCategory: %v", layerType, txEventCategory)
 }
 
+// GetGatewayTransfer returns a list of unmarshaled events for gateway transfers of a specific event category
+// between the startBlockNumber and endBlockNumber. It returns an error if the layer type or transaction
+// event category is invalid.
 func (l *Contracts) GetGatewayTransfer(ctx context.Context, startBlockNumber, endBlockNumber uint64, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]events.EventUnmarshaler, error) {
 	if layerType == types.Layer1 {
 		switch txEventCategory {

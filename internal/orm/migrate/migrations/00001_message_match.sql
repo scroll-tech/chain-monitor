@@ -11,18 +11,24 @@ CREATE TABLE message_match
     l1_token_ids             VARCHAR         NOT NULL,
     l1_amounts               VARCHAR         NOT NULL,
 
-    -- l1 event info
+    -- l2 event info
     l2_event_type            INTEGER         NOT NULL,
     l2_block_number          BIGINT          NOT NULL,
     l2_tx_hash               VARCHAR         NOT NULL,
     l2_token_ids             VARCHAR         NOT NULL,
     l2_amounts               VARCHAR         NOT NULL,
 
+    -- eth info
+    l1_messenger_eth_balance DECIMAL(78, 0)  NOT NULL,
+    l2_messenger_eth_balance DECIMAL(78, 0)  NOT NULL,
+    l1_eth_balance_status    INTEGER         NOT NULL,
+    l2_eth_balance_status    INTEGER         NOT NULL,
+
     -- status
     check_status             INTEGER         NOT NULL,
     withdraw_root_status     INTEGER         NOT NULL,
-    l1_gateway_status        INTEGER         NOT NULL,
-    l2_gateway_status        INTEGER         NOT NULL,
+    l1_chain_status          INTEGER         NOT NULL,
+    l2_chain_status          INTEGER         NOT NULL,
     l1_cross_chain_status    INTEGER         NOT NULL,
     l2_cross_chain_status    INTEGER         NOT NULL,
     message_proof            BYTEA           DEFAULT NULl,
@@ -34,4 +40,5 @@ CREATE TABLE message_match
 );
 
 CREATE UNIQUE INDEX idx_message_match_message_hash ON message_match (message_hash);
+CREATE INDEX idx_message_l1_block_number ON message_match (l1_block_number);
 CREATE INDEX idx_message_l2_block_number ON message_match (l2_block_number);

@@ -4,19 +4,14 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 
-	"chain-monitor/internal/config"
-	"chain-monitor/internal/controller"
-	"chain-monitor/internal/controller/l1watcher"
-	"chain-monitor/internal/controller/l2watcher"
-	"chain-monitor/internal/controller/monitor"
-	"chain-monitor/internal/orm/migrate"
-	"chain-monitor/internal/route"
-	"chain-monitor/internal/utils"
+	"github.com/scroll-tech/chain-monitor/internal/config"
+	"github.com/scroll-tech/chain-monitor/internal/orm/migrate"
+	"github.com/scroll-tech/chain-monitor/internal/route"
+	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
 var (
@@ -68,9 +63,6 @@ func action(ctx *cli.Context) error {
 		}
 	}
 
-	// Init metrics.
-	controller.InitChainMonitorMetrics()
-
 	// Start chain-monitor api server.
 	if ctx.Bool(utils.HTTPEnabledFlag.Name) {
 		endpoint := fmt.Sprintf(
@@ -80,44 +72,6 @@ func action(ctx *cli.Context) error {
 		)
 		utils.StartServer(subCtx, endpoint, route.APIHandler(db.WithContext(subCtx)))
 	}
-
-	// Start metrics server.
-	if ctx.Bool(utils.MetricsEnabled.Name) {
-		endpoint := fmt.Sprintf("%s:%d",
-			ctx.String(utils.MetricsAddr.Name),
-			ctx.Int(utils.MetricsPort.Name),
-		)
-		utils.StartServer(subCtx, endpoint, route.MetricsHandler(db))
-	}
-
-	// Init webhook alert.
-	controller.InitWebhookAlert(cfg.AlertConfig)
-
-	l1Watcher, err := l1watcher.NewL1Watcher(cfg.L1Config, db.WithContext(subCtx))
-	if err != nil {
-		log.Error("failed to create l1 watcher instance", "err", err)
-		return err
-	}
-	_ = l1Watcher
-
-	l2Watcher, err := l2watcher.NewL2Watcher(cfg.L2Config, db.WithContext(subCtx))
-	if err != nil {
-		log.Error("failed to create l2 watcher instance", "err", err)
-		return err
-	}
-	_ = l2Watcher
-
-	chainMonitor, err := monitor.NewChainMonitor(db.WithContext(subCtx), l1Watcher, l2Watcher)
-	if err != nil {
-		log.Error("failed to create chain chainMonitor instance", "err", err)
-		return err
-	}
-	_ = chainMonitor
-
-	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
-	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
-	go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.DepositConfirm)
-	go utils.LoopWithContext(subCtx, time.Millisecond*500, chainMonitor.WithdrawConfirm)
 
 	// Catch CTRL-C to ensure a graceful shutdown.
 	interrupt := make(chan os.Signal, 1)

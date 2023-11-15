@@ -8,6 +8,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
+// CrossEventMatcher is a utility struct used for verifying the consistency of events across different blockchain layers (L1 and L2).
 type CrossEventMatcher struct {
 	eventMatchMap map[types.EventType]types.EventType
 }
@@ -18,9 +19,6 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 		eventMatchMap: make(map[types.EventType]types.EventType),
 	}
 
-	c.eventMatchMap[types.L2FinalizeDepositETH] = types.L1DepositETH
-	c.eventMatchMap[types.L1FinalizeWithdrawETH] = types.L2WithdrawETH
-
 	c.eventMatchMap[types.L2FinalizeDepositERC20] = types.L1DepositERC20
 	c.eventMatchMap[types.L1FinalizeWithdrawERC20] = types.L2WithdrawERC20
 
@@ -30,11 +28,28 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	c.eventMatchMap[types.L2FinalizeDepositERC1155] = types.L1DepositERC1155
 	c.eventMatchMap[types.L1FinalizeWithdrawERC1155] = types.L2WithdrawERC1155
 
+	c.eventMatchMap[types.L2FinalizeBatchDepositERC721] = types.L1BatchDepositERC721
+	c.eventMatchMap[types.L1FinalizeBatchWithdrawERC721] = types.L2BatchWithdrawERC721
+
+	c.eventMatchMap[types.L2FinalizeBatchDepositERC1155] = types.L1BatchDepositERC1155
+	c.eventMatchMap[types.L1FinalizeBatchWithdrawERC1155] = types.L2BatchWithdrawERC1155
+
+	c.eventMatchMap[types.L2RelayedMessage] = types.L1SentMessage
+	c.eventMatchMap[types.L1RelayedMessage] = types.L2SentMessage
+
 	return c
 }
 
-func (c *CrossEventMatcher) L1EventMatchL2(messageMatch orm.MessageMatch) bool {
-	if messageMatch.L2EventType == 0 {
+// checkL1EventMatchL2 checks that every L1FializedWithdraw/L1RelayedMessage has a corresponding L2 event.
+func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) bool {
+	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
+	if !isPresent {
+		// If the L1 event type is not in the checklist, skip the check
+		return true
+	}
+
+	if matchingEvent != types.EventType(messageMatch.L2EventType) {
+		// If the matching event is not equal to the L2 event type, return false
 		return false
 	}
 
@@ -50,11 +65,19 @@ func (c *CrossEventMatcher) L1EventMatchL2(messageMatch orm.MessageMatch) bool {
 		return false
 	}
 
-	return true
+	return c.crossChainAmountMatch(messageMatch)
 }
 
-func (c *CrossEventMatcher) L2EventMatchL1(messageMatch orm.MessageMatch) bool {
-	if messageMatch.L1EventType == 0 {
+// checkL2EventMatchL1 checks that every L2FializedDeposit/L2RelayedMessage has a corresponding L1 event.
+func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) bool {
+	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L2EventType)]
+	if !isPresent {
+		// If the L2 event type is not in the checklist, skip the check
+		return true
+	}
+
+	if matchingEvent != types.EventType(messageMatch.L1EventType) {
+		// If the matching event is not equal to the L1 event type, return false
 		return false
 	}
 
@@ -70,10 +93,11 @@ func (c *CrossEventMatcher) L2EventMatchL1(messageMatch orm.MessageMatch) bool {
 		return false
 	}
 
-	return true
+	return c.crossChainAmountMatch(messageMatch)
 }
 
-func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch) bool {
+// crossChainAmountMatch checks if the amounts and token IDs match for cross-chain events.
+func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch) bool {
 	var l1Amounts, l2Amounts []*big.Int
 	var l1TokenIds, l2TokenIds []*big.Int
 
@@ -89,9 +113,9 @@ func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch)
 	}
 
 	if messageMatch.L1TokenIds != "" {
-		l1TokenIdSplits := strings.Split(messageMatch.L1TokenIds, ",")
-		for _, l1TokenIdSplit := range l1TokenIdSplits {
-			l1Token, ok := new(big.Int).SetString(l1TokenIdSplit, 0)
+		l1TokenIDSplits := strings.Split(messageMatch.L1TokenIds, ",")
+		for _, l1TokenIDSplit := range l1TokenIDSplits {
+			l1Token, ok := new(big.Int).SetString(l1TokenIDSplit, 0)
 			if !ok {
 				return false
 			}
@@ -122,16 +146,16 @@ func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch)
 	}
 
 	switch types.TokenType(messageMatch.TokenType) {
-	case types.TokenTypeERC20:
+	case types.TokenTypeERC20, types.TokenTypeETH:
 		return len(messageMatch.L1Amounts) == len(messageMatch.L2Amounts) &&
 			len(messageMatch.L2Amounts) == 1 && messageMatch.L1Amounts[0] == messageMatch.L2Amounts[0]
 	case types.TokenTypeERC721:
 		if len(l1TokenIds) != len(l2TokenIds) {
 			return false
 		}
-		for l1Idx, l1TokenId := range l1TokenIds {
+		for l1Idx, l1TokenID := range l1TokenIds {
 			l2TokenID := l2TokenIds[l1Idx]
-			if l1TokenId != l2TokenID {
+			if l1TokenID != l2TokenID {
 				return false
 			}
 		}
@@ -150,16 +174,6 @@ func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch)
 				return false
 			}
 		}
-	case types.TokenTypeETH:
 	}
 	return false
-}
-
-func (c *CrossEventMatcher) EventTypeMatch(messageMatch orm.MessageMatch) bool {
-	checkType, ok := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
-	if !ok {
-		return false
-	}
-
-	return checkType == types.EventType(messageMatch.L2EventType)
 }

@@ -11,22 +11,20 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
+// ERC20GatewayEventUnmarshaler is a struct that helps unmarshal events from the ERC20 Gateway.
 type ERC20GatewayEventUnmarshaler struct {
-	Layer  types.LayerType
-	Type   types.EventType
-	Number uint64
-	TxHash common.Hash
-	Amount *big.Int
-	Index  uint
-
+	Layer        types.LayerType
+	Type         types.EventType
+	Number       uint64
+	TxHash       common.Hash
+	Amount       *big.Int
+	Index        uint
 	MessageHash  common.Hash
 	TokenAddress common.Address
 }
 
-func NewERC20GatewayEventUnmarshaler() *ERC20GatewayEventUnmarshaler {
-	return &ERC20GatewayEventUnmarshaler{}
-}
-
+// Unmarshal takes a context, layer type, and a list of iterators and unmarshals each iterator
+// into an EventUnmarshaler, returning a list of these unmarshaled events.
 func (e *ERC20GatewayEventUnmarshaler) Unmarshal(context context.Context, layerType types.LayerType, iterators []types.WrapIterator) []EventUnmarshaler {
 	var events []EventUnmarshaler
 	for _, it := range iterators {

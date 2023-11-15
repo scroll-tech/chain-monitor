@@ -11,9 +11,6 @@ import (
 
 // Gateway address list.
 type Gateway struct {
-	// eth
-	ETHGateway common.Address `json:"eth_gateway"`
-
 	// erc20
 	WETHGateway          common.Address `json:"weth_gateway"`
 	StandardERC20Gateway common.Address `json:"standard_erc20_gateway"`

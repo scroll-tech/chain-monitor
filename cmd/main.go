@@ -1,7 +1,7 @@
 package main
 
 import (
-	"chain-monitor/cmd/app"
+	"github.com/scroll-tech/chain-monitor/cmd/app"
 )
 
 func main() {
