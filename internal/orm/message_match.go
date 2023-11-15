@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/types"
@@ -21,20 +20,20 @@ type MessageMatch struct {
 	TokenType   int    `json:"token_type" gorm:"token_type"`
 
 	// l1 event info
-	L1BlockStatus int             `json:"l1_block_status" gorm:"l1_block_status"`
-	L1EventType   int             `json:"l1_event_type" gorm:"l1_event_type"`
-	L1BlockNumber uint64          `json:"l1_block_number" gorm:"l1_block_number"`
-	L1TxHash      string          `json:"l1_tx_hash" gorm:"l1_tx_hash"`
-	L1TokenId     string          `json:"l1_token_id" gorm:"l1_token_id"`
-	L1Amount      decimal.Decimal `json:"l1_amount" gorm:"l1_amount"`
+	L1BlockStatus int    `json:"l1_block_status" gorm:"l1_block_status"`
+	L1EventType   int    `json:"l1_event_type" gorm:"l1_event_type"`
+	L1BlockNumber uint64 `json:"l1_block_number" gorm:"l1_block_number"`
+	L1TxHash      string `json:"l1_tx_hash" gorm:"l1_tx_hash"`
+	L1TokenIds    string `json:"l1_token_ids" gorm:"l1_token_ids"`
+	L1Amounts     string `json:"l1_amounts" gorm:"l1_amounts"`
 
 	// l2 event info
-	L2BlockStatus int             `json:"l2_block_status" gorm:"l2_block_status"`
-	L2EventType   int             `json:"l2_event_type" gorm:"l2_event_type"`
-	L2BlockNumber uint64          `json:"l2_block_number" gorm:"l2_block_number"`
-	L2TxHash      string          `json:"l2_tx_hash" gorm:"l2_tx_hash"`
-	L2TokenId     string          `json:"l2_token_id" gorm:"l2_token_id"`
-	L2Amount      decimal.Decimal `json:"l2_amount" gorm:"l2_amount"`
+	L2BlockStatus int    `json:"l2_block_status" gorm:"l2_block_status"`
+	L2EventType   int    `json:"l2_event_type" gorm:"l2_event_type"`
+	L2BlockNumber uint64 `json:"l2_block_number" gorm:"l2_block_number"`
+	L2TxHash      string `json:"l2_tx_hash" gorm:"l2_tx_hash"`
+	L2TokenIds    string `json:"l2_token_ids" gorm:"l2_token_ids"`
+	L2Amounts     string `json:"l2_amounts" gorm:"l2_amounts"`
 
 	// eth info
 	L1MessengerETHBalance decimal.Decimal `json:"l1_messenger_eth_balance" gorm:"l1_messenger_eth_balance"`

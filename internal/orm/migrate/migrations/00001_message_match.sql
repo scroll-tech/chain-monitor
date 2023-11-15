@@ -8,15 +8,15 @@ CREATE TABLE message_match
     l1_event_type            INTEGER         NOT NULL,
     l1_block_number          BIGINT          NOT NULL,
     l1_tx_hash               VARCHAR         NOT NULL,
-    l1_token_id              VARCHAR         NOT NULL,
-    l1_amount                DECIMAL(78, 0)  NOT NULL,
+    l1_token_ids             VARCHAR         NOT NULL,
+    l1_amounts               VARCHAR         NOT NULL,
 
     -- l2 event info
     l2_event_type            INTEGER         NOT NULL,
     l2_block_number          BIGINT          NOT NULL,
     l2_tx_hash               VARCHAR         NOT NULL,
-    l2_token_id              VARCHAR         NOT NULL,
-    l2_amount                DECIMAL(78, 0)  NOT NULL,
+    l2_token_ids             VARCHAR         NOT NULL,
+    l2_amounts               VARCHAR         NOT NULL,
 
     -- eth info
     l1_messenger_eth_balance DECIMAL(78, 0)  NOT NULL,
