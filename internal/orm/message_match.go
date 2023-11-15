@@ -37,7 +37,6 @@ type MessageMatch struct {
 	L2Amount      decimal.Decimal `json:"l2_amount" gorm:"l2_amount"`
 
 	// eth info
-	ETHValue              decimal.Decimal `json:"eth_value" gorm:"eth_value"`
 	L1MessengerETHBalance decimal.Decimal `json:"l1_messenger_eth_balance" gorm:"l1_messenger_eth_balance"`
 	L2MessengerETHBalance decimal.Decimal `json:"l2_messenger_eth_balance" gorm:"l2_messenger_eth_balance"`
 	L1ETHBalanceStatus    int             `json:"l1_eth_balance_status" gorm:"l1_eth_balance_status"`
@@ -46,8 +45,8 @@ type MessageMatch struct {
 	// status
 	CheckStatus        int    `json:"check_status" gorm:"check_status"`
 	WithdrawRootStatus int    `json:"withdraw_root_status" gorm:"withdraw_root_status"`
-	L1GatewayStatus    int    `json:"l1_gateway_status" gorm:"l1_gateway_status"`
-	L2GatewayStatus    int    `json:"l2_gateway_status" gorm:"l2_gateway_status"`
+	L1ChainStatus      int    `json:"l1_chain_status" gorm:"l1_chain_status"`
+	L2ChainStatus      int    `json:"l2_chain_status" gorm:"l2_chain_status"`
 	L1CrossChainStatus int    `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`
 	L2CrossChainStatus int    `json:"l2_cross_chain_status" gorm:"l2_cross_chain_status"`
 	MessageProof       []byte `json:"message_proof" gorm:"message_proof"` // only not null in the last message of each block.
@@ -180,9 +179,9 @@ func (m *MessageMatch) UpdateGatewayStatus(ctx context.Context, id []int64, laye
 	var err error
 	switch layerType {
 	case types.Layer1:
-		err = db.Update("l1_gateway_status", status).Error
+		err = db.Update("l1_chain_status", status).Error
 	case types.Layer2:
-		err = db.Update("l2_gateway_status", status).Error
+		err = db.Update("l2_chain_status", status).Error
 	}
 
 	if err != nil {

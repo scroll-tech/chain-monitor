@@ -118,7 +118,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
-	if err := c.checker.InsertMessageEvents(ctx, messengerEvents); err != nil {
+	if err := c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
 		log.Error("insert message events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
 	}
@@ -164,7 +164,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
-	if err := c.checker.InsertMessageEvents(ctx, messengerEvents); err != nil {
+	if err := c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
 		log.Error("insert message events failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
 	}

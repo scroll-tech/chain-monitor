@@ -21,7 +21,7 @@ type MessengerEventUnmarshaler struct {
 	MessageNonce *big.Int
 	Message      []byte
 	MessageHash  common.Hash
-	ETHValue     *big.Int
+	Value        *big.Int
 }
 
 func NewMessengerEventUnmarshaler() *MessengerEventUnmarshaler {
@@ -53,7 +53,7 @@ func (e *MessengerEventUnmarshaler) messenger(layerType types.LayerType, it type
 			MessageNonce: iter.Event.MessageNonce,
 			Message:      iter.Event.Message,
 			MessageHash:  msgHash,
-			ETHValue:     iter.Event.Value,
+			Value:        iter.Event.Value,
 		}
 	case types.L2SentMessage:
 		iter := it.(*il2scrollmessenger.Il2scrollmessengerSentMessageIterator)
@@ -67,7 +67,7 @@ func (e *MessengerEventUnmarshaler) messenger(layerType types.LayerType, it type
 			MessageNonce: iter.Event.MessageNonce,
 			Message:      iter.Event.Message,
 			MessageHash:  msgHash,
-			ETHValue:     iter.Event.Value,
+			Value:        iter.Event.Value,
 		}
 	case types.L1RelayedMessage:
 		iter := it.(*il1scrollmessenger.Il1scrollmessengerRelayedMessageIterator)

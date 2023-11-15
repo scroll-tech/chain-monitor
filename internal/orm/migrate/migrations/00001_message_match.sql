@@ -19,7 +19,6 @@ CREATE TABLE message_match
     l2_amount                DECIMAL(78, 0)  NOT NULL,
 
     -- eth info
-    eth_value                DECIMAL(78, 0)  NOT NULL,
     l1_messenger_eth_balance DECIMAL(78, 0)  NOT NULL,
     l2_messenger_eth_balance DECIMAL(78, 0)  NOT NULL,
     l1_eth_balance_status    INTEGER         NOT NULL,
@@ -28,8 +27,8 @@ CREATE TABLE message_match
     -- status
     check_status             INTEGER         NOT NULL,
     withdraw_root_status     INTEGER         NOT NULL,
-    l1_gateway_status        INTEGER         NOT NULL,
-    l2_gateway_status        INTEGER         NOT NULL,
+    l1_chain_status          INTEGER         NOT NULL,
+    l2_chain_status          INTEGER         NOT NULL,
     l1_cross_chain_status    INTEGER         NOT NULL,
     l2_cross_chain_status    INTEGER         NOT NULL,
     message_proof            BYTEA           DEFAULT NULl,

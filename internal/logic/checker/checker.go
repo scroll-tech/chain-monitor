@@ -107,7 +107,7 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 	return nil
 }
 
-func (c *Checker) InsertMessageEvents(ctx context.Context, messengerEvents []events.EventUnmarshaler) error {
+func (c *Checker) MessengerCheck(ctx context.Context, messengerEvents []events.EventUnmarshaler) error {
 	var messageMatches []orm.MessageMatch
 	for _, eventData := range messengerEvents {
 		var tmpMessageMatch orm.MessageMatch
@@ -123,7 +123,8 @@ func (c *Checker) InsertMessageEvents(ctx context.Context, messengerEvents []eve
 				L1EventType:   int(messengerEventUnmarshaler.Type),
 				L1BlockNumber: messengerEventUnmarshaler.Number,
 				L1TxHash:      messengerEventUnmarshaler.TxHash.Hex(),
-				ETHValue:      decimal.NewFromBigInt(messengerEventUnmarshaler.ETHValue, 0),
+				L1Amount:      decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0),
+				L2Amount:      decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0),
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L1RelayedMessage:
@@ -142,7 +143,8 @@ func (c *Checker) InsertMessageEvents(ctx context.Context, messengerEvents []eve
 				L2EventType:   int(messengerEventUnmarshaler.Type),
 				L2BlockNumber: messengerEventUnmarshaler.Number,
 				L2TxHash:      messengerEventUnmarshaler.TxHash.Hex(),
-				ETHValue:      decimal.NewFromBigInt(messengerEventUnmarshaler.ETHValue, 0),
+				L1Amount:      decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0),
+				L2Amount:      decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0),
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2RelayedMessage:

@@ -117,11 +117,10 @@ func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.L
 
 		balanceDiff := big.NewInt(0)
 		for _, message := range messages {
-			ethValue := new(big.Int).SetInt64(message.ETHValue.IntPart())
 			if types.EventType(message.L1EventType) == types.L1SentMessage {
-				balanceDiff = new(big.Int).Add(balanceDiff, ethValue)
+				balanceDiff = new(big.Int).Add(balanceDiff, new(big.Int).SetInt64(message.L1Amount.IntPart()))
 			} else {
-				balanceDiff = new(big.Int).Sub(balanceDiff, ethValue)
+				balanceDiff = new(big.Int).Sub(balanceDiff, new(big.Int).SetInt64(message.L2Amount.IntPart()))
 			}
 		}
 
@@ -169,11 +168,10 @@ func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.L
 
 		balanceDiff := big.NewInt(0)
 		for _, message := range messages {
-			ethValue := new(big.Int).SetInt64(message.ETHValue.IntPart())
 			if types.EventType(message.L2EventType) == types.L2SentMessage {
-				balanceDiff = new(big.Int).Add(balanceDiff, ethValue)
+				balanceDiff = new(big.Int).Add(balanceDiff, new(big.Int).SetInt64(message.L2Amount.IntPart()))
 			} else {
-				balanceDiff = new(big.Int).Sub(balanceDiff, ethValue)
+				balanceDiff = new(big.Int).Sub(balanceDiff, new(big.Int).SetInt64(message.L1Amount.IntPart()))
 			}
 		}
 
