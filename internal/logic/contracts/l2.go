@@ -11,6 +11,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc1155gateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc20gateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc721gateway"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2ethgateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2scrollmessenger"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
@@ -19,6 +20,8 @@ type l2Contracts struct {
 	client *ethclient.Client
 
 	Messenger *il2scrollmessenger.Il2scrollmessenger
+
+	ETHGateway *il2ethgateway.Il2ethgateway
 
 	ERC20Gateways      map[types.ERC20]*il2erc20gateway.Il2erc20gateway
 	ERC20GatewayTokens []ERC20GatewayMapping
@@ -74,6 +77,7 @@ func (l *l2Contracts) register(conf config.Config) error {
 		log.Error("registerERC1155Gateway failed", "address", erc1155GatewayAddress, "err", err)
 		return err
 	}
+
 	return nil
 }
 

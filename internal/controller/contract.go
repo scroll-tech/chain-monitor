@@ -42,7 +42,7 @@ func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *
 		eventGatherLogic:  events.NewEventGather(),
 		contractsLogic:    contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
 		checker:           checker.NewChecker(db),
-		messageMatchLogic: message_match.NewTransactionsMatchLogic(db),
+		messageMatchLogic: message_match.NewMessagesMatchLogic(db),
 	}
 
 	if err := c.contractsLogic.Register(c.conf); err != nil {
@@ -112,14 +112,15 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		Context: ctx,
 	}
 
-	messengerIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer2, types.MessengerEventCategory)
+	messengerIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer1, types.MessengerEventCategory)
 	if err != nil {
 		log.Error("get gateway related transfer events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
 	}
-	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
-	if messengerEvents == nil {
-		log.Info("dispatch messenger events returns empty data", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory)
+	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
+	if err := c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
+		log.Error("insert message events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
 	}
 
 	for _, eventCategory := range c.l1EventCategoryList {
@@ -159,12 +160,13 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 
 	messengerIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer2, types.MessengerEventCategory)
 	if err != nil {
-		log.Error("get gateway related transfer events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
+		log.Error("get gateway related transfer events failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
-	if messengerEvents == nil {
-		log.Info("dispatch messenger events returns empty data", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory)
+	if err := c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
+		log.Error("insert message events failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
 	}
 
 	for _, eventCategory := range c.l2EventCategoryList {

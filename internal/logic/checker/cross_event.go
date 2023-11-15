@@ -18,9 +18,6 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 		eventMatchMap: make(map[types.EventType]types.EventType),
 	}
 
-	c.eventMatchMap[types.L2FinalizeDepositETH] = types.L1DepositETH
-	c.eventMatchMap[types.L1FinalizeWithdrawETH] = types.L2WithdrawETH
-
 	c.eventMatchMap[types.L2FinalizeDepositERC20] = types.L1DepositERC20
 	c.eventMatchMap[types.L1FinalizeWithdrawERC20] = types.L2WithdrawERC20
 
@@ -30,11 +27,28 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	c.eventMatchMap[types.L2FinalizeDepositERC1155] = types.L1DepositERC1155
 	c.eventMatchMap[types.L1FinalizeWithdrawERC1155] = types.L2WithdrawERC1155
 
+	c.eventMatchMap[types.L2FinalizeBatchDepositERC721] = types.L1BatchDepositERC721
+	c.eventMatchMap[types.L1FinalizeBatchWithdrawERC721] = types.L2BatchWithdrawERC721
+
+	c.eventMatchMap[types.L2FinalizeBatchDepositERC1155] = types.L1BatchDepositERC1155
+	c.eventMatchMap[types.L1FinalizeBatchWithdrawERC1155] = types.L2BatchWithdrawERC1155
+
+	c.eventMatchMap[types.L2RelayedMessage] = types.L1SentMessage
+	c.eventMatchMap[types.L1RelayedMessage] = types.L2SentMessage
+
 	return c
 }
 
-func (c *CrossEventMatcher) L1EventMatchL2(messageMatch orm.MessageMatch) bool {
-	if messageMatch.L2EventType == 0 {
+// check every L1FializedWithdraw/L1RelayedMessage has corresponding L2 event.
+func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) bool {
+	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
+	if !isPresent {
+		// If the L1 event type is not in the checklist, skip the check
+		return true
+	}
+
+	if matchingEvent != types.EventType(messageMatch.L2EventType) {
+		// If the matching event is not equal to the L2 event type, return false
 		return false
 	}
 
@@ -50,11 +64,19 @@ func (c *CrossEventMatcher) L1EventMatchL2(messageMatch orm.MessageMatch) bool {
 		return false
 	}
 
-	return true
+	return c.crossChainAmountMatch(messageMatch)
 }
 
-func (c *CrossEventMatcher) L2EventMatchL1(messageMatch orm.MessageMatch) bool {
-	if messageMatch.L1EventType == 0 {
+// check every L2FializedDeposit/L2RelayedMessage has corresponding L1 event.
+func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) bool {
+	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L2EventType)]
+	if !isPresent {
+		// If the L2 event type is not in the checklist, skip the check
+		return true
+	}
+
+	if matchingEvent != types.EventType(messageMatch.L1EventType) {
+		// If the matching event is not equal to the L1 event type, return false
 		return false
 	}
 
@@ -70,10 +92,10 @@ func (c *CrossEventMatcher) L2EventMatchL1(messageMatch orm.MessageMatch) bool {
 		return false
 	}
 
-	return true
+	return c.crossChainAmountMatch(messageMatch)
 }
 
-func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch) bool {
+func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch) bool {
 	var l1Amounts, l2Amounts []*big.Int
 	var l1TokenIds, l2TokenIds []*big.Int
 
@@ -122,7 +144,7 @@ func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch)
 	}
 
 	switch types.TokenType(messageMatch.TokenType) {
-	case types.TokenTypeERC20:
+	case types.TokenTypeERC20, types.TokenTypeETH:
 		return len(messageMatch.L1Amounts) == len(messageMatch.L2Amounts) &&
 			len(messageMatch.L2Amounts) == 1 && messageMatch.L1Amounts[0] == messageMatch.L2Amounts[0]
 	case types.TokenTypeERC721:
@@ -150,16 +172,6 @@ func (c *CrossEventMatcher) CrossChainAmountMatch(messageMatch orm.MessageMatch)
 				return false
 			}
 		}
-	case types.TokenTypeETH:
 	}
 	return false
-}
-
-func (c *CrossEventMatcher) EventTypeMatch(messageMatch orm.MessageMatch) bool {
-	checkType, ok := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
-	if !ok {
-		return false
-	}
-
-	return checkType == types.EventType(messageMatch.L2EventType)
 }

@@ -14,7 +14,7 @@ type MessageMatchLogic struct {
 	messageMatchOrm *orm.MessageMatch
 }
 
-func NewTransactionsMatchLogic(db *gorm.DB) *MessageMatchLogic {
+func NewMessagesMatchLogic(db *gorm.DB) *MessageMatchLogic {
 	return &MessageMatchLogic{
 		messageMatchOrm: orm.NewMessageMatch(db),
 	}

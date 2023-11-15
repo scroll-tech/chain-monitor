@@ -12,14 +12,13 @@ import (
 )
 
 type ERC1155GatewayEventUnmarshaler struct {
-	Layer    types.LayerType
-	Type     types.EventType
-	Number   uint64
-	TxHash   common.Hash
-	TokenIds []*big.Int
-	Amounts  []*big.Int
-	Index    uint
-
+	Layer        types.LayerType
+	Type         types.EventType
+	Number       uint64
+	TxHash       common.Hash
+	TokenIds     []*big.Int
+	Amounts      []*big.Int
+	Index        uint
 	MessageHash  common.Hash
 	TokenAddress common.Address
 }

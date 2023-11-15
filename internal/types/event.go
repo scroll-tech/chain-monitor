@@ -90,10 +90,10 @@ const (
 type TxEventCategory int
 
 const (
-	ERC20EventCategory TxEventCategory = iota + 1
+	UndefinedCategory TxEventCategory = iota + 1
+	ERC20EventCategory
 	ERC721EventCategory
 	ERC1155EventCategory
-	ETHEventCategory
 	MessengerEventCategory
 )
 

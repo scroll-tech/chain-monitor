@@ -11,7 +11,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 )
 
-// MessengerEventUnmarshaler represents a SentMessage event marshaler raised by the L1/L2 scroll messenger contract.
+// MessengerEventUnmarshaler represents a SentMessage event unmarshaler raised by the L1/L2 scroll messenger contract.
 type MessengerEventUnmarshaler struct {
 	Layer        types.LayerType
 	Type         types.EventType
@@ -21,6 +21,7 @@ type MessengerEventUnmarshaler struct {
 	MessageNonce *big.Int
 	Message      []byte
 	MessageHash  common.Hash
+	Value        *big.Int
 }
 
 func NewMessengerEventUnmarshaler() *MessengerEventUnmarshaler {
@@ -52,6 +53,7 @@ func (e *MessengerEventUnmarshaler) messenger(layerType types.LayerType, it type
 			MessageNonce: iter.Event.MessageNonce,
 			Message:      iter.Event.Message,
 			MessageHash:  msgHash,
+			Value:        iter.Event.Value,
 		}
 	case types.L2SentMessage:
 		iter := it.(*il2scrollmessenger.Il2scrollmessengerSentMessageIterator)
@@ -65,6 +67,7 @@ func (e *MessengerEventUnmarshaler) messenger(layerType types.LayerType, it type
 			MessageNonce: iter.Event.MessageNonce,
 			Message:      iter.Event.Message,
 			MessageHash:  msgHash,
+			Value:        iter.Event.Value,
 		}
 	case types.L1RelayedMessage:
 		iter := it.(*il1scrollmessenger.Il1scrollmessengerRelayedMessageIterator)

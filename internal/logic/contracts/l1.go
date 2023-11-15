@@ -11,6 +11,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1erc1155gateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1erc20gateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1erc721gateway"
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1ethgateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il1scrollmessenger"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
@@ -24,6 +25,8 @@ type l1Contracts struct {
 	client *ethclient.Client
 
 	Messenger *il1scrollmessenger.Il1scrollmessenger
+
+	ETHGateway *il1ethgateway.Il1ethgateway
 
 	ERC20Gateways      map[types.ERC20]*il1erc20gateway.Il1erc20gateway
 	ERC20GatewayTokens []ERC20GatewayMapping

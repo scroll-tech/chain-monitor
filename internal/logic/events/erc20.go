@@ -12,13 +12,12 @@ import (
 )
 
 type ERC20GatewayEventUnmarshaler struct {
-	Layer  types.LayerType
-	Type   types.EventType
-	Number uint64
-	TxHash common.Hash
-	Amount *big.Int
-	Index  uint
-
+	Layer        types.LayerType
+	Type         types.EventType
+	Number       uint64
+	TxHash       common.Hash
+	Amount       *big.Int
+	Index        uint
 	MessageHash  common.Hash
 	TokenAddress common.Address
 }
