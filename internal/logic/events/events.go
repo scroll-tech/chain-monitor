@@ -11,14 +11,14 @@ import (
 
 // EventGather is a struct that holds a map of transaction event categories to event unmarshalers.
 type EventGather struct {
-	gathers map[types.TxEventCategory]EventUnmarshaler
+	gathers map[types.EventCategory]EventUnmarshaler
 }
 
 // NewEventGather creates a new instance of EventGather and initializes it with different types of
 // event unmarshalers for each transaction event category.
 func NewEventGather() *EventGather {
 	g := &EventGather{
-		gathers: make(map[types.TxEventCategory]EventUnmarshaler),
+		gathers: make(map[types.EventCategory]EventUnmarshaler),
 	}
 
 	g.gathers[types.ERC20EventCategory] = &ERC20GatewayEventUnmarshaler{}
@@ -32,7 +32,7 @@ func NewEventGather() *EventGather {
 // Dispatch takes a context, layer type, event category, and a list of iterators, and dispatches
 // the events to the appropriate unmarshaler based on the event category. It returns a list of the
 // unmarshaled events.
-func (e *EventGather) Dispatch(ctx context.Context, layer types.LayerType, eventCategory types.TxEventCategory, iterators []types.WrapIterator) []EventUnmarshaler {
+func (e *EventGather) Dispatch(ctx context.Context, layer types.LayerType, eventCategory types.EventCategory, iterators []types.WrapIterator) []EventUnmarshaler {
 	gather, exist := e.gathers[eventCategory]
 	if !exist {
 		err := fmt.Errorf("there no event unmarshaler exist, layer type:%d, event category:%d", layer, eventCategory)

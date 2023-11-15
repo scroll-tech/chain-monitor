@@ -42,7 +42,7 @@ func (l *Contracts) Register(conf config.Config) error {
 }
 
 // Iterator returns a filter iterator for the provided layer type and transaction event category.
-func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]types.WrapIterator, error) {
+func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerType types.LayerType, txEventCategory types.EventCategory) ([]types.WrapIterator, error) {
 	if layerType == types.Layer1 {
 		switch txEventCategory {
 		case types.ERC20EventCategory:
@@ -75,7 +75,7 @@ func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerTy
 // GetGatewayTransfer returns a list of unmarshaled events for gateway transfers of a specific event category
 // between the startBlockNumber and endBlockNumber. It returns an error if the layer type or transaction
 // event category is invalid.
-func (l *Contracts) GetGatewayTransfer(ctx context.Context, startBlockNumber, endBlockNumber uint64, layerType types.LayerType, txEventCategory types.TxEventCategory) ([]events.EventUnmarshaler, error) {
+func (l *Contracts) GetGatewayTransfer(ctx context.Context, startBlockNumber, endBlockNumber uint64, layerType types.LayerType, txEventCategory types.EventCategory) ([]events.EventUnmarshaler, error) {
 	if layerType == types.Layer1 {
 		switch txEventCategory {
 		case types.ERC20EventCategory:
