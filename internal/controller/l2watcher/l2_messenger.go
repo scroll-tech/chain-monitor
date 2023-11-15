@@ -18,36 +18,23 @@ func (l2 *l2Contracts) registerMessengerHandlers() {
 	l2.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerSentMessageEvent) error {
 		msgHash := utils.ComputeMessageHash(data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
 		number := vLog.BlockNumber
+		l2.txHashMsgHash[vLog.TxHash.String()] = msgHash
 		l2.msgSentEvents[number] = append(l2.msgSentEvents[number], &orm.L2MessengerEvent{
-			Number:   vLog.BlockNumber,
-			TxHash:   vLog.TxHash.String(),
+			Data:     data,
+			Number:   number,
 			MsgHash:  msgHash.String(),
 			Type:     orm.L2SentMessage,
-			Target:   data.Target,
-			Message:  data.Message,
-			Log:      vLog,
-			Amount:   data.Value.String(),
 			MsgNonce: data.MessageNonce.Uint64(),
 		})
 		return nil
 	})
 	l2.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerRelayedMessageEvent) error {
-		l2.msgSentEvents[vLog.BlockNumber] = append(l2.msgSentEvents[vLog.BlockNumber], &orm.L2MessengerEvent{
-			Number:  vLog.BlockNumber,
-			TxHash:  vLog.TxHash.String(),
-			MsgHash: common.BytesToHash(data.MessageHash[:]).String(),
-			Type:    orm.L2RelayedMessage,
-		})
-		return nil
+		l2.txHashMsgHash[vLog.TxHash.String()] = data.MessageHash
+		return orm.SaveL2Messenger(l2.tx, orm.L2RelayedMessage, vLog, data.MessageHash)
 	})
 	l2.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L2.L2ScrollMessengerFailedRelayedMessageEvent) error {
-		l2.msgSentEvents[vLog.BlockNumber] = append(l2.msgSentEvents[vLog.BlockNumber], &orm.L2MessengerEvent{
-			Number:  vLog.BlockNumber,
-			TxHash:  vLog.TxHash.String(),
-			MsgHash: common.BytesToHash(data.MessageHash[:]).String(),
-			Type:    orm.L2FailedRelayedMessage,
-		})
-		return nil
+		l2.txHashMsgHash[vLog.TxHash.String()] = data.MessageHash
+		return orm.SaveL2Messenger(l2.tx, orm.L2FailedRelayedMessage, vLog, data.MessageHash)
 	})
 }
 
@@ -55,23 +42,19 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	// Calculate withdraw root.
 	var msgSentEvents []*orm.L2MessengerEvent
 	for number := start; number <= end; number++ {
-		var (
-			msgHashes       []common.Hash
-			latestSentEvent *orm.L2MessengerEvent
-		)
-		for _, msg := range l2.msgSentEvents[number] {
-			msgSentEvents = append(msgSentEvents, msg)
-			if msg.Type == orm.L2SentMessage {
-				msgHashes = append(msgHashes, common.HexToHash(msg.MsgHash))
-				latestSentEvent = msg
-			}
-		}
-		if len(msgHashes) == 0 {
+		if l2.msgSentEvents[number] == nil {
 			l2.l2Confirms[number].WithdrawRootStatus = true
 			continue
 		}
-		proofs := l2.withdraw.AppendMessages(msgHashes)
-		latestSentEvent.MsgProof = common.Bytes2Hex(proofs[len(proofs)-1])
+		msgs := l2.msgSentEvents[number]
+		for i, msg := range msgs {
+			proofs := l2.withdraw.AppendMessages([]common.Hash{common.HexToHash(msg.MsgHash)})
+			// Store the latest one for every block.
+			if i == len(msgs)-1 {
+				msg.MsgProof = common.Bytes2Hex(proofs[0])
+			}
+			msgSentEvents = append(msgSentEvents, msgs[i])
+		}
 		l2.l2Confirms[number].WithdrawRoot = l2.withdraw.MessageRoot()
 	}
 
@@ -86,7 +69,7 @@ func (l2 *l2Contracts) storeMessengerEvents(ctx context.Context, start, end uint
 	return nil
 }
 
-func (l2 *l2Contracts) storeL1ChainConfirms(ctx context.Context) error {
+func (l2 *l2Contracts) storeWithdrawRoots(ctx context.Context) error {
 	var (
 		numbers       []uint64
 		withdrawRoots = map[uint64]common.Hash{}

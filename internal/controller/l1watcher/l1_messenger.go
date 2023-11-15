@@ -16,45 +16,22 @@ import (
 func (l1 *l1Contracts) registerMessengerHandlers() {
 	l1.ScrollMessenger.RegisterSentMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerSentMessageEvent) error {
 		msgHash := utils.ComputeMessageHash(data.Sender, data.Target, data.Value, data.MessageNonce, data.Message)
-		l1.msgSentEvents[vLog.TxHash.String()] = &orm.L1MessengerEvent{
-			TxHead: &orm.TxHead{
-				Number:  vLog.BlockNumber,
-				TxHash:  vLog.TxHash.String(),
-				MsgHash: msgHash.String(),
-				Type:    orm.L1SentMessage,
-			},
-			Amount:  data.Value.String(),
-			Target:  data.Target,
-			Message: data.Message,
-			Log:     vLog,
-		}
-		return nil
+		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
+		l1.msgSentEvents[vLog.BlockNumber] = append(l1.msgSentEvents[vLog.BlockNumber], &orm.L1MessengerEvent{
+			TxHead: orm.NewTxHead(vLog, orm.L1SentMessage),
+			Data:   data,
+		})
+		return orm.SaveL1Messenger(l1.tx, orm.L1SentMessage, vLog, msgHash)
 	})
 	l1.ScrollMessenger.RegisterRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerRelayedMessageEvent) error {
-		txHash := vLog.TxHash.String()
-		l1.msgSentEvents[txHash] = &orm.L1MessengerEvent{
-			TxHead: &orm.TxHead{
-				Number:  vLog.BlockNumber,
-				TxHash:  txHash,
-				MsgHash: common.BytesToHash(data.MessageHash[:]).String(),
-				Type:    orm.L1RelayedMessage,
-			},
-			Log: vLog,
-		}
-		return nil
+		msgHash := common.BytesToHash(data.MessageHash[:])
+		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
+		return orm.SaveL1Messenger(l1.tx, orm.L1RelayedMessage, vLog, msgHash)
 	})
 	l1.ScrollMessenger.RegisterFailedRelayedMessage(func(vLog *types.Log, data *L1.L1ScrollMessengerFailedRelayedMessageEvent) error {
-		txHash := vLog.TxHash.String()
-		l1.msgSentEvents[txHash] = &orm.L1MessengerEvent{
-			TxHead: &orm.TxHead{
-				Number:  vLog.BlockNumber,
-				TxHash:  txHash,
-				MsgHash: common.BytesToHash(data.MessageHash[:]).String(),
-				Type:    orm.L1FailedRelayedMessage,
-			},
-			Log: vLog,
-		}
-		return nil
+		msgHash := common.BytesToHash(data.MessageHash[:])
+		l1.txHashMsgHash[vLog.TxHash.String()] = msgHash
+		return orm.SaveL1Messenger(l1.tx, orm.L1FailedRelayedMessage, vLog, msgHash)
 	})
 }
 

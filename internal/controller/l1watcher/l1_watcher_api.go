@@ -2,10 +2,6 @@ package l1watcher
 
 import (
 	"sync/atomic"
-
-	"github.com/scroll-tech/go-ethereum/rpc"
-
-	"chain-monitor/internal/config"
 )
 
 // L1StartNumber returns l1watcher start number.
@@ -16,11 +12,6 @@ func (l1 *L1Watcher) L1StartNumber() uint64 {
 // CurrentNumber return l1watcher start number.
 func (l1 *L1Watcher) CurrentNumber() uint64 {
 	return atomic.LoadUint64(&l1.currNumber)
-}
-
-// GetGatewayConfig  return l1 gateway config.
-func (l1 *L1Watcher) GetGatewayConfig() *config.Gateway {
-	return l1.cfg.L1Contracts.Gateway
 }
 
 func (l1 *L1Watcher) setCurrentNumber(number uint64) {
@@ -39,14 +30,4 @@ func (l1 *L1Watcher) setSafeNumber(number uint64) {
 // IsReady if l1watcher is ready return true.
 func (l1 *L1Watcher) IsReady() bool {
 	return l1.CurrentNumber() == l1.SafeNumber()
-}
-
-// RPCClient return l1chain client.
-func (l1 *L1Watcher) RPCClient() *rpc.Client {
-	return l1.filter.rpcCli
-}
-
-// L1Contracts return l1chain contracts config.
-func (l1 *L1Watcher) L1Contracts() *config.L1Contracts {
-	return l1.cfg.L1Contracts
 }
