@@ -28,22 +28,14 @@ func NewCrossChainController(db *gorm.DB, client *ethclient.Client, l1MessengerA
 func (c *CrossChainController) Proposer(ctx context.Context) {
 	c.l1Proposer(ctx)
 	c.l2Proposer(ctx)
-	c.l1ETHBalanceChecker(ctx)
-	c.l2ETHBalanceChecker(ctx)
 }
 
 func (c *CrossChainController) l1Proposer(ctx context.Context) {
 	c.crossChainLogic.CheckCrossChainMessage(ctx, types.Layer1)
+	c.crossChainLogic.CheckETHBalance(ctx, types.Layer1)
 }
 
 func (c *CrossChainController) l2Proposer(ctx context.Context) {
 	c.crossChainLogic.CheckCrossChainMessage(ctx, types.Layer2)
-}
-
-func (c *CrossChainController) l1ETHBalanceChecker(ctx context.Context) {
-	c.crossChainLogic.CheckETHBalance(ctx, types.Layer1)
-}
-
-func (c *CrossChainController) l2ETHBalanceChecker(ctx context.Context) {
 	c.crossChainLogic.CheckETHBalance(ctx, types.Layer2)
 }

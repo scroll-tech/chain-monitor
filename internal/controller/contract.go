@@ -31,8 +31,8 @@ type ContractController struct {
 	checker           *checker.Checker
 	messageMatchLogic *messagematch.Logic
 
-	l1EventCategoryList []types.TxEventCategory
-	l2EventCategoryList []types.TxEventCategory
+	l1EventCategoryList []types.EventCategory
+	l2EventCategoryList []types.EventCategory
 }
 
 // NewContractController creates a new ContractController object.

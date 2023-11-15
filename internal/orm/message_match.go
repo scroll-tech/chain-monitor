@@ -166,6 +166,7 @@ func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, block
 }
 
 // InsertOrUpdate is a placeholder function for inserting or updating message matches.
+// @todo: message insert everywhere, ensure l1_block_status & l2_block_status are updated correctly.
 func (m *MessageMatch) InsertOrUpdate(ctx context.Context, messages []MessageMatch) (int, error) {
 	// insert or update
 	return 0, nil

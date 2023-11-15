@@ -90,21 +90,19 @@ const (
 	L2BatchWithdrawERC1155
 )
 
-// TxEventCategory represents the category of transaction events.
-type TxEventCategory int
+// EventCategory represents the category of events.
+type EventCategory int
 
 const (
-	// TxEventCategoryUnknown represents an unknown or undefined transaction event category.
-	TxEventCategoryUnknown TxEventCategory = iota
-	// ERC20EventCategory represents the event category for ERC20 token transactions.
+	// EventCategoryUnknown represents an unknown or undefined event category.
+	EventCategoryUnknown EventCategory = iota
+	// ERC20EventCategory represents the ERC20 gateway events.
 	ERC20EventCategory
-	// ERC721EventCategory represents the event category for ERC721 token transactions.
+	// ERC721EventCategory represents the ERC721 gateway events.
 	ERC721EventCategory
-	// ERC1155EventCategory represents the event category for ERC1155 token transactions.
+	// ERC1155EventCategory represents the ERC1155 gateway events.
 	ERC1155EventCategory
-	// ETHEventCategory represents the event category for Ethereum transactions.
-	ETHEventCategory
-	// MessengerEventCategory represents the event category for messenger transactions.
+	// MessengerEventCategory represents the messenger events.
 	MessengerEventCategory
 )
 

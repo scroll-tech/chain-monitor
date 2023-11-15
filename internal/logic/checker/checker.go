@@ -51,7 +51,7 @@ func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, mess
 }
 
 // GatewayCheck checks the gateway events.
-func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) error {
+func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) error {
 	switch eventCategory {
 	case types.ERC20EventCategory:
 		return c.erc20EventUnmarshaler(ctx, gatewayEvents, messengerEvents, transferEvents)
