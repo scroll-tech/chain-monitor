@@ -93,7 +93,7 @@ const (
 type TxHead struct {
 	Number  uint64    `gorm:"index; comment: block number"`
 	TxHash  string    `gorm:"index; comment: tx hash"`
-	MsgHash string    `gorm:"index"`
+	MsgHash string    `gorm:"primaryKey; index"`
 	Type    EventType `gorm:"index; comment: tx type"`
 }
 
