@@ -114,12 +114,6 @@ func action(ctx *cli.Context) error {
 	}
 	_ = chainMonitor
 
-	// TODO: temporary code, used to repair messenger table.
-	if err = chainMonitor.RepairMessenger(); err != nil {
-		log.Error("failed to repair messenger tables", "err", err)
-		return err
-	}
-
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l1Watcher.ScanL1Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*1500, l2Watcher.ScanL2Chain)
 	go utils.LoopWithContext(subCtx, time.Millisecond*200, chainMonitor.DepositConfirm)

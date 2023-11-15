@@ -108,18 +108,11 @@ func (l2 *l2Contracts) registerGatewayHandlers() {
 }
 
 func (l2 *l2Contracts) storeGatewayEvents() error {
-	var msgSentEvents = map[string]*orm.L2MessengerEvent{}
-	for _, msgs := range l2.msgSentEvents {
-		for _, msg := range msgs {
-			msgSentEvents[msg.TxHash] = msg
-		}
-	}
-
 	// store l2 eth events.
 	if len(l2.ethEvents) > 0 {
 		for _, event := range l2.ethEvents {
-			if msg, exist := msgSentEvents[event.TxHash]; exist {
-				event.MsgHash = msg.MsgHash
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
 			}
 		}
 		if err := l2.tx.Save(l2.ethEvents).Error; err != nil {
@@ -130,8 +123,8 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 	// store l2 erc20 events.
 	if len(l2.erc20Events) > 0 {
 		for _, event := range l2.erc20Events {
-			if msg, exist := msgSentEvents[event.TxHash]; exist {
-				event.MsgHash = msg.MsgHash
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
 			}
 		}
 		if err := l2.tx.Save(l2.erc20Events).Error; err != nil {
@@ -142,8 +135,8 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 	// store l2 err721 events.
 	if len(l2.erc721Events) > 0 {
 		for _, event := range l2.erc721Events {
-			if msg, exist := msgSentEvents[event.TxHash]; exist {
-				event.MsgHash = msg.MsgHash
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
 			}
 		}
 		if err := l2.tx.Save(l2.erc721Events).Error; err != nil {
@@ -154,8 +147,8 @@ func (l2 *l2Contracts) storeGatewayEvents() error {
 	// store l2 erc1155 events.
 	if len(l2.erc1155Events) > 0 {
 		for _, event := range l2.erc1155Events {
-			if msg, exist := msgSentEvents[event.TxHash]; exist {
-				event.MsgHash = msg.MsgHash
+			if msgHash, exist := l2.txHashMsgHash[event.TxHash]; exist {
+				event.MsgHash = msgHash.String()
 			}
 		}
 		if err := l2.tx.Save(l2.erc1155Events).Error; err != nil {
