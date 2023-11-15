@@ -91,9 +91,10 @@ const (
 
 // TxHead represents the essential attributes of a transaction.
 type TxHead struct {
+	ID      uint64    `gorm:"id; primaryKey"`
 	Number  uint64    `gorm:"index; comment: block number"`
 	TxHash  string    `gorm:"index; comment: tx hash"`
-	MsgHash string    `gorm:"primaryKey; index"`
+	MsgHash string    `gorm:"index"`
 	Type    EventType `gorm:"index; comment: tx type"`
 }
 
