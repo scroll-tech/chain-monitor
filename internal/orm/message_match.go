@@ -8,6 +8,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
@@ -36,7 +37,7 @@ type MessageMatch struct {
 	L2TokenIds    string `json:"l2_token_ids" gorm:"l2_token_ids"`
 	L2Amounts     string `json:"l2_amounts" gorm:"l2_amounts"`
 
-	// eth info
+	// eth event info
 	L1MessengerETHBalance decimal.Decimal `json:"l1_messenger_eth_balance" gorm:"l1_messenger_eth_balance"`
 	L2MessengerETHBalance decimal.Decimal `json:"l2_messenger_eth_balance" gorm:"l2_messenger_eth_balance"`
 	L1ETHBalanceStatus    int             `json:"l1_eth_balance_status" gorm:"l1_eth_balance_status"`
@@ -165,11 +166,87 @@ func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, block
 	return &message, nil
 }
 
-// InsertOrUpdate is a placeholder function for inserting or updating message matches.
-// @todo: message insert everywhere, ensure l1_block_status & l2_block_status are updated correctly.
-func (m *MessageMatch) InsertOrUpdate(ctx context.Context, messages []MessageMatch) (int, error) {
-	// insert or update
-	return 0, nil
+// InsertOrUpdateMsgProofNonce insert or update the withdrawal tree root's message proof and nonce
+func (m *MessageMatch) InsertOrUpdateMsgProofNonce(ctx context.Context, messages []MessageMatch) (int64, error) {
+	db := m.db.WithContext(ctx)
+	db = db.Model(&MessageMatch{})
+	db = db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "message_hash"}},
+		DoUpdates: clause.AssignmentColumns([]string{"message_proof", "message_nonce"}),
+	})
+	result := db.Create(&messages)
+	if result.Error != nil {
+		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateMsgProofNonce error: %w, messages: %v", result.Error, messages)
+	}
+	return result.RowsAffected, nil
+}
+
+// InsertOrUpdateGatewayEventInfo insert or update eth event info
+func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, l1Messages, l2Messages []MessageMatch) (int64, error) {
+	if len(l1Messages) > 0 && len(l2Messages) > 0 {
+		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateGatewayEventInfo not empty at same time, l1 messages:%v l2 messages:%v", l1Messages, l2Messages)
+	}
+
+	db := m.db.WithContext(ctx)
+	db = db.Model(&MessageMatch{})
+
+	var messages []MessageMatch
+	var assignmentColumn clause.Set
+	if len(l1Messages) > 0 {
+		messages = l1Messages
+		assignmentColumn = clause.AssignmentColumns([]string{"l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_amounts"})
+	} else if len(l2Messages) > 0 {
+		messages = l2Messages
+		assignmentColumn = clause.AssignmentColumns([]string{"l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l2_amounts"})
+	}
+
+	db = db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "message_hash"}},
+		DoUpdates: assignmentColumn,
+	})
+
+	result := db.Create(&messages)
+	if result.Error != nil {
+		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateGatewayEventInfo error: %w, messages: %v", result.Error, messages)
+	}
+	return result.RowsAffected, nil
+}
+
+// InsertOrUpdateETHEventInfo insert or update the eth event info
+func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, messages []MessageMatch) (int64, error) {
+	db := m.db.WithContext(ctx)
+	db = db.Model(&MessageMatch{})
+	var affectRow int64
+	for _, message := range messages {
+		var columns []string
+		if message.L1EventType != 0 && message.L1EventType == int(types.L1SentMessage) {
+			columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_amounts", "l2_amounts")
+		}
+
+		if message.L1EventType != 0 && message.L1EventType == int(types.L1RelayedMessage) {
+			columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids")
+		}
+
+		if message.L2EventType != 0 && message.L2EventType == int(types.L2SentMessage) {
+			columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l1_amounts", "l2_amounts")
+		}
+
+		if message.L2EventType != 0 && message.L2EventType == int(types.L2RelayedMessage) {
+			columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids")
+		}
+
+		db = db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "message_hash"}},
+			DoUpdates: clause.AssignmentColumns(columns),
+		})
+
+		result := db.Create(&messages)
+		if result.Error != nil {
+			return 0, fmt.Errorf("MessageMatch.InsertOrUpdateETHEventInfo error: %w, messages: %v", result.Error, messages)
+		}
+		affectRow += result.RowsAffected
+	}
+	return affectRow, nil
 }
 
 // UpdateGatewayStatus updates the gateway status for the message matches with the provided ids.
@@ -212,4 +289,20 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 		return fmt.Errorf("MessageMatch.UpdateCrossChainStatus failed err:%w", err)
 	}
 	return nil
+}
+
+// UpdateETHBalance update the eth balance and eth status
+func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layerType types.LayerType, messageMatch MessageMatch) error {
+	db := m.db.WithContext(ctx)
+	db = db.Model(&MessageMatch{})
+	db = db.Where("message_hash = ?", messageMatch.MessageHash)
+
+	var err error
+	switch layerType {
+	case types.Layer1:
+		err = db.Updates(map[string]interface{}{"l1_messenger_eth_balance": messageMatch.L1MessengerETHBalance, "l1_eth_balance_status": messageMatch.L1MessengerETHBalance}).Error
+	case types.Layer2:
+		err = db.Updates(map[string]interface{}{"l2_messenger_eth_balance": messageMatch.L2MessengerETHBalance, "l2_eth_balance_status": messageMatch.L2MessengerETHBalance}).Error
+	}
+	return err
 }

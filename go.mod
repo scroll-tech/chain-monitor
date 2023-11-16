@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gin-gonic/gin v1.9.1
+	github.com/go-resty/resty/v2 v2.10.0
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.19
 	github.com/modern-go/reflect2 v1.0.2

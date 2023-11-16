@@ -65,9 +65,11 @@ type DBConfig struct {
 
 // SlackWebhookConfig slack webhook config.
 type SlackWebhookConfig struct {
-	Channel    string `json:"channel"`
-	UserName   string `json:"user_name"`
-	WebhookURL string `json:"webhook_url,omitempty"`
+	Channel          string `json:"channel"`
+	UserName         string `json:"user_name"`
+	WebhookURL       string `json:"webhook_url,omitempty"`
+	WorkerCount      int    `json:"worker_count"`
+	WorkerBufferSize int    `json:"worker_buffer_size"`
 }
 
 // Config chain-monitor main config.
