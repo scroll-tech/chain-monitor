@@ -14,11 +14,11 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-func (l *Contracts) l1Erc721Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+func (l *Contracts) l1Erc721Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
 	var iterators []types.WrapIterator
 
 	// deposit
-	depositIter, err := l.l1Contracts.ERC721Gateway.FilterDepositERC721(opts, nil, nil, nil)
+	depositIter, err := l.l1Contracts.erc721Gateway.FilterDepositERC721(opts, nil, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway deposit iterator failed", "error", err)
 		return nil, err
@@ -31,7 +31,7 @@ func (l *Contracts) l1Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	iterators = append(iterators, depositWrapIter)
 
 	// batch deposit
-	batchDepositIter, err := l.l1Contracts.ERC721Gateway.FilterBatchDepositERC721(opts, nil, nil, nil)
+	batchDepositIter, err := l.l1Contracts.erc721Gateway.FilterBatchDepositERC721(opts, nil, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway batch deposit iterator failed", "error", err)
 		return nil, err
@@ -44,7 +44,7 @@ func (l *Contracts) l1Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	iterators = append(iterators, batchDepositWrapIter)
 
 	// finalizeWithdraw
-	finalizeWithdrawIter, err := l.l1Contracts.ERC721Gateway.FilterFinalizeWithdrawERC721(opts, nil, nil, nil)
+	finalizeWithdrawIter, err := l.l1Contracts.erc721Gateway.FilterFinalizeWithdrawERC721(opts, nil, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway finalizeWithdraw iterator failed", "error", err)
 		return nil, err
@@ -57,7 +57,7 @@ func (l *Contracts) l1Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	iterators = append(iterators, finalizeWithdrawWrapIter)
 
 	// finalize batch Withdraw
-	finalizeBatchWithdrawIter, err := l.l1Contracts.ERC721Gateway.FilterFinalizeBatchWithdrawERC721(opts, nil, nil, nil)
+	finalizeBatchWithdrawIter, err := l.l1Contracts.erc721Gateway.FilterFinalizeBatchWithdrawERC721(opts, nil, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway finalizeWithdraw iterator failed", "error", err)
 		return nil, err
@@ -70,7 +70,7 @@ func (l *Contracts) l1Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	iterators = append(iterators, finalizeBatchWithdrawWrapIter)
 
 	// refund
-	refundIter, err := l.l1Contracts.ERC721Gateway.FilterRefundERC721(opts, nil, nil)
+	refundIter, err := l.l1Contracts.erc721Gateway.FilterRefundERC721(opts, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway refund iterator failed", "error", err)
 		return nil, err
@@ -83,7 +83,7 @@ func (l *Contracts) l1Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	iterators = append(iterators, refundWrapIter)
 
 	// batch refund
-	batchRefundIter, err := l.l1Contracts.ERC721Gateway.FilterBatchRefundERC721(opts, nil, nil)
+	batchRefundIter, err := l.l1Contracts.erc721Gateway.FilterBatchRefundERC721(opts, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway refund iterator failed", "error", err)
 		return nil, err
@@ -98,11 +98,11 @@ func (l *Contracts) l1Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	return iterators, nil
 }
 
-func (l *Contracts) l2Erc721Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+func (l *Contracts) l2Erc721Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
 	var iterators []types.WrapIterator
 
 	// withdraw
-	withdrawIter, err := l.l2Contracts.ERC721Gateway.FilterWithdrawERC721(opts, nil, nil, nil)
+	withdrawIter, err := l.l2Contracts.erc721Gateway.FilterWithdrawERC721(opts, nil, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway withdraw iterator failed", "error", err)
 		return nil, err
@@ -115,7 +115,7 @@ func (l *Contracts) l2Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	iterators = append(iterators, withdrawWrapIter)
 
 	// batch withdraw
-	batchWithdrawIter, err := l.l2Contracts.ERC721Gateway.FilterBatchWithdrawERC721(opts, nil, nil, nil)
+	batchWithdrawIter, err := l.l2Contracts.erc721Gateway.FilterBatchWithdrawERC721(opts, nil, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway batch withdraw iterator failed", "error", err)
 		return nil, err
@@ -128,7 +128,7 @@ func (l *Contracts) l2Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	iterators = append(iterators, batchWithdrawWrapIter)
 
 	// finalizeDeposit
-	finalizeDepositIter, err := l.l2Contracts.ERC721Gateway.FilterFinalizeDepositERC721(opts, nil, nil, nil)
+	finalizeDepositIter, err := l.l2Contracts.erc721Gateway.FilterFinalizeDepositERC721(opts, nil, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway finalize deposit iterator failed", "error", err)
 		return nil, err
@@ -141,7 +141,7 @@ func (l *Contracts) l2Erc721Filter(ctx context.Context, opts *bind.FilterOpts) (
 	iterators = append(iterators, finalizeWithdrawWrapIter)
 
 	// batch finalize Deposit
-	batchFinalizeDepositIter, err := l.l2Contracts.ERC721Gateway.FilterFinalizeBatchDepositERC721(opts, nil, nil, nil)
+	batchFinalizeDepositIter, err := l.l2Contracts.erc721Gateway.FilterFinalizeBatchDepositERC721(opts, nil, nil, nil)
 	if err != nil {
 		log.Error("get erc721 gateway finalize batch deposit iterator failed", "error", err)
 		return nil, err
@@ -177,23 +177,23 @@ func (l *Contracts) getL1Erc721GatewayTransfer(ctx context.Context, startBlockNu
 		event := struct {
 			From    common.Address
 			To      common.Address
-			TokenId *big.Int
+			TokenID *big.Int
 		}{}
 		if unpackErr := erc721ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data); unpackErr != nil {
 			return nil, err
 		}
 
-		if l.l1Contracts.ERC721GatewayAddress == event.From {
+		if l.l1Contracts.erc721GatewayAddress == event.From {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenId},
+				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
 				TokenAddress: vLog.Address,
 			})
 		}
 
-		if l.l1Contracts.ERC721GatewayAddress == event.To {
+		if l.l1Contracts.erc721GatewayAddress == event.To {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenId},
+				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{big.NewInt(1)},
 				TokenAddress: vLog.Address,
 			})
@@ -224,23 +224,23 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 		event := struct {
 			From    common.Address
 			To      common.Address
-			TokenId *big.Int
+			TokenID *big.Int
 		}{}
 		if err := erc721ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data); err != nil {
 			return nil, err
 		}
 
-		if event.From == l.l2Contracts.ERC721GatewayAddress {
+		if event.From == l.l2Contracts.erc721GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenId},
+				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
 				TokenAddress: vLog.Address,
 			})
 		}
 
-		if event.To == l.l2Contracts.ERC721GatewayAddress {
+		if event.To == l.l2Contracts.erc721GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenId},
+				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{big.NewInt(1)},
 				TokenAddress: vLog.Address,
 			})

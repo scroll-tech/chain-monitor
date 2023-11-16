@@ -16,12 +16,15 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/utils/msgproof"
 )
 
+// Checker is a structure that helps in verifying the data integrity
+// in the blockchain by checking the message matches and the events.
 type Checker struct {
 	messageMatchOrm   *orm.MessageMatch
 	transferMatcher   *TransferEventMatcher
 	crossChainMatcher *CrossEventMatcher
 }
 
+// NewChecker returns a new Checker instance.
 func NewChecker(db *gorm.DB) *Checker {
 	return &Checker{
 		messageMatchOrm:   orm.NewMessageMatch(db),
@@ -30,23 +33,25 @@ func NewChecker(db *gorm.DB) *Checker {
 	}
 }
 
+// CrossChainCheck checks the cross chain events.
 func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, messageMatch orm.MessageMatch) types.MismatchType {
 	if layer == types.Layer1 {
 		if !c.crossChainMatcher.checkL1EventMatchL2(messageMatch) {
-			return types.MismatchTypeL2EventNotExist
+			return types.MismatchTypeL1EventNotMatch
 		}
 	}
 
 	if layer == types.Layer2 {
 		if !c.crossChainMatcher.checkL2EventMatchL1(messageMatch) {
-			return types.MismatchTypeL1EventNotExist
+			return types.MismatchTypeL2EventNotMatch
 		}
 	}
 
-	return types.MismatchTypeOk
+	return types.MismatchTypeValid
 }
 
-func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) error {
+// GatewayCheck checks the gateway events.
+func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) error {
 	switch eventCategory {
 	case types.ERC20EventCategory:
 		return c.erc20EventUnmarshaler(ctx, gatewayEvents, messengerEvents, transferEvents)
@@ -58,6 +63,7 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.TxEventC
 	return nil
 }
 
+// CheckL2WithdrawRoots checks the L2 withdraw roots.
 func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, messengerEventsData []events.EventUnmarshaler, withdrawRoots map[uint64]common.Hash) error {
 	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
@@ -82,11 +88,10 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 	}
 
 	var messageMatches []orm.MessageMatch
-	lastWithdrawRoot := withdrawTrie.MessageRoot()
 	for blockNum := startBlockNumber; blockNum <= endBlockNumber; blockNum++ {
 		eventHashes := sentMessageEventHashesMap[blockNum]
 		proofs := withdrawTrie.AppendMessages(eventHashes)
-		lastWithdrawRoot = withdrawTrie.MessageRoot()
+		lastWithdrawRoot := withdrawTrie.MessageRoot()
 		if lastWithdrawRoot != withdrawRoots[blockNum] {
 			// @todo: send slack message.
 			return fmt.Errorf("withdraw root mismatch in %v, got: %v, expected %v", blockNum, lastWithdrawRoot, withdrawRoots[blockNum])
@@ -110,6 +115,7 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 	return nil
 }
 
+// MessengerCheck checks the messenger events.
 func (c *Checker) MessengerCheck(ctx context.Context, messengerEvents []events.EventUnmarshaler) error {
 	var messageMatches []orm.MessageMatch
 	for _, eventData := range messengerEvents {
@@ -297,7 +303,7 @@ func (c *Checker) erc1155EventUnmarshaler(ctx context.Context, gatewayEventsData
 		transferEvents = append(transferEvents, *transferEventUnmarshaler)
 	}
 
-	return c.transferMatcher.Erc1155Matcher(transferEvents, gatewayEvents)
+	return c.transferMatcher.erc1155Matcher(transferEvents, gatewayEvents)
 }
 
 func (c *Checker) erc721EventUnmarshaler(ctx context.Context, gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) error {
@@ -408,7 +414,7 @@ func (c *Checker) erc721EventUnmarshaler(ctx context.Context, gatewayEventsData,
 		transferEvents = append(transferEvents, *transferEventUnmarshaler)
 	}
 
-	return c.transferMatcher.Erc721Matcher(transferEvents, gatewayEvents)
+	return c.transferMatcher.erc721Matcher(transferEvents, gatewayEvents)
 }
 
 func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) error {
@@ -503,7 +509,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 		transferEvents = append(transferEvents, *transferEventUnmarshaler)
 	}
 
-	return c.transferMatcher.Erc20Matcher(transferEvents, gatewayEvents)
+	return c.transferMatcher.erc20Matcher(transferEvents, gatewayEvents)
 }
 
 type messageEventKey struct {

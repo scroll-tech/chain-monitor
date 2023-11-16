@@ -14,13 +14,14 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/checker"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
-	"github.com/scroll-tech/chain-monitor/internal/logic/message_match"
+	messagematch "github.com/scroll-tech/chain-monitor/internal/logic/message_match"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
 const maxBlockFetchSize uint64 = 200
 
+// ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
 	l1Client          *rpc.Client
 	l2Client          *rpc.Client
@@ -28,12 +29,13 @@ type ContractController struct {
 	eventGatherLogic  *events.EventGather
 	contractsLogic    *contracts.Contracts
 	checker           *checker.Checker
-	messageMatchLogic *message_match.MessageMatchLogic
+	messageMatchLogic *messagematch.Logic
 
-	l1EventCategoryList []types.TxEventCategory
-	l2EventCategoryList []types.TxEventCategory
+	l1EventCategoryList []types.EventCategory
+	l2EventCategoryList []types.EventCategory
 }
 
+// NewContractController creates a new ContractController object.
 func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *rpc.Client) *ContractController {
 	c := &ContractController{
 		l1Client:          l1Client,
@@ -42,7 +44,7 @@ func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *
 		eventGatherLogic:  events.NewEventGather(),
 		contractsLogic:    contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
 		checker:           checker.NewChecker(db),
-		messageMatchLogic: message_match.NewMessagesMatchLogic(db),
+		messageMatchLogic: messagematch.NewLogic(db),
 	}
 
 	if err := c.contractsLogic.Register(c.conf); err != nil {
@@ -62,14 +64,14 @@ func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *
 	return c
 }
 
-// Watch the l1/l2 events, contains gateways events, transfer events, messenger events
+// Watch is an exported function that starts watching the Layer 1 and Layer 2 events, which include gateways events, transfer events, and messenger events.
 func (c *ContractController) Watch(ctx context.Context) error {
-	go c.WatcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
-	go c.WatcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
 	return nil
 }
 
-func (c *ContractController) WatcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber) {
+func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber) {
 	// 1. get the max l1_number and l2_number
 	blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
 	if err != nil {
@@ -118,7 +120,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
-	if err := c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
+	if err = c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
 		log.Error("insert message events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
 	}
@@ -164,19 +166,21 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
-	if err := c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
+	if err = c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
 		log.Error("insert message events failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
 	}
 
 	for _, eventCategory := range c.l2EventCategoryList {
-		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer2, eventCategory)
+		var wrapIterList []types.WrapIterator
+		wrapIterList, err = c.contractsLogic.Iterator(ctx, &opts, types.Layer2, eventCategory)
 		if err != nil {
 			log.Error("get contract iterator failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", err)
 			continue
 		}
 
-		transferEvents, err := c.contractsLogic.GetGatewayTransfer(ctx, start, end, types.Layer2, eventCategory)
+		var transferEvents []events.EventUnmarshaler
+		transferEvents, err = c.contractsLogic.GetGatewayTransfer(ctx, start, end, types.Layer2, eventCategory)
 		if err != nil {
 			log.Error("get gateway related transfer events failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", err)
 			continue

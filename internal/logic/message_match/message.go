@@ -1,4 +1,4 @@
-package message_match
+package messagematch
 
 import (
 	"context"
@@ -9,19 +9,20 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-// MessageMatchLogic define the message match logics
-type MessageMatchLogic struct {
+// Logic defines the logic related to message matching.
+type Logic struct {
 	messageMatchOrm *orm.MessageMatch
 }
 
-func NewMessagesMatchLogic(db *gorm.DB) *MessageMatchLogic {
-	return &MessageMatchLogic{
+// NewLogic initializes a new instance of Logic with an instance of orm.MessageMatch.
+func NewLogic(db *gorm.DB) *Logic {
+	return &Logic{
 		messageMatchOrm: orm.NewMessageMatch(db),
 	}
 }
 
-// GetLatestBlockNumber get the latest number
-func (t *MessageMatchLogic) GetLatestBlockNumber(ctx context.Context, layer types.LayerType) (uint64, error) {
+// GetLatestBlockNumber retrieves the latest block number for a given layer type.
+func (t *Logic) GetLatestBlockNumber(ctx context.Context, layer types.LayerType) (uint64, error) {
 	blockValidMessageMatch, blockValidErr := t.messageMatchOrm.GetLatestBlockValidMessageMatch(ctx, layer)
 	if blockValidErr != nil {
 		return 0, blockValidErr

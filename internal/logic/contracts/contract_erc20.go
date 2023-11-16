@@ -15,13 +15,13 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+func (l *Contracts) l1Erc20Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
 	var iterators []types.WrapIterator
-	erc20TokenList := l.l1Contracts.ERC20GatewayTokens
+	erc20TokenList := l.l1Contracts.erc20GatewayTokens
 	for _, erc20Token := range erc20TokenList {
-		gatewayFilter, filterExist := l.l1Contracts.ERC20Gateways[erc20Token.TokenType]
+		gatewayFilter, filterExist := l.l1Contracts.erc20Gateways[erc20Token.tokenType]
 		if !filterExist {
-			err := fmt.Errorf("can't get erc20 filter failed, erc20Token type:%v, address:%v", erc20Token.TokenType, erc20Token.Address)
+			err := fmt.Errorf("can't get erc20 filter failed, erc20Token type:%v, address:%v", erc20Token.tokenType, erc20Token.address)
 			log.Error("get erc20 event filter from l1 contracts failed", "err", err)
 			return nil, err
 		}
@@ -29,7 +29,7 @@ func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// deposit
 		depositIter, err := gatewayFilter.FilterDepositERC20(opts, nil, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway deposit iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
+			log.Error("get erc20 gateway deposit iterator failed", "token type", erc20Token.tokenType, "address", erc20Token.address, "error", err)
 			return nil, err
 		}
 
@@ -42,7 +42,7 @@ func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// finalizeWithdraw
 		finalizeWithdrawIter, err := gatewayFilter.FilterFinalizeWithdrawERC20(opts, nil, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway finalizeWithdraw iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
+			log.Error("get erc20 gateway finalizeWithdraw iterator failed", "token type", erc20Token.tokenType, "address", erc20Token.address, "error", err)
 			return nil, err
 		}
 
@@ -55,7 +55,7 @@ func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// refund
 		refundIter, err := gatewayFilter.FilterRefundERC20(opts, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway refund iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
+			log.Error("get erc20 gateway refund iterator failed", "token type", erc20Token.tokenType, "address", erc20Token.address, "error", err)
 			return nil, err
 		}
 
@@ -68,14 +68,14 @@ func (l *Contracts) l1Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 	return iterators, nil
 }
 
-func (l *Contracts) l2Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+func (l *Contracts) l2Erc20Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
 	var iterators []types.WrapIterator
-	erc20TokenList := l.l2Contracts.ERC20GatewayTokens
+	erc20TokenList := l.l2Contracts.erc20GatewayTokens
 
 	for _, erc20Token := range erc20TokenList {
-		gatewayFilter, filterExist := l.l2Contracts.ERC20Gateways[erc20Token.TokenType]
+		gatewayFilter, filterExist := l.l2Contracts.erc20Gateways[erc20Token.tokenType]
 		if !filterExist {
-			err := fmt.Errorf("can't get erc20 filter failed, erc20Token type:%v, address:%v", erc20Token.TokenType, erc20Token.Address)
+			err := fmt.Errorf("can't get erc20 filter failed, erc20Token type:%v, address:%v", erc20Token.tokenType, erc20Token.address)
 			log.Error("get erc20 event filter from l1 contracts failed", "err", err)
 			return nil, err
 		}
@@ -83,7 +83,7 @@ func (l *Contracts) l2Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// withdraw
 		depositIter, err := gatewayFilter.FilterWithdrawERC20(opts, nil, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway deposit iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
+			log.Error("get erc20 gateway deposit iterator failed", "token type", erc20Token.tokenType, "address", erc20Token.address, "error", err)
 			return nil, err
 		}
 
@@ -96,7 +96,7 @@ func (l *Contracts) l2Erc20Filter(ctx context.Context, opts *bind.FilterOpts) ([
 		// finalizeDeposit
 		finalizeWithdrawIter, err := gatewayFilter.FilterFinalizeDepositERC20(opts, nil, nil, nil)
 		if err != nil {
-			log.Error("get erc20 gateway finalizeWithdraw iterator failed", "token type", erc20Token.TokenType, "address", erc20Token.Address, "error", err)
+			log.Error("get erc20 gateway finalizeWithdraw iterator failed", "token type", erc20Token.tokenType, "address", erc20Token.address, "error", err)
 			return nil, err
 		}
 
@@ -126,8 +126,8 @@ func (l *Contracts) getL1Erc20GatewayTransfer(ctx context.Context, startBlockNum
 	}
 
 	tokenAddressMap := make(map[common.Address]struct{})
-	for _, token := range l.l1Contracts.ERC20GatewayTokens {
-		tokenAddressMap[token.Address] = struct{}{}
+	for _, token := range l.l1Contracts.erc20GatewayTokens {
+		tokenAddressMap[token.address] = struct{}{}
 	}
 
 	var transferEvents []events.EventUnmarshaler
@@ -178,8 +178,8 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 	}
 
 	tokenAddressMap := make(map[common.Address]struct{})
-	for _, token := range l.l2Contracts.ERC20GatewayTokens {
-		tokenAddressMap[token.Address] = struct{}{}
+	for _, token := range l.l2Contracts.erc20GatewayTokens {
+		tokenAddressMap[token.address] = struct{}{}
 	}
 
 	var transferEvents []events.EventUnmarshaler

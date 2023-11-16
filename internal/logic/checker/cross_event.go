@@ -8,6 +8,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
+// CrossEventMatcher is a utility struct used for verifying the consistency of events across different blockchain layers (L1 and L2).
 type CrossEventMatcher struct {
 	eventMatchMap map[types.EventType]types.EventType
 }
@@ -39,7 +40,7 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	return c
 }
 
-// check every L1FializedWithdraw/L1RelayedMessage has corresponding L2 event.
+// checkL1EventMatchL2 checks that every L1FializedWithdraw/L1RelayedMessage has a corresponding L2 event.
 func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) bool {
 	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
 	if !isPresent {
@@ -67,7 +68,7 @@ func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) b
 	return c.crossChainAmountMatch(messageMatch)
 }
 
-// check every L2FializedDeposit/L2RelayedMessage has corresponding L1 event.
+// checkL2EventMatchL1 checks that every L2FializedDeposit/L2RelayedMessage has a corresponding L1 event.
 func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) bool {
 	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L2EventType)]
 	if !isPresent {
@@ -95,6 +96,7 @@ func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) b
 	return c.crossChainAmountMatch(messageMatch)
 }
 
+// crossChainAmountMatch checks if the amounts and token IDs match for cross-chain events.
 func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch) bool {
 	var l1Amounts, l2Amounts []*big.Int
 	var l1TokenIds, l2TokenIds []*big.Int
@@ -111,9 +113,9 @@ func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch)
 	}
 
 	if messageMatch.L1TokenIds != "" {
-		l1TokenIdSplits := strings.Split(messageMatch.L1TokenIds, ",")
-		for _, l1TokenIdSplit := range l1TokenIdSplits {
-			l1Token, ok := new(big.Int).SetString(l1TokenIdSplit, 0)
+		l1TokenIDSplits := strings.Split(messageMatch.L1TokenIds, ",")
+		for _, l1TokenIDSplit := range l1TokenIDSplits {
+			l1Token, ok := new(big.Int).SetString(l1TokenIDSplit, 0)
 			if !ok {
 				return false
 			}
@@ -151,9 +153,9 @@ func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch)
 		if len(l1TokenIds) != len(l2TokenIds) {
 			return false
 		}
-		for l1Idx, l1TokenId := range l1TokenIds {
+		for l1Idx, l1TokenID := range l1TokenIds {
 			l2TokenID := l2TokenIds[l1Idx]
-			if l1TokenId != l2TokenID {
+			if l1TokenID != l2TokenID {
 				return false
 			}
 		}

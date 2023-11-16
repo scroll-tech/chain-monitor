@@ -14,7 +14,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-func (l *Contracts) l1Erc1155Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+func (l *Contracts) l1Erc1155Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
 	var iterators []types.WrapIterator
 
 	// deposit
@@ -98,7 +98,7 @@ func (l *Contracts) l1Erc1155Filter(ctx context.Context, opts *bind.FilterOpts) 
 	return iterators, nil
 }
 
-func (l *Contracts) l2Erc1155Filter(ctx context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
+func (l *Contracts) l2Erc1155Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
 	var iterators []types.WrapIterator
 
 	// withdraw
@@ -193,7 +193,7 @@ func (l *Contracts) getL1Erc1155GatewayTransferSingle(ctx context.Context, start
 		event := struct {
 			From    common.Address
 			To      common.Address
-			TokenId *big.Int
+			TokenID *big.Int
 			Value   *big.Int
 		}{}
 		if unpackErr := erc1155ABI.UnpackIntoInterface(&event, "TransferSingle", vLog.Data); unpackErr != nil {
@@ -202,7 +202,7 @@ func (l *Contracts) getL1Erc1155GatewayTransferSingle(ctx context.Context, start
 
 		if l.l1Contracts.ERC1155GatewayAddress == event.From {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenId},
+				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{new(big.Int).Neg(event.Value)},
 				TokenAddress: vLog.Address,
 			})
@@ -210,7 +210,7 @@ func (l *Contracts) getL1Erc1155GatewayTransferSingle(ctx context.Context, start
 
 		if l.l1Contracts.ERC1155GatewayAddress == event.To {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenId},
+				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{event.Value},
 				TokenAddress: vLog.Address,
 			})
@@ -309,7 +309,7 @@ func (l *Contracts) getL2Erc1155GatewayTransferSingle(ctx context.Context, start
 		event := struct {
 			From    common.Address
 			To      common.Address
-			TokenId *big.Int
+			TokenID *big.Int
 			Value   *big.Int
 		}{}
 		if err := erc1155ABI.UnpackIntoInterface(&event, "TransferSingle", vLog.Data); err != nil {
@@ -318,7 +318,7 @@ func (l *Contracts) getL2Erc1155GatewayTransferSingle(ctx context.Context, start
 
 		if event.From == l.l2Contracts.ERC1155GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenId},
+				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{new(big.Int).Neg(event.Value)},
 				TokenAddress: vLog.Address,
 			})

@@ -1,4 +1,4 @@
-package cross_chain
+package crosschain
 
 import (
 	"context"
@@ -15,12 +15,12 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-// CrossChainLogic check the l1/l2 event match from db
-// FinalizeWithdraw value ⇒ withdraw value.
-// FinalizeDeposit value ⇒ deposit value.
-// This is due to the fact that not every deposit/withdrawal event in the system will have a finalize event,
-// as users have the capability to independently refund deposits.
-type CrossChainLogic struct {
+// Logic is a struct for checking the l1/l2 event match from the database.
+// FinalizeWithdraw value corresponds to the withdrawal value.
+// FinalizeDeposit value corresponds to the deposit value.
+// This is because not every deposit/withdrawal event in the system will have a finalize event,
+// as users have the ability to refund deposits independently.
+type Logic struct {
 	messageOrm      *orm.MessageMatch
 	checker         *checker.Checker
 	client          *ethclient.Client
@@ -28,8 +28,9 @@ type CrossChainLogic struct {
 	l2MessengerAddr common.Address
 }
 
-func NewCrossChainLogic(db *gorm.DB, client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address) *CrossChainLogic {
-	return &CrossChainLogic{
+// NewLogic is a constructor for Logic.
+func NewLogic(db *gorm.DB, client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address) *Logic {
+	return &Logic{
 		messageOrm:      orm.NewMessageMatch(db),
 		checker:         checker.NewChecker(db),
 		client:          client,
@@ -38,7 +39,8 @@ func NewCrossChainLogic(db *gorm.DB, client *ethclient.Client, l1MessengerAddr, 
 	}
 }
 
-func (c *CrossChainLogic) CheckCrossChainMessage(ctx context.Context, layerType types.LayerType) {
+// CheckCrossChainMessage is a method for checking cross-chain messages.
+func (c *Logic) CheckCrossChainMessage(ctx context.Context, layerType types.LayerType) {
 	latestValidMsg, err := c.messageOrm.GetLatestValidCrossChainMessageMatch(ctx, layerType)
 	if err != nil {
 		log.Error("c.messageOrm GetLatestValidCrossChainMessageMatch failed", "layer", layerType, "error", err)
@@ -69,7 +71,7 @@ func (c *CrossChainLogic) CheckCrossChainMessage(ctx context.Context, layerType 
 	var messageMatchIds []int64
 	for _, message := range messages {
 		checkResult := c.checker.CrossChainCheck(ctx, layerType, message)
-		if checkResult == types.MismatchTypeOk {
+		if checkResult == types.MismatchTypeValid {
 			messageMatchIds = append(messageMatchIds, message.ID)
 			continue
 		}
@@ -78,12 +80,13 @@ func (c *CrossChainLogic) CheckCrossChainMessage(ctx context.Context, layerType 
 	}
 
 	if err := c.messageOrm.UpdateCrossChainStatus(ctx, messageMatchIds, layerType, types.CrossChainStatusTypeValid); err != nil {
-		log.Error("CrossChainLogic.CheckCrossChainMessage UpdateCrossChainStatus failed", "error", err)
+		log.Error("Logic.CheckCrossChainMessage UpdateCrossChainStatus failed", "error", err)
 		return
 	}
 }
 
-func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.LayerType) {
+// CheckETHBalance checks the ETH balance for the given Ethereum layer (either Layer1 or Layer2).
+func (c *Logic) CheckETHBalance(ctx context.Context, layerType types.LayerType) {
 	latestMsg, err := c.messageOrm.GetLatestDoubleValidMessageMatch(ctx)
 	if err != nil {
 		log.Error("c.messageOrm GetLatestDoubleValidMessageMatch failed", "error", err)
@@ -118,9 +121,27 @@ func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.L
 		balanceDiff := big.NewInt(0)
 		for _, message := range messages {
 			if types.EventType(message.L1EventType) == types.L1SentMessage {
-				balanceDiff = new(big.Int).Add(balanceDiff, new(big.Int).SetInt64(message.L1Amount.IntPart()))
+				if len(message.L1Amounts) != 1 {
+					log.Error("invalid L1Amounts length", "expected", 1, "got", len(message.L1Amounts))
+					return
+				}
+				l1Amount, ok := new(big.Int).SetString(message.L1Amounts, 10)
+				if !ok {
+					log.Error("invalid L1Amount", "value", message.L1Amounts[0])
+					return
+				}
+				balanceDiff = new(big.Int).Add(balanceDiff, l1Amount)
 			} else {
-				balanceDiff = new(big.Int).Sub(balanceDiff, new(big.Int).SetInt64(message.L2Amount.IntPart()))
+				if len(message.L2Amounts) != 1 {
+					log.Error("invalid L2Amounts length", "expected", 1, "got", len(message.L2Amounts))
+					return
+				}
+				l2Amount, ok := new(big.Int).SetString(message.L2Amounts, 10)
+				if !ok {
+					log.Error("invalid L2Amount", "value", message.L2Amounts[0])
+					return
+				}
+				balanceDiff = new(big.Int).Sub(balanceDiff, l2Amount)
 			}
 		}
 
@@ -169,9 +190,27 @@ func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.L
 		balanceDiff := big.NewInt(0)
 		for _, message := range messages {
 			if types.EventType(message.L2EventType) == types.L2SentMessage {
-				balanceDiff = new(big.Int).Add(balanceDiff, new(big.Int).SetInt64(message.L2Amount.IntPart()))
+				if len(message.L2Amounts) != 1 {
+					log.Error("invalid L2Amounts length", "expected", 1, "got", len(message.L2Amounts))
+					return
+				}
+				l2Amount, ok := new(big.Int).SetString(message.L2Amounts, 10)
+				if !ok {
+					log.Error("invalid L1Amount", "value", message.L2Amounts[0])
+					return
+				}
+				balanceDiff = new(big.Int).Add(balanceDiff, l2Amount)
 			} else {
-				balanceDiff = new(big.Int).Sub(balanceDiff, new(big.Int).SetInt64(message.L1Amount.IntPart()))
+				if len(message.L1Amounts) != 1 {
+					log.Error("invalid L2Amounts length", "expected", 1, "got", len(message.L1Amounts))
+					return
+				}
+				l1Amount, ok := new(big.Int).SetString(message.L1Amounts, 10)
+				if !ok {
+					log.Error("invalid L2Amount", "value", message.L1Amounts[0])
+					return
+				}
+				balanceDiff = new(big.Int).Sub(balanceDiff, l1Amount)
 			}
 		}
 

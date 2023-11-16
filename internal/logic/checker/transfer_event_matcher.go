@@ -10,15 +10,16 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-// TransferEventMatcher check event exist and amount match
+// TransferEventMatcher checks the existence of an event and consistency of the transferred amount.
 type TransferEventMatcher struct {
 }
 
+// NewTransferEventMatcher creates a new instance of TransferEventMatcher.
 func NewTransferEventMatcher() *TransferEventMatcher {
 	return &TransferEventMatcher{}
 }
 
-func (t *TransferEventMatcher) Erc20Matcher(transferEvents, gatewayEvents []events.ERC20GatewayEventUnmarshaler) error {
+func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []events.ERC20GatewayEventUnmarshaler) error {
 	transferBalances := make(map[common.Address]*big.Int)
 	gatewayBalances := make(map[common.Address]*big.Int)
 
@@ -61,7 +62,7 @@ func (t *TransferEventMatcher) Erc20Matcher(transferEvents, gatewayEvents []even
 	return nil
 }
 
-func (t *TransferEventMatcher) Erc721Matcher(transferEvents, gatewayEvents []events.ERC721GatewayEventUnmarshaler) error {
+func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []events.ERC721GatewayEventUnmarshaler) error {
 	type erc721MatchKey struct {
 		tokenAddress common.Address
 		tokenID      *big.Int
@@ -128,7 +129,7 @@ func (t *TransferEventMatcher) Erc721Matcher(transferEvents, gatewayEvents []eve
 	return nil
 }
 
-func (t *TransferEventMatcher) Erc1155Matcher(transferEvents, gatewayEvents []events.ERC1155GatewayEventUnmarshaler) error {
+func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []events.ERC1155GatewayEventUnmarshaler) error {
 	type erc1155MatchKey struct {
 		tokenAddress common.Address
 		tokenID      *big.Int

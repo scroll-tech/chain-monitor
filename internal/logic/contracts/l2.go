@@ -11,7 +11,6 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc1155gateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc20gateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2erc721gateway"
-	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2ethgateway"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2scrollmessenger"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
@@ -19,15 +18,13 @@ import (
 type l2Contracts struct {
 	client *ethclient.Client
 
-	Messenger *il2scrollmessenger.Il2scrollmessenger
+	messenger *il2scrollmessenger.Il2scrollmessenger
 
-	ETHGateway *il2ethgateway.Il2ethgateway
+	erc20Gateways      map[types.ERC20]*il2erc20gateway.Il2erc20gateway
+	erc20GatewayTokens []erc20GatewayMapping
 
-	ERC20Gateways      map[types.ERC20]*il2erc20gateway.Il2erc20gateway
-	ERC20GatewayTokens []ERC20GatewayMapping
-
-	ERC721Gateway         *il2erc721gateway.Il2erc721gateway
-	ERC721GatewayAddress  common.Address
+	erc721Gateway         *il2erc721gateway.Il2erc721gateway
+	erc721GatewayAddress  common.Address
 	ERC1155Gateway        *il2erc1155gateway.Il2erc1155gateway
 	ERC1155GatewayAddress common.Address
 }
@@ -35,13 +32,13 @@ type l2Contracts struct {
 func newL2Contracts(c *ethclient.Client) *l2Contracts {
 	return &l2Contracts{
 		client:        c,
-		ERC20Gateways: make(map[types.ERC20]*il2erc20gateway.Il2erc20gateway),
+		erc20Gateways: make(map[types.ERC20]*il2erc20gateway.Il2erc20gateway),
 	}
 }
 
 func (l *l2Contracts) register(conf config.Config) error {
 	var err error
-	l.Messenger, err = il2scrollmessenger.NewIl2scrollmessenger(conf.L2Config.L2Contracts.ScrollMessenger, l.client)
+	l.messenger, err = il2scrollmessenger.NewIl2scrollmessenger(conf.L2Config.L2Contracts.ScrollMessenger, l.client)
 	if err != nil {
 		log.Error("registerERC20Gateway failed", "address", conf.L2Config.L2Contracts.ScrollMessenger, "err", err)
 		return fmt.Errorf("register l2 scroll messenger contract failed, address:%v, err:%w", conf.L2Config.L2Contracts.ScrollMessenger.Hex(), err)
@@ -92,8 +89,8 @@ func (l *l2Contracts) registerERC20Gateway(gatewayAddress common.Address, tokenT
 		return fmt.Errorf("register erc20 gateway contract failed, err:%w", err)
 	}
 
-	l.ERC20Gateways[tokenType] = erc20Gateway
-	l.ERC20GatewayTokens = append(l.ERC20GatewayTokens, ERC20GatewayMapping{TokenType: tokenType, Address: gatewayAddress})
+	l.erc20Gateways[tokenType] = erc20Gateway
+	l.erc20GatewayTokens = append(l.erc20GatewayTokens, erc20GatewayMapping{tokenType: tokenType, address: gatewayAddress})
 
 	return nil
 }
@@ -104,13 +101,13 @@ func (l *l2Contracts) registerERC721Gateway(gatewayAddress common.Address) error
 		return nil
 	}
 
-	l.ERC721GatewayAddress = gatewayAddress
+	l.erc721GatewayAddress = gatewayAddress
 
 	erc721Gateways, err := il2erc721gateway.NewIl2erc721gateway(gatewayAddress, l.client)
 	if err != nil {
 		return fmt.Errorf("register erc721 gateway contract failed, err:%w", err)
 	}
-	l.ERC721Gateway = erc721Gateways
+	l.erc721Gateway = erc721Gateways
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/types"
@@ -66,7 +67,7 @@ func (*MessageMatch) TableName() string {
 	return "message_match"
 }
 
-// GetLatestBlockValidMessageMatch get the latest layer message match record
+// GetLatestBlockValidMessageMatch fetches the latest valid message match record for the specified layer.
 func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
@@ -83,7 +84,7 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 	return &message, nil
 }
 
-// GetLatestDoubleValidMessageMatch get the latest message match record where both layers are valid
+// GetLatestDoubleValidMessageMatch fetches the latest valid message match record where both layers are valid.
 func (m *MessageMatch) GetLatestDoubleValidMessageMatch(ctx context.Context) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
@@ -99,7 +100,7 @@ func (m *MessageMatch) GetLatestDoubleValidMessageMatch(ctx context.Context) (*M
 	return &message, nil
 }
 
-// GetLatestValidCrossChainMessageMatch gets the latest valid cross chain message match
+// GetLatestValidCrossChainMessageMatch fetches the latest valid cross chain message match for the specified layer.
 func (m *MessageMatch) GetLatestValidCrossChainMessageMatch(ctx context.Context, layerType types.LayerType) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
@@ -116,7 +117,7 @@ func (m *MessageMatch) GetLatestValidCrossChainMessageMatch(ctx context.Context,
 	return &message, nil
 }
 
-// GetLatesValidETHBalanceMessageMatch get the latest eth balance match record
+// GetLatesValidETHBalanceMessageMatch fetches the latest valid Ethereum balance match record for the specified layer.
 func (m *MessageMatch) GetLatesValidETHBalanceMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
@@ -133,7 +134,7 @@ func (m *MessageMatch) GetLatesValidETHBalanceMessageMatch(ctx context.Context, 
 	return &message, nil
 }
 
-// GetMessageMatchesByBlockNumberRange gets all MessageMatch records in the block number range (inclusive).
+// GetMessageMatchesByBlockNumberRange fetches all MessageMatch records in the block number range (inclusive).
 func (m *MessageMatch) GetMessageMatchesByBlockNumberRange(ctx context.Context, layer types.LayerType, startHeight, endHeight uint64) ([]MessageMatch, error) {
 	var messages []MessageMatch
 	db := m.db.WithContext(ctx)
@@ -150,7 +151,7 @@ func (m *MessageMatch) GetMessageMatchesByBlockNumberRange(ctx context.Context, 
 	return messages, nil
 }
 
-// GetMessageMatchByL2BlockNumber gets message match record by L2 block number with the maximum id.
+// GetMessageMatchByL2BlockNumber fetches the message match record by L2 block number with the maximum id.
 func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, blockNumber uint64) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
@@ -164,12 +165,14 @@ func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, block
 	return &message, nil
 }
 
+// InsertOrUpdate is a placeholder function for inserting or updating message matches.
 // @todo: message insert everywhere, ensure l1_block_status & l2_block_status are updated correctly.
 func (m *MessageMatch) InsertOrUpdate(ctx context.Context, messages []MessageMatch) (int, error) {
 	// insert or update
 	return 0, nil
 }
 
+// UpdateGatewayStatus updates the gateway status for the message matches with the provided ids.
 func (m *MessageMatch) UpdateGatewayStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.GatewayStatusType) error {
 	db := m.db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
@@ -190,6 +193,7 @@ func (m *MessageMatch) UpdateGatewayStatus(ctx context.Context, id []int64, laye
 	return nil
 }
 
+// UpdateCrossChainStatus updates the cross chain status for the message matches with the provided ids.
 func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.CrossChainStatusType) error {
 	db := m.db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
