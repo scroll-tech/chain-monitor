@@ -16,6 +16,8 @@ func TestAlertSlack(t *testing.T) {
 		WorkerBufferSize: 100,
 	}
 	InitAlertSlack(&conf)
-	Notify("test alert slack")
+	for i := 0; i <= 10; i++ {
+		Notify("test alert slack")
+	}
 	time.Sleep(time.Second * 2)
 }

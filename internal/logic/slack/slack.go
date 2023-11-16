@@ -24,6 +24,7 @@ type AlertSlack struct {
 	sendWorker  *fanout.Fanout
 }
 
+// InitAlertSlack init the alert slack
 func InitAlertSlack(cfg *config.SlackWebhookConfig) {
 	as := &AlertSlack{
 		cfg:         cfg,
@@ -85,10 +86,7 @@ func (as *AlertSlack) run() {
 		}
 	}()
 
-	for {
-		select {
-		case senderMessage := <-as.senderQueue:
-			as.send(senderMessage)
-		}
+	for senderMessage := range as.senderQueue {
+		as.send(senderMessage)
 	}
 }
