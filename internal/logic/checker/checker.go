@@ -50,6 +50,11 @@ func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, mess
 	return types.MismatchTypeValid
 }
 
+// UpdateBlockStatus updates the block status in the database.
+func (c *Checker) UpdateBlockStatus(ctx context.Context, layer types.LayerType, start, end uint64) error {
+	return c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, end)
+}
+
 // GatewayCheck checks the gateway events.
 func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) error {
 	switch eventCategory {

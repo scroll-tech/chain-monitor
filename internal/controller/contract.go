@@ -151,6 +151,12 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 			continue
 		}
 	}
+
+	// update l1 block status
+	if err := c.checker.UpdateBlockStatus(ctx, types.Layer1, start, end); err != nil {
+		log.Error("update block status failed", "layer", types.Layer1, "start", start, "end", end, "error", err)
+		return
+	}
 }
 
 func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) {
@@ -208,6 +214,12 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 
 	if checkErr := c.checker.CheckL2WithdrawRoots(ctx, start, end, messengerEvents, withdrawRootsMap); checkErr != nil {
 		log.Error("check withdraw roots failed", "layer", types.Layer2, "error", checkErr)
+		return
+	}
+
+	// update l2 block status
+	if err := c.checker.UpdateBlockStatus(ctx, types.Layer2, start, end); err != nil {
+		log.Error("update block status failed", "layer", types.Layer2, "start", start, "end", end, "error", err)
 		return
 	}
 }
