@@ -163,9 +163,7 @@ func (c *Logic) CheckETHBalance(ctx context.Context, layerType types.LayerType) 
 				L1MessengerETHBalance: decimal.NewFromBigInt(endBalance, 0),
 			}
 		}
-		messageMatches := []orm.MessageMatch{messageMatch}
-		effectRows, err := c.messageOrm.InsertOrUpdate(ctx, []orm.MessageMatch{messageMatch})
-		if err != nil || effectRows != len(messageMatches) {
+		if err := c.messageOrm.UpdateETHBalance(ctx, types.Layer1, messageMatch); err != nil {
 			log.Error("insert eth balance result failed", "err", err)
 		}
 	} else {
@@ -232,9 +230,7 @@ func (c *Logic) CheckETHBalance(ctx context.Context, layerType types.LayerType) 
 				L2MessengerETHBalance: decimal.NewFromBigInt(endBalance, 0),
 			}
 		}
-		messageMatches := []orm.MessageMatch{messageMatch}
-		effectRows, err := c.messageOrm.InsertOrUpdate(ctx, []orm.MessageMatch{messageMatch})
-		if err != nil || effectRows != len(messageMatches) {
+		if err := c.messageOrm.UpdateETHBalance(ctx, types.Layer2, messageMatch); err != nil {
 			log.Error("insert eth balance result failed", "err", err)
 		}
 	}

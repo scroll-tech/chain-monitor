@@ -37,9 +37,9 @@
     }
   },
   "slack_webhook_config": {
-    "channel": "#chain_monitor_test",
+    "channel": "#test_chain_monitor",
     "user_name": "chain_monitor_balance",
-    "webhook_url": "https://hooks.slack.com/services/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"
+    "webhook_url": "https://hooks.slack.com/services/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"
   },
   "db_config": {
     "driver_name": "postgres",
