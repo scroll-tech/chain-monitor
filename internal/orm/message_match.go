@@ -22,7 +22,6 @@ type MessageMatch struct {
 	TokenType   int    `json:"token_type" gorm:"token_type"`
 
 	// l1 event info
-	L1BlockStatus int    `json:"l1_block_status" gorm:"l1_block_status"`
 	L1EventType   int    `json:"l1_event_type" gorm:"l1_event_type"`
 	L1BlockNumber uint64 `json:"l1_block_number" gorm:"l1_block_number"`
 	L1TxHash      string `json:"l1_tx_hash" gorm:"l1_tx_hash"`
@@ -30,7 +29,6 @@ type MessageMatch struct {
 	L1Amounts     string `json:"l1_amounts" gorm:"l1_amounts"`
 
 	// l2 event info
-	L2BlockStatus int    `json:"l2_block_status" gorm:"l2_block_status"`
 	L2EventType   int    `json:"l2_event_type" gorm:"l2_event_type"`
 	L2BlockNumber uint64 `json:"l2_block_number" gorm:"l2_block_number"`
 	L2TxHash      string `json:"l2_tx_hash" gorm:"l2_tx_hash"`
@@ -46,8 +44,8 @@ type MessageMatch struct {
 	// status
 	CheckStatus        int    `json:"check_status" gorm:"check_status"`
 	WithdrawRootStatus int    `json:"withdraw_root_status" gorm:"withdraw_root_status"`
-	L1ChainStatus      int    `json:"l1_chain_status" gorm:"l1_chain_status"`
-	L2ChainStatus      int    `json:"l2_chain_status" gorm:"l2_chain_status"`
+	L1BlockStatus      int    `json:"l1_block_status" gorm:"l1_block_status"`
+	L2BlockStatus      int    `json:"l2_block_status" gorm:"l2_block_status"`
 	L1CrossChainStatus int    `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`
 	L2CrossChainStatus int    `json:"l2_cross_chain_status" gorm:"l2_cross_chain_status"`
 	MessageProof       []byte `json:"message_proof" gorm:"message_proof"` // only not null in the last message of each block.
@@ -249,23 +247,23 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, messages 
 	return affectRow, nil
 }
 
-// UpdateGatewayStatus updates the gateway status for the message matches with the provided ids.
-func (m *MessageMatch) UpdateGatewayStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.GatewayStatusType) error {
+// UpdateBlockStatus updates the block status for the given layer and block number range.
+func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64) error {
 	db := m.db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
-	db = db.Where("id = (?)", id)
 
-	var err error
-	switch layerType {
+	switch layer {
 	case types.Layer1:
-		err = db.Update("l1_chain_status", status).Error
+		db = db.Where("l1_block_number >= ? AND l1_block_number <= ?", startBlockNumber, endBlockNumber)
+		db = db.Update("l1_block_status", types.BlockStatusTypeValid)
 	case types.Layer2:
-		err = db.Update("l2_chain_status", status).Error
+		db = db.Where("l2_block_number >= ? AND l2_block_number <= ?", startBlockNumber, endBlockNumber)
+		db = db.Update("l2_block_status", types.BlockStatusTypeValid)
 	}
 
-	if err != nil {
-		log.Warn("MessageMatch.UpdateGatewayStatus failed", "error", err)
-		return fmt.Errorf("MessageMatch.UpdateGatewayStatus failed err:%w", err)
+	if db.Error != nil {
+		log.Warn("MessageMatch.UpdateBlockStatus failed", "start block number", startBlockNumber, "end block number", endBlockNumber, "error", db.Error)
+		return fmt.Errorf("MessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
 	}
 	return nil
 }

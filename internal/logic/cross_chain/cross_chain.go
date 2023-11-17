@@ -2,6 +2,7 @@ package crosschain
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -100,138 +101,172 @@ func (c *Logic) CheckETHBalance(ctx context.Context, layerType types.LayerType) 
 	}
 
 	if layerType == types.Layer1 {
-		startHeight := latestValidMessage.L1BlockNumber
-		endHeight := latestMsg.L1BlockNumber
-		if startHeight >= endHeight {
-			log.Info("no ready block to check", "layer types", layerType, "start height", startHeight, "end height", endHeight)
-			return
-		}
+		startBlock := latestValidMessage.L1BlockNumber + 1 // no need to add startBlock
+		endBlock := latestMsg.L1BlockNumber
 		startBalance := new(big.Int).SetInt64(latestValidMessage.L1MessengerETHBalance.IntPart())
-		endBalance, err := c.client.BalanceAt(ctx, c.l1MessengerAddr, new(big.Int).SetUint64(endHeight))
+		endBalance, err := c.client.BalanceAt(ctx, c.l1MessengerAddr, new(big.Int).SetUint64(endBlock))
 		if err != nil {
-			log.Error("get messenger balance failed", "layer types", layerType, "addr", c.l1MessengerAddr, "err", err)
+			// Would occur often when starting up.
+			log.Error("get messenger balance failed", "layer types", types.Layer1, "addr", c.l1MessengerAddr, "err", err)
 			return
 		}
-		messages, err := c.messageOrm.GetMessageMatchesByBlockNumberRange(ctx, layerType, startHeight+1, endHeight)
-		if err != nil {
-			log.Error("GetMessageMatchesByBlockNumberRange failed", "layer type", layerType, "start height", startHeight+1, "end height", endHeight, "error", err)
-			return
-		}
-
-		balanceDiff := big.NewInt(0)
-		for _, message := range messages {
-			if types.EventType(message.L1EventType) == types.L1SentMessage {
-				if len(message.L1Amounts) != 1 {
-					log.Error("invalid L1Amounts length", "expected", 1, "got", len(message.L1Amounts))
+		if startBlock <= endBlock {
+			ok, err := c.checkLayer1Balance(ctx, startBlock, endBlock, startBalance, endBalance)
+			if err != nil {
+				log.Error("checkLayer1Balance failed", "startBlock", startBlock, "endBlock", endBlock, "err", err)
+				return
+			}
+			if ok {
+				messageMatch := orm.MessageMatch{
+					MessageHash:           latestMsg.MessageHash,
+					L1ETHBalanceStatus:    int(types.ETHBalanceStatusTypeValid),
+					L1MessengerETHBalance: decimal.NewFromBigInt(endBalance, 0),
+				}
+				if err := c.messageOrm.UpdateETHBalance(ctx, types.Layer1, messageMatch); err != nil {
+					log.Error("insert eth balance result failed", "err", err)
 					return
 				}
-				l1Amount, ok := new(big.Int).SetString(message.L1Amounts, 10)
-				if !ok {
-					log.Error("invalid L1Amount", "value", message.L1Amounts[0])
-					return
-				}
-				balanceDiff = new(big.Int).Add(balanceDiff, l1Amount)
 			} else {
-				if len(message.L2Amounts) != 1 {
-					log.Error("invalid L2Amounts length", "expected", 1, "got", len(message.L2Amounts))
-					return
-				}
-				l2Amount, ok := new(big.Int).SetString(message.L2Amounts, 10)
-				if !ok {
-					log.Error("invalid L2Amount", "value", message.L2Amounts[0])
-					return
-				}
-				balanceDiff = new(big.Int).Sub(balanceDiff, l2Amount)
-			}
-		}
+				if startBlock+50 <= endBlock {
+					for blockHeight := startBlock; blockHeight <= endBlock; blockHeight++ {
+						endBalance, err := c.client.BalanceAt(ctx, c.l1MessengerAddr, new(big.Int).SetUint64(blockHeight))
+						if err != nil {
+							log.Error("get messenger balance failed", "layer types", types.Layer1, "addr", c.l1MessengerAddr, "err", err)
+							return
+						}
 
-		expectedEndBalance := new(big.Int).Add(startBalance, balanceDiff)
-		var messageMatch orm.MessageMatch
-		if expectedEndBalance.Cmp(endBalance) == 0 {
-			messageMatch = orm.MessageMatch{
-				MessageHash:           latestMsg.MessageHash,
-				L1ETHBalanceStatus:    int(types.ETHBalanceStatusTypeValid),
-				L1MessengerETHBalance: decimal.NewFromBigInt(endBalance, 0),
-			}
-		} else {
-			// @todo: send slack.
-			log.Error("Expected end balance does not match actual end balance", "start height", startHeight, "end height", endHeight,
-				"start balance", startBalance, "end balance", endBalance, "balance diff", balanceDiff)
-			messageMatch = orm.MessageMatch{
-				MessageHash:           latestMsg.MessageHash,
-				L1ETHBalanceStatus:    int(types.ETHBalanceStatusTypeInvalid),
-				L1MessengerETHBalance: decimal.NewFromBigInt(endBalance, 0),
-			}
-		}
-		if err := c.messageOrm.UpdateETHBalance(ctx, types.Layer1, messageMatch); err != nil {
-			log.Error("insert eth balance result failed", "err", err)
-		}
-	} else {
-		startHeight := latestValidMessage.L2BlockNumber
-		endHeight := latestMsg.L2BlockNumber
-		if startHeight >= endHeight {
-			log.Info("no ready block to check", "layer types", layerType, "start height", startHeight, "end height", endHeight)
-			return
-		}
-		startBalance := new(big.Int).SetInt64(latestValidMessage.L2MessengerETHBalance.IntPart())
-		endBalance, err := c.client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(endHeight))
-		if err != nil {
-			log.Error("get messenger balance failed", "layer types", layerType, "addr", c.l2MessengerAddr, "err", err)
-			return
-		}
-		messages, err := c.messageOrm.GetMessageMatchesByBlockNumberRange(ctx, layerType, startHeight+1, endHeight)
-		if err != nil {
-			log.Error("GetMessageMatchesByBlockNumberRange failed", "layer type", layerType, "start height", startHeight+1, "end height", endHeight, "error", err)
-			return
-		}
+						ok, err := c.checkLayer1Balance(ctx, blockHeight, blockHeight, startBalance, endBalance)
+						if err != nil {
+							log.Error("checkLayer1Balance failed", "startBlock", startBlock, "endBlock", blockHeight, "err", err)
+							return
+						}
 
-		balanceDiff := big.NewInt(0)
-		for _, message := range messages {
-			if types.EventType(message.L2EventType) == types.L2SentMessage {
-				if len(message.L2Amounts) != 1 {
-					log.Error("invalid L2Amounts length", "expected", 1, "got", len(message.L2Amounts))
-					return
-				}
-				l2Amount, ok := new(big.Int).SetString(message.L2Amounts, 10)
-				if !ok {
-					log.Error("invalid L1Amount", "value", message.L2Amounts[0])
-					return
-				}
-				balanceDiff = new(big.Int).Add(balanceDiff, l2Amount)
-			} else {
-				if len(message.L1Amounts) != 1 {
-					log.Error("invalid L2Amounts length", "expected", 1, "got", len(message.L1Amounts))
-					return
-				}
-				l1Amount, ok := new(big.Int).SetString(message.L1Amounts, 10)
-				if !ok {
-					log.Error("invalid L2Amount", "value", message.L1Amounts[0])
-					return
-				}
-				balanceDiff = new(big.Int).Sub(balanceDiff, l1Amount)
-			}
-		}
+						if !ok {
+							log.Error("balance check failed", "block", blockHeight)
+							// @todo: send slack.
+							// At this point, we know the balance check failed for `blockHeight`.
+							// You can add additional handling logic here.
+							return
+						}
 
-		expectedEndBalance := new(big.Int).Add(startBalance, balanceDiff)
-		var messageMatch orm.MessageMatch
-		if expectedEndBalance.Cmp(endBalance) == 0 {
-			messageMatch = orm.MessageMatch{
-				MessageHash:           latestMsg.MessageHash,
-				L2ETHBalanceStatus:    int(types.ETHBalanceStatusTypeValid),
-				L2MessengerETHBalance: decimal.NewFromBigInt(endBalance, 0),
+						startBalance = endBalance
+					}
+				} else {
+					// @todo: send slack.
+					return
+				}
 			}
-		} else {
-			// @todo: send slack.
-			log.Error("Expected end balance does not match actual end balance", "start height", startHeight, "end height", endHeight,
-				"start balance", startBalance, "end balance", endBalance, "balance diff", balanceDiff)
-			messageMatch = orm.MessageMatch{
-				MessageHash:           latestMsg.MessageHash,
-				L2ETHBalanceStatus:    int(types.ETHBalanceStatusTypeInvalid),
-				L2MessengerETHBalance: decimal.NewFromBigInt(endBalance, 0),
-			}
-		}
-		if err := c.messageOrm.UpdateETHBalance(ctx, types.Layer2, messageMatch); err != nil {
-			log.Error("insert eth balance result failed", "err", err)
 		}
 	}
+
+	if layerType == types.Layer2 {
+		startBlock := latestValidMessage.L2BlockNumber + 1 // no need to add startBlock
+		endBlock := latestMsg.L2BlockNumber
+		startBalance := new(big.Int).SetInt64(latestValidMessage.L2MessengerETHBalance.IntPart())
+		endBalance, err := c.client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(endBlock))
+		if err != nil {
+			// Would occur often when starting up.
+			log.Error("get messenger balance failed", "layer types", types.Layer2, "addr", c.l2MessengerAddr, "err", err)
+			return
+		}
+		if startBlock <= endBlock {
+			ok, err := c.checkLayer2Balance(ctx, startBlock, endBlock, startBalance, endBalance)
+			if err != nil {
+				log.Error("checkLayer2Balance failed", "startBlock", startBlock, "endBlock", endBlock, "err", err)
+				return
+			}
+			if ok {
+				messageMatch := orm.MessageMatch{
+					MessageHash:           latestMsg.MessageHash,
+					L2ETHBalanceStatus:    int(types.ETHBalanceStatusTypeValid),
+					L2MessengerETHBalance: decimal.NewFromBigInt(endBalance, 0),
+				}
+				if err := c.messageOrm.UpdateETHBalance(ctx, types.Layer2, messageMatch); err != nil {
+					log.Error("insert eth balance result failed", "err", err)
+					return
+				}
+			} else {
+				if startBlock+50 <= endBlock {
+					for blockHeight := startBlock; blockHeight <= endBlock; blockHeight++ {
+						endBalance, err := c.client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(blockHeight))
+						if err != nil {
+							log.Error("get messenger balance failed", "layer types", types.Layer2, "addr", c.l2MessengerAddr, "err", err)
+							return
+						}
+
+						ok, err := c.checkLayer2Balance(ctx, blockHeight, blockHeight, startBalance, endBalance)
+						if err != nil {
+							log.Error("checkLayer2Balance failed", "startBlock", startBlock, "endBlock", blockHeight, "err", err)
+							return
+						}
+
+						if !ok {
+							log.Error("balance check failed", "block", blockHeight)
+							// @todo: send slack.
+							// At this point, we know the balance check failed for `blockHeight`.
+							// You can add additional handling logic here.
+							return
+						}
+
+						startBalance = endBalance
+					}
+				} else {
+					// @todo: send slack.
+					return
+				}
+			}
+		}
+	}
+}
+
+func (c *Logic) checkLayer1Balance(ctx context.Context, startBlock, endBlock uint64, startBalance, endBalance *big.Int) (bool, error) {
+	messages, err := c.messageOrm.GetMessageMatchesByBlockNumberRange(ctx, types.Layer1, startBlock, endBlock)
+	if err != nil {
+		return false, fmt.Errorf("GetMessageMatchesByBlockNumberRange failed: layer type %v, start height %v, end height %v, error %w", types.Layer1, startBlock, endBlock, err)
+	}
+
+	balanceDiff := big.NewInt(0)
+	for _, message := range messages {
+		amount, ok := new(big.Int).SetString(message.L1Amounts, 10)
+		if !ok {
+			return false, fmt.Errorf("invalid L1Amount value: %v", message.L1Amounts[0])
+		}
+
+		if types.EventType(message.L1EventType) == types.L1SentMessage {
+			balanceDiff = new(big.Int).Add(balanceDiff, amount)
+		}
+
+		if types.EventType(message.L1EventType) == types.L1RelayedMessage {
+			balanceDiff = new(big.Int).Sub(balanceDiff, amount)
+		}
+	}
+
+	expectedEndBalance := new(big.Int).Add(startBalance, balanceDiff)
+	return expectedEndBalance.Cmp(endBalance) == 0, nil
+}
+
+func (c *Logic) checkLayer2Balance(ctx context.Context, startBlock, endBlock uint64, startBalance, endBalance *big.Int) (bool, error) {
+	messages, err := c.messageOrm.GetMessageMatchesByBlockNumberRange(ctx, types.Layer2, startBlock, endBlock)
+	if err != nil {
+		return false, fmt.Errorf("GetMessageMatchesByBlockNumberRange failed: layer type %v, start height %v, end height %v, error %w", types.Layer2, startBlock, endBlock, err)
+	}
+
+	balanceDiff := big.NewInt(0)
+	for _, message := range messages {
+		amount, ok := new(big.Int).SetString(message.L2Amounts, 10)
+		if !ok {
+			return false, fmt.Errorf("invalid L2Amount value: %v", message.L2Amounts[0])
+		}
+
+		if types.EventType(message.L2EventType) == types.L2SentMessage {
+			balanceDiff = new(big.Int).Add(balanceDiff, amount)
+		}
+
+		if types.EventType(message.L2EventType) == types.L2RelayedMessage {
+			balanceDiff = new(big.Int).Sub(balanceDiff, amount)
+		}
+	}
+
+	expectedEndBalance := new(big.Int).Add(startBalance, balanceDiff)
+	return expectedEndBalance.Cmp(endBalance) == 0, nil
 }

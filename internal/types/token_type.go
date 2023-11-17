@@ -4,8 +4,8 @@ package types
 type TokenType uint8
 
 const (
-	// TokenTypeDefined represents a default value for TokenType.
-	TokenTypeDefined TokenType = iota
+	// TokenTypeUnknown represents an unknown or undefined TokenType.
+	TokenTypeUnknown TokenType = iota
 	// TokenTypeETH represents the native currency of Ethereum.
 	TokenTypeETH
 	// TokenTypeERC20 represents fungible tokens complying with ERC20 standard.
