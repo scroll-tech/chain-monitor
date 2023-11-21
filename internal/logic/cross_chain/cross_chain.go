@@ -58,7 +58,7 @@ func (c *Logic) CheckCrossChainGatewayMessage(ctx context.Context, layerType typ
 			messageMatchIds = append(messageMatchIds, message.ID)
 			continue
 		}
-		slack.Notify(slack.MrkDwnCrossChainMessage(&message, checkResult))
+		slack.Notify(slack.MrkDwnGatewayCrossChainMessage(&message, checkResult))
 	}
 
 	if err := c.messageOrm.UpdateCrossChainStatus(ctx, messageMatchIds, layerType, types.CrossChainStatusTypeValid); err != nil {
@@ -150,14 +150,14 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 		startBalance = latestValidMessage.L2MessengerETHBalance.BigInt()
 	}
 
-	ok, err := c.checkBalance(layer, startBalance, endBalance, messages)
+	ok, expectedEndBalance, actualBalance, err := c.checkBalance(layer, startBalance, endBalance, messages)
 	if err != nil {
-		log.Error("checkLayer1Balance failed", "startBlock", startBlockNumber, "endBlock", endBlockNumber, "err", err)
+		log.Error("checkLayer1Balance failed", "startBlock", startBlockNumber, "endBlock", endBlockNumber, "expectedEndBalance", expectedEndBalance, "actualBalance", actualBalance, "err", err)
 		return
 	}
 
 	if !ok {
-		c.checkBlockBalanceOneByOne(ctx, layer, messages)
+		c.checkBlockBalanceOneByOne(messengerAddr, ctx, layer, messages)
 		return
 	}
 
@@ -165,7 +165,7 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 	c.computeBlockBalance(ctx, layer, messages, latestValidMessage)
 }
 
-func (c *Logic) checkBlockBalanceOneByOne(ctx context.Context, layer types.LayerType, messages []orm.MessageMatch) {
+func (c *Logic) checkBlockBalanceOneByOne(messengerAddr common.Address, ctx context.Context, layer types.LayerType, messages []orm.MessageMatch) {
 	var startBalance *big.Int
 	var startIndex int
 	for idx, message := range messages {
@@ -176,7 +176,7 @@ func (c *Logic) checkBlockBalanceOneByOne(ctx context.Context, layer types.Layer
 			blockNumber = message.L2BlockNumber
 		}
 
-		tmpBalance, err := c.client.BalanceAt(ctx, c.l1MessengerAddr, new(big.Int).SetUint64(blockNumber))
+		tmpBalance, err := c.client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
 		if err != nil {
 			continue
 		}
@@ -202,22 +202,21 @@ func (c *Logic) checkBlockBalanceOneByOne(ctx context.Context, layer types.Layer
 			continue
 		}
 
-		endBalance, err := c.client.BalanceAt(ctx, c.l1MessengerAddr, new(big.Int).SetUint64(blockNumber))
+		endBalance, err := c.client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
 		if err != nil {
 			continue
 		}
 
-		ok, err := c.checkBalance(layer, startBalance, endBalance, messages[startIndex:i+1])
+		ok, expectedEndBalance, actualBalance, err := c.checkBalance(layer, startBalance, endBalance, messages[startIndex:i+1])
 		if !ok || err != nil {
 			log.Error("balance check failed", "block", blockNumber)
-			// At this point, we know the balance check failed for `blockHeight`.
-			// You can add additional handling logic here.
-			return
+			slack.MrkDwnETHGatewayMessage(&messages[i], expectedEndBalance, actualBalance)
+			continue
 		}
 	}
 }
 
-func (c *Logic) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []orm.MessageMatch) (bool, error) {
+func (c *Logic) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []orm.MessageMatch) (bool, *big.Int, *big.Int, error) {
 	balanceDiff := big.NewInt(0)
 	for _, message := range messages {
 		var amount *big.Int
@@ -225,12 +224,12 @@ func (c *Logic) checkBalance(layer types.LayerType, startBalance, endBalance *bi
 		if layer == types.Layer1 {
 			amount, ok = new(big.Int).SetString(message.L1Amounts, 10)
 			if !ok {
-				return false, fmt.Errorf("invalid L1Amount value: %v", message.L1Amounts)
+				return false, nil, nil, fmt.Errorf("invalid L1Amount value: %v", message.L1Amounts)
 			}
 		} else {
 			amount, ok = new(big.Int).SetString(message.L2Amounts, 10)
 			if !ok {
-				return false, fmt.Errorf("invalid L2Amounts value: %v", message.L2Amounts)
+				return false, nil, nil, fmt.Errorf("invalid L2Amounts value: %v", message.L2Amounts)
 			}
 		}
 
@@ -244,7 +243,11 @@ func (c *Logic) checkBalance(layer types.LayerType, startBalance, endBalance *bi
 	}
 
 	expectedEndBalance := new(big.Int).Add(startBalance, balanceDiff)
-	return expectedEndBalance.Cmp(endBalance) == 0, nil
+	if expectedEndBalance.Cmp(endBalance) == 0 {
+		return true, expectedEndBalance, endBalance, nil
+	}
+
+	return false, expectedEndBalance, endBalance, nil
 }
 
 func (c *Logic) computeBlockBalance(ctx context.Context, layer types.LayerType, messages []orm.MessageMatch, latestValidMessage *orm.MessageMatch) {
