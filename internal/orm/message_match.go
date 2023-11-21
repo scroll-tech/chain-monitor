@@ -37,8 +37,8 @@ type MessageMatch struct {
 
 	// eth event info
 	L1MessengerETHBalance decimal.Decimal `json:"l1_messenger_eth_balance" gorm:"l1_messenger_eth_balance"`
-	L2MessengerETHBalance decimal.Decimal `json:"l2_messenger_eth_balance" gorm:"l2_messenger_eth_balance"`
 	L1ETHBalanceStatus    int             `json:"l1_eth_balance_status" gorm:"l1_eth_balance_status"`
+	L2MessengerETHBalance decimal.Decimal `json:"l2_messenger_eth_balance" gorm:"l2_messenger_eth_balance"`
 	L2ETHBalanceStatus    int             `json:"l2_eth_balance_status" gorm:"l2_eth_balance_status"`
 
 	// status
@@ -66,6 +66,36 @@ func (*MessageMatch) TableName() string {
 	return "message_match"
 }
 
+// GetUncheckedLatestGatewayMessageMatch get the latest uncheck gateway message match record
+func (m *MessageMatch) GetUncheckedLatestGatewayMessageMatch(ctx context.Context, limit int) ([]MessageMatch, error) {
+	var messages []MessageMatch
+	db := m.db.WithContext(ctx)
+	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
+	db = db.Where("token_type in (?)", []types.TokenType{types.TokenTypeERC20, types.TokenTypeERC721, types.TokenTypeERC1155})
+	db = db.Order("id asc")
+	db = db.Limit(limit)
+	if err := db.Find(&messages).Error; err != nil {
+		log.Warn("MessageMatch.GetUncheckedLatestGatewayMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetUncheckedLatestGatewayMessageMatch failed err:%w", err)
+	}
+	return messages, nil
+}
+
+// GetUncheckedLatestETHMessageMatch get the latest uncheck eth message match record
+func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, limit int) ([]MessageMatch, error) {
+	var messages []MessageMatch
+	db := m.db.WithContext(ctx)
+	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
+	db = db.Where("token_type = ", types.TokenTypeETH)
+	db = db.Order("id asc")
+	db = db.Limit(limit)
+	if err := db.Find(&messages).Error; err != nil {
+		log.Warn("MessageMatch.GetUncheckedLatestETHMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetUncheckedLatestETHMessageMatch failed err:%w", err)
+	}
+	return messages, nil
+}
+
 // GetLatestBlockValidMessageMatch fetches the latest valid message match record for the specified layer.
 func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
 	var message MessageMatch
@@ -83,8 +113,8 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 	return &message, nil
 }
 
-// GetLatestDoubleValidMessageMatch fetches the latest valid message match record where both layers are valid.
-func (m *MessageMatch) GetLatestDoubleValidMessageMatch(ctx context.Context) (*MessageMatch, error) {
+// GetLatestDoubleLayerValidMessageMatch fetches the latest valid message match record where both layers are valid.
+func (m *MessageMatch) GetLatestDoubleLayerValidMessageMatch(ctx context.Context) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 
@@ -93,8 +123,8 @@ func (m *MessageMatch) GetLatestDoubleValidMessageMatch(ctx context.Context) (*M
 	db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
 
 	if err := db.Last(&message).Error; err != nil {
-		log.Warn("MessageMatch.GetLatestDoubleValidMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetLatestDoubleValidMessageMatch failed err:%w", err)
+		log.Warn("MessageMatch.GetLatestDoubleLayerValidMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetLatestDoubleLayerValidMessageMatch failed err:%w", err)
 	}
 	return &message, nil
 }
@@ -116,15 +146,15 @@ func (m *MessageMatch) GetLatestValidCrossChainMessageMatch(ctx context.Context,
 	return &message, nil
 }
 
-// GetLatesValidETHBalanceMessageMatch fetches the latest valid Ethereum balance match record for the specified layer.
-func (m *MessageMatch) GetLatesValidETHBalanceMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
+// GetLatestValidETHBalanceMessageMatch fetches the latest valid Ethereum balance match record for the specified layer.
+func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	switch layer {
 	case types.Layer1:
-		db = db.Where("l1_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
+		db = db.Where("l1_eth_balance_status = ?", 1)
 	case types.Layer2:
-		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
+		db = db.Where("l2_eth_balance_status = ?", 2)
 	}
 	if err := db.Last(&message).Error; err != nil {
 		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
@@ -137,6 +167,7 @@ func (m *MessageMatch) GetLatesValidETHBalanceMessageMatch(ctx context.Context, 
 func (m *MessageMatch) GetMessageMatchesByBlockNumberRange(ctx context.Context, layer types.LayerType, startHeight, endHeight uint64) ([]MessageMatch, error) {
 	var messages []MessageMatch
 	db := m.db.WithContext(ctx)
+	db = db.Where("check_status = ?")
 	switch layer {
 	case types.Layer1:
 		db = db.Where("l1_block_number >= ?", startHeight).Where("l1_block_number <= ?", endHeight)
@@ -155,9 +186,7 @@ func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, block
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("l2_block_number = ?", blockNumber)
-	db = db.Order("id desc")
-	db = db.Limit(1)
-	if err := db.Find(&message).Error; err != nil {
+	if err := db.Last(&message).Error; err != nil {
 		log.Warn("GetMessageMatchByL2BlockNumber failed", "block number", blockNumber, "error", err)
 		return nil, fmt.Errorf("GetMessageMatchByL2BlockNumber failed, block number:%v, err:%w", blockNumber, err)
 	}

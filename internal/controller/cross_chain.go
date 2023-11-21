@@ -31,11 +31,11 @@ func (c *CrossChainController) Proposer(ctx context.Context) {
 }
 
 func (c *CrossChainController) l1Proposer(ctx context.Context) {
-	c.crossChainLogic.CheckCrossChainMessage(ctx, types.Layer1)
+	c.crossChainLogic.CheckCrossChainGatewayMessage(ctx, types.Layer1)
 	c.crossChainLogic.CheckETHBalance(ctx, types.Layer1)
 }
 
 func (c *CrossChainController) l2Proposer(ctx context.Context) {
-	c.crossChainLogic.CheckCrossChainMessage(ctx, types.Layer2)
+	c.crossChainLogic.CheckCrossChainGatewayMessage(ctx, types.Layer2)
 	c.crossChainLogic.CheckETHBalance(ctx, types.Layer2)
 }

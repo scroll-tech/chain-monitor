@@ -27,7 +27,9 @@ func init() {
 	app.Version = utils.Version
 	app.Flags = append(app.Flags, utils.CommonFlags...)
 	app.Commands = []*cli.Command{}
-	app.Before = utils.BeforeAction
+	app.Before = func(ctx *cli.Context) error {
+		return utils.LogSetup(ctx)
+	}
 }
 
 func action(ctx *cli.Context) error {

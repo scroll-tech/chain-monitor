@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"fmt"
-
 	"github.com/urfave/cli/v2"
 )
 
@@ -146,21 +144,3 @@ var (
 		Value: false,
 	}
 )
-
-// BeforeAction is an initialization function to be executed before the main action.
-// It sets up logging based on the provided context flags and, if enabled, starts the pprof server.
-func BeforeAction(ctx *cli.Context) error {
-	// Init logger.
-	err := LogSetup(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Start pprof
-	if ctx.Bool(pprofFlag.Name) {
-		address := fmt.Sprintf("%s:%d", ctx.String(pprofAddrFlag.Name), ctx.Int(pprofPortFlag.Name))
-		StartPProf(address, false)
-	}
-
-	return nil
-}

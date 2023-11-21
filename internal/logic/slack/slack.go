@@ -54,9 +54,8 @@ func Notify(msg string) {
 func (as *AlertSlack) send(msg string) {
 	doSendSlack := func(ctx context.Context) {
 		hookContent := map[string]string{
-			"channel":  as.cfg.Channel,
-			"username": as.cfg.UserName,
-			"text":     msg,
+			"types": "mrkdwn",
+			"text":  msg,
 		}
 
 		data, err := json.Marshal(hookContent)
@@ -65,7 +64,7 @@ func (as *AlertSlack) send(msg string) {
 			return
 		}
 
-		request := as.notifyCli.R().SetHeader("Content-Type", "application/x-www-form-urlencoded")
+		request := as.notifyCli.R().SetHeader("Content-Type", "application/json")
 		request = request.SetFormData(map[string]string{"payload": string(data)})
 		_, err = request.Post(as.cfg.WebhookURL)
 		if err != nil {
