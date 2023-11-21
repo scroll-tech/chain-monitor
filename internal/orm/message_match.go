@@ -152,9 +152,9 @@ func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context,
 	db := m.db.WithContext(ctx)
 	switch layer {
 	case types.Layer1:
-		db = db.Where("l1_eth_balance_status = ?", 1)
+		db = db.Where("l1_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
 	case types.Layer2:
-		db = db.Where("l2_eth_balance_status = ?", 2)
+		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
 	}
 	if err := db.Last(&message).Error; err != nil {
 		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
@@ -167,7 +167,7 @@ func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context,
 func (m *MessageMatch) GetMessageMatchesByBlockNumberRange(ctx context.Context, layer types.LayerType, startHeight, endHeight uint64) ([]MessageMatch, error) {
 	var messages []MessageMatch
 	db := m.db.WithContext(ctx)
-	db = db.Where("check_status = ?")
+	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
 	switch layer {
 	case types.Layer1:
 		db = db.Where("l1_block_number >= ?", startHeight).Where("l1_block_number <= ?", endHeight)

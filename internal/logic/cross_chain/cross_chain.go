@@ -127,7 +127,7 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 		startBlockNumber = messages[0].L2BlockNumber
 		endBlockNumber = messages[len(messages)-1].L2BlockNumber
 		latestBlockNumber = latestMsg.L2BlockNumber
-		messengerAddr = c.l1MessengerAddr
+		messengerAddr = c.l2MessengerAddr
 	}
 
 	// because balanceAt can't get the too early block balance, so only can compute the locally l1 messenger balance and
