@@ -40,7 +40,7 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	return c
 }
 
-// checkL1EventAndAmountMatchL2 checks that every L1FinalizedWithdraw/L1RelayedMessage has a corresponding L2 event.
+// checkL1EventAndAmountMatchL2 checks that every L1FinalizeWithdraw/L1RelayedMessage has a corresponding L2 event.
 func (c *CrossEventMatcher) checkL1EventAndAmountMatchL2(messageMatch orm.MessageMatch) types.MismatchType {
 	if !c.checkL1EventMatchL2(messageMatch) {
 		return types.MismatchTypeL1EventNotMatch
