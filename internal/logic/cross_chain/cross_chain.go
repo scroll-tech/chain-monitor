@@ -8,6 +8,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/scroll-tech/go-ethereum/rpc"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 
@@ -27,17 +28,19 @@ const ethBalanceGap = 50
 type Logic struct {
 	messageOrm      *orm.MessageMatch
 	checker         *checker.Checker
-	client          *ethclient.Client
+	l1Client        *rpc.Client
+	l2Client        *rpc.Client
 	l1MessengerAddr common.Address
 	l2MessengerAddr common.Address
 }
 
 // NewLogic is a constructor for Logic.
-func NewLogic(db *gorm.DB, client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address) *Logic {
+func NewLogic(db *gorm.DB, l1Client, l2Client *rpc.Client, l1MessengerAddr, l2MessengerAddr common.Address) *Logic {
 	return &Logic{
 		messageOrm:      orm.NewMessageMatch(db),
 		checker:         checker.NewChecker(db),
-		client:          client,
+		l1Client:        l1Client,
+		l2Client:        l2Client,
 		l1MessengerAddr: l1MessengerAddr,
 		l2MessengerAddr: l2MessengerAddr,
 	}
@@ -86,7 +89,7 @@ func (c *Logic) CheckETHBalance(ctx context.Context, layerType types.LayerType) 
 	var ignoredLastMessageMatch []orm.MessageMatch
 	batchSize := 1000
 	for {
-		messages, err := c.messageOrm.GetUncheckedLatestETHMessageMatch(ctx, batchSize)
+		messages, err := c.messageOrm.GetUncheckedLatestETHMessageMatch(ctx, layerType, batchSize)
 		if err != nil {
 			log.Error("CheckETHBalance.GetUncheckedLatestETHMessageMatch failed", "error", err)
 			return
@@ -118,16 +121,19 @@ func (c *Logic) CheckETHBalance(ctx context.Context, layerType types.LayerType) 
 func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, latestValidMessage *orm.MessageMatch, messages []orm.MessageMatch) {
 	var startBlockNumber, endBlockNumber, latestBlockNumber uint64
 	var messengerAddr common.Address
+	var client *rpc.Client
 	if layer == types.Layer1 {
 		startBlockNumber = messages[0].L1BlockNumber
 		endBlockNumber = messages[len(messages)-1].L1BlockNumber
 		latestBlockNumber = latestMsg.L1BlockNumber
 		messengerAddr = c.l1MessengerAddr
+		client = c.l1Client
 	} else {
 		startBlockNumber = messages[0].L2BlockNumber
 		endBlockNumber = messages[len(messages)-1].L2BlockNumber
 		latestBlockNumber = latestMsg.L2BlockNumber
 		messengerAddr = c.l2MessengerAddr
+		client = c.l2Client
 	}
 
 	// because balanceAt can't get the too early block balance, so only can compute the locally l1 messenger balance and
@@ -137,7 +143,7 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 		return
 	}
 
-	endBalance, err := c.client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(endBlockNumber))
+	endBalance, err := ethclient.NewClient(client).BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(endBlockNumber))
 	if err != nil {
 		log.Error("get messenger balance failed", "layer types", layer, "addr", c.l1MessengerAddr, "err", err)
 		return
@@ -157,7 +163,7 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 	}
 
 	if !ok {
-		c.checkBlockBalanceOneByOne(messengerAddr, ctx, layer, messages)
+		c.checkBlockBalanceOneByOne(ethclient.NewClient(client), messengerAddr, ctx, layer, messages)
 		return
 	}
 
@@ -165,7 +171,7 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 	c.computeBlockBalance(ctx, layer, messages, latestValidMessage)
 }
 
-func (c *Logic) checkBlockBalanceOneByOne(messengerAddr common.Address, ctx context.Context, layer types.LayerType, messages []orm.MessageMatch) {
+func (c *Logic) checkBlockBalanceOneByOne(client *ethclient.Client, messengerAddr common.Address, ctx context.Context, layer types.LayerType, messages []orm.MessageMatch) {
 	var startBalance *big.Int
 	var startIndex int
 	for idx, message := range messages {
@@ -176,7 +182,7 @@ func (c *Logic) checkBlockBalanceOneByOne(messengerAddr common.Address, ctx cont
 			blockNumber = message.L2BlockNumber
 		}
 
-		tmpBalance, err := c.client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
+		tmpBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
 		if err != nil {
 			continue
 		}
@@ -202,7 +208,7 @@ func (c *Logic) checkBlockBalanceOneByOne(messengerAddr common.Address, ctx cont
 			continue
 		}
 
-		endBalance, err := c.client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
+		endBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
 		if err != nil {
 			continue
 		}

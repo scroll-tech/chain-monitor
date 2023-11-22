@@ -93,9 +93,13 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 		proofs := withdrawTrie.AppendMessages(eventHashes)
 		lastWithdrawRoot := withdrawTrie.MessageRoot()
 		if lastWithdrawRoot != withdrawRoots[blockNum] {
-			notifyStr := fmt.Sprintf("withdraw root mismatch in %v, got: %v, expected %v", blockNum, lastWithdrawRoot, withdrawRoots[blockNum])
-			slack.Notify(notifyStr)
-			return fmt.Errorf(notifyStr)
+			info := slack.WithdrawRootInfo{
+				BlockNumber:          blockNum,
+				LastWithdrawRoot:     lastWithdrawRoot,
+				ExpectedWithdrawRoot: withdrawRoots[blockNum],
+			}
+			slack.Notify(slack.MrkDwnWithdrawRootMessage(info))
+			return fmt.Errorf("withdraw root mismatch in %v, got: %v, expected %v", blockNum, lastWithdrawRoot, withdrawRoots[blockNum])
 		}
 		// current block has SentMessage events.
 		numEvents := len(eventHashes)

@@ -33,7 +33,7 @@ func TestAlertSlack(t *testing.T) {
 			L2TokenIds:    "100",
 			L2Amounts:     "1000",
 		}
-		msg := MrkDwnCrossChainMessage(messageMatch, 1)
+		msg := MrkDwnGatewayCrossChainMessage(messageMatch, 1)
 		Notify(msg)
 	}
 	time.Sleep(time.Second * 2)

@@ -20,15 +20,19 @@ type AlertSlack struct {
 	cfg       *config.SlackWebhookConfig
 	notifyCli *resty.Client
 
-	senderQueue chan string
-	sendWorker  *fanout.Fanout
+	ctx             context.Context
+	senderQueue     chan string
+	sendWorker      *fanout.Fanout
+	stopTimeoutChan chan struct{}
 }
 
-// InitAlertSlack init the alert slack
-func InitAlertSlack(cfg *config.SlackWebhookConfig) {
+// NewAlertSlack init the alert slack
+func NewAlertSlack(ctx context.Context, cfg *config.SlackWebhookConfig) *AlertSlack {
 	as := &AlertSlack{
-		cfg:         cfg,
-		senderQueue: make(chan string, cfg.WorkerBufferSize),
+		ctx:             ctx,
+		cfg:             cfg,
+		senderQueue:     make(chan string, cfg.WorkerBufferSize),
+		stopTimeoutChan: make(chan struct{}),
 	}
 
 	cli := resty.New()
@@ -43,7 +47,16 @@ func InitAlertSlack(cfg *config.SlackWebhookConfig) {
 
 	alertSlack = as
 
+	return as
+}
+
+// Start the slack alert
+func (as *AlertSlack) Start() {
 	go as.run()
+}
+
+func (as *AlertSlack) Stop() {
+	as.stopTimeoutChan <- struct{}{}
 }
 
 // Notify a alert message to AlertSlack
@@ -85,7 +98,18 @@ func (as *AlertSlack) run() {
 		}
 	}()
 
-	for senderMessage := range as.senderQueue {
-		as.send(senderMessage)
+	for {
+		select {
+		case senderMessage := <-as.senderQueue:
+			as.send(senderMessage)
+		case <-as.ctx.Done():
+			if as.ctx.Err() != nil {
+				log.Error("alert slack canceled with error", "error", as.ctx.Err())
+			}
+			return
+		case <-as.stopTimeoutChan:
+			log.Info("alert slack the run loop exit")
+			return
+		}
 	}
 }

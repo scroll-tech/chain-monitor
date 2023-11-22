@@ -71,7 +71,6 @@ func (m *MessageMatch) GetUncheckedLatestGatewayMessageMatch(ctx context.Context
 	var messages []MessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
-	db = db.Where("token_type in (?)", []types.TokenType{types.TokenTypeERC20, types.TokenTypeERC721, types.TokenTypeERC1155})
 	db = db.Order("id asc")
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
@@ -82,10 +81,15 @@ func (m *MessageMatch) GetUncheckedLatestGatewayMessageMatch(ctx context.Context
 }
 
 // GetUncheckedLatestETHMessageMatch get the latest uncheck eth message match record
-func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, limit int) ([]MessageMatch, error) {
+func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, layer types.LayerType, limit int) ([]MessageMatch, error) {
 	var messages []MessageMatch
 	db := m.db.WithContext(ctx)
-	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
+	switch layer {
+	case types.Layer1:
+		db = db.Where("l1_eth_balance_status = ?", types.ETHBalanceStatusTypeInvalid)
+	case types.Layer2:
+		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeInvalid)
+	}
 	db = db.Where("token_type = ", types.TokenTypeETH)
 	db = db.Order("id asc")
 	db = db.Limit(limit)

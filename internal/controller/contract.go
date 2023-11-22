@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -31,6 +32,7 @@ type ContractController struct {
 	checker           *checker.Checker
 	messageMatchLogic *messagematch.Logic
 
+	stopTimeoutChan     chan struct{}
 	l1EventCategoryList []types.EventCategory
 	l2EventCategoryList []types.EventCategory
 }
@@ -45,6 +47,7 @@ func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *
 		contractsLogic:    contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
 		checker:           checker.NewChecker(db),
 		messageMatchLogic: messagematch.NewLogic(db),
+		stopTimeoutChan:   make(chan struct{}),
 	}
 
 	if err := c.contractsLogic.Register(c.conf); err != nil {
@@ -65,13 +68,47 @@ func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *
 }
 
 // Watch is an exported function that starts watching the Layer 1 and Layer 2 events, which include gateways events, transfer events, and messenger events.
-func (c *ContractController) Watch(ctx context.Context) error {
-	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
-	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
-	return nil
+func (c *ContractController) Watch(ctx context.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			nerr := fmt.Errorf("ContractController watch panic error: %v", err)
+			log.Warn(nerr.Error())
+		}
+	}()
+
+	log.Info("contract controller start successful")
+
+	ticker := time.NewTicker(time.Second * 2)
+	for {
+		select {
+		case <-ticker.C:
+			go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
+			go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
+		case <-ctx.Done():
+			if ctx.Err() != nil {
+				log.Error("ContractController watch context canceled with error", "error", ctx.Err())
+			}
+			return
+		case <-c.stopTimeoutChan:
+			log.Info("ContractController the run loop exit")
+			return
+		}
+	}
+}
+
+// Stop the contract controller
+func (c *ContractController) Stop() {
+	c.stopTimeoutChan <- struct{}{}
 }
 
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber) {
+	defer func() {
+		if err := recover(); err != nil {
+			nerr := fmt.Errorf("watcherStart panic error: %v", err)
+			log.Warn(nerr.Error())
+		}
+	}()
+
 	// 1. get the max l1_number and l2_number
 	blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
 	if err != nil {

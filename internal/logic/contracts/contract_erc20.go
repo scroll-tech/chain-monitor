@@ -144,9 +144,11 @@ func (l *Contracts) getL1Erc20GatewayTransfer(ctx context.Context, startBlockNum
 
 		if _, ok := tokenAddressMap[event.From]; ok {
 			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
-				// @todo: add other fields.
 				Amount:       new(big.Int).Neg(event.Value),
 				TokenAddress: vLog.Address,
+				TxHash:       vLog.TxHash,
+				Number:       vLog.BlockNumber,
+				Layer:        types.Layer1,
 			})
 		}
 
@@ -154,6 +156,9 @@ func (l *Contracts) getL1Erc20GatewayTransfer(ctx context.Context, startBlockNum
 			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
 				Amount:       event.Value,
 				TokenAddress: vLog.Address,
+				TxHash:       vLog.TxHash,
+				Number:       vLog.BlockNumber,
+				Layer:        types.Layer1,
 			})
 		}
 	}
@@ -196,9 +201,11 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 
 		if _, ok := tokenAddressMap[event.From]; ok {
 			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
-				// @todo: add other fields.
 				Amount:       new(big.Int).Neg(event.Value),
 				TokenAddress: vLog.Address,
+				TxHash:       vLog.TxHash,
+				Number:       vLog.BlockNumber,
+				Layer:        types.Layer2,
 			})
 		}
 
@@ -206,6 +213,9 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
 				Amount:       event.Value,
 				TokenAddress: vLog.Address,
+				TxHash:       vLog.TxHash,
+				Number:       vLog.BlockNumber,
+				Layer:        types.Layer2,
 			})
 		}
 	}
