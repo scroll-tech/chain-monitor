@@ -145,7 +145,7 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 
 	endBalance, err := ethclient.NewClient(client).BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(endBlockNumber))
 	if err != nil {
-		log.Error("get messenger balance failed", "layer types", layer, "addr", c.l1MessengerAddr, "err", err)
+		log.Error("get messenger balance failed", "layer types", layer, "addr", messengerAddr, "err", err)
 		return
 	}
 
