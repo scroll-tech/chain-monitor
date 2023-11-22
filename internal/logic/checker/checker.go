@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
+	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 	"github.com/scroll-tech/chain-monitor/internal/utils/msgproof"
@@ -35,18 +36,12 @@ func NewChecker(db *gorm.DB) *Checker {
 
 // CrossChainCheck checks the cross chain events.
 func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, messageMatch orm.MessageMatch) types.MismatchType {
-	if layer == types.Layer1 {
-		if !c.crossChainMatcher.checkL1EventMatchL2(messageMatch) {
-			return types.MismatchTypeL1EventNotMatch
-		}
+	switch layer {
+	case types.Layer1:
+		return c.crossChainMatcher.checkL1EventAndAmountMatchL2(messageMatch)
+	case types.Layer2:
+		return c.crossChainMatcher.checkL2EventAndAmountMatchL1(messageMatch)
 	}
-
-	if layer == types.Layer2 {
-		if !c.crossChainMatcher.checkL2EventMatchL1(messageMatch) {
-			return types.MismatchTypeL2EventNotMatch
-		}
-	}
-
 	return types.MismatchTypeValid
 }
 
@@ -98,7 +93,12 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 		proofs := withdrawTrie.AppendMessages(eventHashes)
 		lastWithdrawRoot := withdrawTrie.MessageRoot()
 		if lastWithdrawRoot != withdrawRoots[blockNum] {
-			// @todo: send slack message.
+			info := slack.WithdrawRootInfo{
+				BlockNumber:          blockNum,
+				LastWithdrawRoot:     lastWithdrawRoot,
+				ExpectedWithdrawRoot: withdrawRoots[blockNum],
+			}
+			slack.Notify(slack.MrkDwnWithdrawRootMessage(info))
 			return fmt.Errorf("withdraw root mismatch in %v, got: %v, expected %v", blockNum, lastWithdrawRoot, withdrawRoots[blockNum])
 		}
 		// current block has SentMessage events.

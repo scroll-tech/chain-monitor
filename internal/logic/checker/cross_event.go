@@ -40,7 +40,19 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	return c
 }
 
-// checkL1EventMatchL2 checks that every L1FializedWithdraw/L1RelayedMessage has a corresponding L2 event.
+// checkL1EventAndAmountMatchL2 checks that every L1FinalizeWithdraw/L1RelayedMessage has a corresponding L2 event.
+func (c *CrossEventMatcher) checkL1EventAndAmountMatchL2(messageMatch orm.MessageMatch) types.MismatchType {
+	if !c.checkL1EventMatchL2(messageMatch) {
+		return types.MismatchTypeL1EventNotMatch
+	}
+
+	if !c.crossChainAmountMatch(messageMatch) {
+		return types.MismatchTypeL1MountNotMatch
+	}
+
+	return types.MismatchTypeValid
+}
+
 func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) bool {
 	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
 	if !isPresent {
@@ -64,11 +76,23 @@ func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) b
 	if messageMatch.L2BlockNumber == 0 {
 		return false
 	}
-
-	return c.crossChainAmountMatch(messageMatch)
+	return true
 }
 
-// checkL2EventMatchL1 checks that every L2FializedDeposit/L2RelayedMessage has a corresponding L1 event.
+// checkL2EventAndAmountMatchL1  checks that every L2FinalizeDeposit/L2RelayedMessage has a corresponding L1 event.
+func (c *CrossEventMatcher) checkL2EventAndAmountMatchL1(messageMatch orm.MessageMatch) types.MismatchType {
+	if !c.checkL2EventMatchL1(messageMatch) {
+		return types.MismatchTypeL2EventNotMatch
+	}
+
+	if !c.crossChainAmountMatch(messageMatch) {
+		return types.MismatchTypeL2MountNotMatch
+	}
+
+	return types.MismatchTypeValid
+}
+
+// checkL2EventMatchL1 checks that every L2FinalizeDeposit/L2RelayedMessage has a corresponding L1 event.
 func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) bool {
 	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L2EventType)]
 	if !isPresent {

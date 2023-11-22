@@ -188,6 +188,9 @@ func (l *Contracts) getL1Erc721GatewayTransfer(ctx context.Context, startBlockNu
 				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
 				TokenAddress: vLog.Address,
+				TxHash:       vLog.TxHash,
+				Number:       vLog.BlockNumber,
+				Layer:        types.Layer1,
 			})
 		}
 
@@ -196,6 +199,9 @@ func (l *Contracts) getL1Erc721GatewayTransfer(ctx context.Context, startBlockNu
 				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{big.NewInt(1)},
 				TokenAddress: vLog.Address,
+				TxHash:       vLog.TxHash,
+				Number:       vLog.BlockNumber,
+				Layer:        types.Layer1,
 			})
 		}
 	}
@@ -235,6 +241,9 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
 				TokenAddress: vLog.Address,
+				TxHash:       vLog.TxHash,
+				Number:       vLog.BlockNumber,
+				Layer:        types.Layer2,
 			})
 		}
 
@@ -243,6 +252,9 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 				TokenIds:     []*big.Int{event.TokenID},
 				Amounts:      []*big.Int{big.NewInt(1)},
 				TokenAddress: vLog.Address,
+				TxHash:       vLog.TxHash,
+				Number:       vLog.BlockNumber,
+				Layer:        types.Layer2,
 			})
 		}
 	}

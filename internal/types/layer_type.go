@@ -1,5 +1,7 @@
 package types
 
+//go:generate stringer -type LayerType
+
 // LayerType represents the type of the chain, which can be Layer 1 or Layer 2.
 type LayerType int
 
