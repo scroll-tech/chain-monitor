@@ -207,6 +207,7 @@ func (l *Contracts) getL1Erc1155GatewayTransferSingle(ctx context.Context, start
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
 				Number:       vLog.BlockNumber,
+				Layer:        types.Layer1,
 			})
 		}
 
@@ -217,6 +218,7 @@ func (l *Contracts) getL1Erc1155GatewayTransferSingle(ctx context.Context, start
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
 				Number:       vLog.BlockNumber,
+				Layer:        types.Layer1,
 			})
 		}
 	}
@@ -263,6 +265,7 @@ func (l *Contracts) getL1Erc1155GatewayTransferBatch(ctx context.Context, startB
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
 				Number:       vLog.BlockNumber,
+				Layer:        types.Layer1,
 			})
 		}
 
@@ -273,6 +276,7 @@ func (l *Contracts) getL1Erc1155GatewayTransferBatch(ctx context.Context, startB
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
 				Number:       vLog.BlockNumber,
+				Layer:        types.Layer1,
 			})
 		}
 	}
@@ -331,7 +335,7 @@ func (l *Contracts) getL2Erc1155GatewayTransferSingle(ctx context.Context, start
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
 				Number:       vLog.BlockNumber,
-				Layer:        types.Layer1,
+				Layer:        types.Layer2,
 			})
 		}
 
@@ -342,7 +346,7 @@ func (l *Contracts) getL2Erc1155GatewayTransferSingle(ctx context.Context, start
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
 				Number:       vLog.BlockNumber,
-				Layer:        types.Layer1,
+				Layer:        types.Layer2,
 			})
 		}
 	}

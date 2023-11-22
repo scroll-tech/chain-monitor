@@ -8,14 +8,13 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[CheckStatusUnknown-0]
-	_ = x[CheckStatusUnchecked-1]
-	_ = x[CheckStatusChecked-2]
+	_ = x[CheckStatusUnchecked-0]
+	_ = x[CheckStatusChecked-1]
 }
 
-const _CheckStatus_name = "CheckStatusUnknownCheckStatusUncheckedCheckStatusChecked"
+const _CheckStatus_name = "CheckStatusUncheckedCheckStatusChecked"
 
-var _CheckStatus_index = [...]uint8{0, 18, 38, 56}
+var _CheckStatus_index = [...]uint8{0, 20, 38}
 
 func (i CheckStatus) String() string {
 	if i < 0 || i >= CheckStatus(len(_CheckStatus_index)-1) {

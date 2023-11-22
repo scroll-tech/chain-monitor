@@ -8,14 +8,13 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[ETHBalanceStatusTypeUnknown-0]
-	_ = x[ETHBalanceStatusTypeInvalid-1]
-	_ = x[ETHBalanceStatusTypeValid-2]
+	_ = x[ETHBalanceStatusTypeInvalid-0]
+	_ = x[ETHBalanceStatusTypeValid-1]
 }
 
-const _ETHBalanceStatus_name = "ETHBalanceStatusTypeUnknownETHBalanceStatusTypeInvalidETHBalanceStatusTypeValid"
+const _ETHBalanceStatus_name = "ETHBalanceStatusTypeInvalidETHBalanceStatusTypeValid"
 
-var _ETHBalanceStatus_index = [...]uint8{0, 27, 54, 79}
+var _ETHBalanceStatus_index = [...]uint8{0, 27, 52}
 
 func (i ETHBalanceStatus) String() string {
 	if i < 0 || i >= ETHBalanceStatus(len(_ETHBalanceStatus_index)-1) {

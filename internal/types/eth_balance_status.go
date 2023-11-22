@@ -6,10 +6,8 @@ package types
 type ETHBalanceStatus int
 
 const (
-	// ETHBalanceStatusTypeUnknown represents an unknown or undefined balance status.
-	ETHBalanceStatusTypeUnknown ETHBalanceStatus = iota
 	// ETHBalanceStatusTypeInvalid represents an invalid balance.
-	ETHBalanceStatusTypeInvalid
+	ETHBalanceStatusTypeInvalid ETHBalanceStatus = iota
 	// ETHBalanceStatusTypeValid represents a valid balance.
 	ETHBalanceStatusTypeValid
 )

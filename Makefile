@@ -11,12 +11,15 @@ SCROLL_PATH=-1
 format:
 	go mod tidy
 	goimports -w .
+	gofumpt -l -w .
 
 lint:
 	GOBIN=$(PWD)/build/bin go run ./build/lint.go
 
+abi:
+	bash ./build_abi.sh $(CPATH)
+
 chain-monitor:
-	./build_abi.sh
 	go build -o build/bin/chain-monitor ./cmd/main.go
 
 docker:

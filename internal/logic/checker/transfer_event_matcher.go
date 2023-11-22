@@ -46,8 +46,7 @@ type matcherValue struct {
 }
 
 // TransferEventMatcher checks the existence of an event and consistency of the transferred amount.
-type TransferEventMatcher struct {
-}
+type TransferEventMatcher struct{}
 
 // NewTransferEventMatcher creates a new instance of TransferEventMatcher.
 func NewTransferEventMatcher() *TransferEventMatcher {

@@ -15,9 +15,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
-var (
-	app *cli.App
-)
+var app *cli.App
 
 func init() {
 	// Set up event-watcher app info.
