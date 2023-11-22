@@ -61,7 +61,7 @@ func (c *Logic) CheckCrossChainGatewayMessage(ctx context.Context, layerType typ
 			messageMatchIds = append(messageMatchIds, message.ID)
 			continue
 		}
-		slack.Notify(slack.MrkDwnGatewayCrossChainMessage(&message, checkResult))
+		slack.Notify(slack.MrkDwnGatewayCrossChainMessage(message, checkResult))
 	}
 
 	if err := c.messageOrm.UpdateCrossChainStatus(ctx, messageMatchIds, layerType, types.CrossChainStatusTypeValid); err != nil {
@@ -163,7 +163,7 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 	}
 
 	if !ok {
-		c.checkBlockBalanceOneByOne(ethclient.NewClient(client), messengerAddr, ctx, layer, messages)
+		c.checkBlockBalanceOneByOne(ctx, ethclient.NewClient(client), messengerAddr, layer, messages)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (c *Logic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, 
 	c.computeBlockBalance(ctx, layer, messages, latestValidMessage)
 }
 
-func (c *Logic) checkBlockBalanceOneByOne(client *ethclient.Client, messengerAddr common.Address, ctx context.Context, layer types.LayerType, messages []orm.MessageMatch) {
+func (c *Logic) checkBlockBalanceOneByOne(ctx context.Context, client *ethclient.Client, messengerAddr common.Address, layer types.LayerType, messages []orm.MessageMatch) {
 	var startBalance *big.Int
 	var startIndex int
 	for idx, message := range messages {

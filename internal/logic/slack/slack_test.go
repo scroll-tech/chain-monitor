@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -16,7 +17,7 @@ func TestAlertSlack(t *testing.T) {
 		WorkerCount:      5,
 		WorkerBufferSize: 100,
 	}
-	InitAlertSlack(&conf)
+	NewAlertSlack(context.Background(), &conf)
 	for i := 0; i <= 2; i++ {
 		messageMatch := &orm.MessageMatch{
 			ID:            100000,

@@ -3,7 +3,6 @@ package checker
 import (
 	"context"
 	"fmt"
-	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"math"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
+	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 	"github.com/scroll-tech/chain-monitor/internal/utils/msgproof"

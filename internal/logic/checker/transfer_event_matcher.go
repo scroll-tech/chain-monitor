@@ -11,6 +11,14 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
+const (
+	transferEventDontHaveGatewayEvent        = "the gateway event associated with the transfer event does not exist"
+	transferEventBalanceMismatchGatewayEvent = "the transfer event's balance don't match the balance of gateway event"
+
+	gatewayEventDontHaveTransferEvent        = "the transfer event associated with the gateway event does not exist"
+	gatewayEventBalanceMismatchTransferEvent = "the gateway event's balance don't match the balance of transfer event"
+)
+
 type erc20MatcherKey struct {
 	tokenAddress common.Address
 	txHash       common.Hash
@@ -101,9 +109,9 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				MessageHash:  transferMatcherValue.messageHash,
 			}
 			if !exists {
-				info.Error = "The gateway event associated with the transfer event does not exist"
+				info.Error = transferEventDontHaveGatewayEvent
 			} else {
-				info.Error = "The transfer event's balance don't match the balance of gateway event"
+				info.Error = transferEventBalanceMismatchGatewayEvent
 				info.TransferBalance = transferMatcherValue.balance
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
@@ -126,9 +134,9 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				MessageHash:  gatewayMatcherValue.messageHash,
 			}
 			if !exists {
-				info.Error = "The transfer event associated with the gateway event does not exist"
+				info.Error = gatewayEventDontHaveTransferEvent
 			} else {
-				info.Error = "The gateway event's balance don't match the balance of transfer event"
+				info.Error = gatewayEventBalanceMismatchTransferEvent
 				info.TransferBalance = transferMatcherValue.balance
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
@@ -213,9 +221,9 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 				MessageHash:  transferMatcherValue.messageHash,
 			}
 			if !exists {
-				info.Error = "The gateway event associated with the transfer event does not exist"
+				info.Error = transferEventDontHaveGatewayEvent
 			} else {
-				info.Error = "The transfer event's balance don't match the balance of gateway event"
+				info.Error = transferEventBalanceMismatchGatewayEvent
 				info.TransferBalance = transferMatcherValue.balance
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
@@ -238,9 +246,9 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 				MessageHash:  gatewayMatcherValue.messageHash,
 			}
 			if !exists {
-				info.Error = "The transfer event associated with the gateway event does not exist"
+				info.Error = gatewayEventDontHaveTransferEvent
 			} else {
-				info.Error = "The gateway event's balance don't match the balance of transfer event"
+				info.Error = gatewayEventBalanceMismatchTransferEvent
 				info.TransferBalance = transferMatcherValue.balance
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
@@ -324,9 +332,9 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				MessageHash:  transferMatcherValue.messageHash,
 			}
 			if !exists {
-				info.Error = "The gateway event associated with the transfer event does not exist"
+				info.Error = transferEventDontHaveGatewayEvent
 			} else {
-				info.Error = "The transfer event's balance don't match the balance of gateway event"
+				info.Error = transferEventBalanceMismatchGatewayEvent
 				info.TransferBalance = transferMatcherValue.balance
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
@@ -349,9 +357,9 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				MessageHash:  gatewayMatcherValue.messageHash,
 			}
 			if !exists {
-				info.Error = "The transfer event associated with the gateway event does not exist"
+				info.Error = gatewayEventDontHaveTransferEvent
 			} else {
-				info.Error = "The gateway event's balance don't match the balance of transfer event"
+				info.Error = gatewayEventBalanceMismatchTransferEvent
 				info.TransferBalance = transferMatcherValue.balance
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}

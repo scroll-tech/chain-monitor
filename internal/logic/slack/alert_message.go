@@ -63,7 +63,7 @@ func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
 }
 
 // MrkDwnGatewayCrossChainMessage make the markdown message of cross chain alert message
-func MrkDwnGatewayCrossChainMessage(message *orm.MessageMatch, checkResult types.MismatchType) string {
+func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.MismatchType) string {
 	var buffer bytes.Buffer
 	buffer.WriteString(":warning: ")
 	buffer.WriteString("*Cross chain gateway event check failed*")
