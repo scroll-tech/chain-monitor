@@ -77,9 +77,18 @@ func (c *Logic) CheckETHBalance(ctx context.Context, layerType types.LayerType) 
 		log.Error("c.messageOrm GetLatestDoubleValidMessageMatch failed", "error", err)
 		return
 	}
+
+	if latestMsg == nil {
+		return
+	}
+
 	latestValidMessage, err := c.messageOrm.GetLatestValidETHBalanceMessageMatch(ctx, layerType)
 	if err != nil {
 		log.Error("c.messageOrm GetLatestValidETHBalanceMessageMatch failed", "layer type", layerType, "error", err)
+		return
+	}
+
+	if latestValidMessage == nil {
 		return
 	}
 
