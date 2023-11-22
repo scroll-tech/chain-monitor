@@ -19,7 +19,7 @@ func TestAlertSlack(t *testing.T) {
 	}
 	NewAlertSlack(context.Background(), &conf)
 	for i := 0; i <= 2; i++ {
-		messageMatch := &orm.MessageMatch{
+		messageMatch := orm.MessageMatch{
 			ID:            100000,
 			MessageHash:   "0x23520a393d8171b19d71e41aa5953bcd927606434eadd6786c1e59f8cc001fe9",
 			TokenType:     1,
