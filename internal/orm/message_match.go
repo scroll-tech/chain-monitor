@@ -2,6 +2,7 @@ package orm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -110,9 +111,14 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 	case types.Layer2:
 		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
 	}
-	if err := db.Last(&message).Error; err != nil {
+	err := db.Last(&message).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
 		return nil, fmt.Errorf("MessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
 	return &message, nil
 }
@@ -126,26 +132,13 @@ func (m *MessageMatch) GetLatestDoubleLayerValidMessageMatch(ctx context.Context
 	db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
 	db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
 
-	if err := db.Last(&message).Error; err != nil {
+	err := db.Last(&message).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Warn("MessageMatch.GetLatestDoubleLayerValidMessageMatch failed", "error", err)
 		return nil, fmt.Errorf("MessageMatch.GetLatestDoubleLayerValidMessageMatch failed err:%w", err)
 	}
-	return &message, nil
-}
-
-// GetLatestValidCrossChainMessageMatch fetches the latest valid cross chain message match for the specified layer.
-func (m *MessageMatch) GetLatestValidCrossChainMessageMatch(ctx context.Context, layerType types.LayerType) (*MessageMatch, error) {
-	var message MessageMatch
-	db := m.db.WithContext(ctx)
-	switch layerType {
-	case types.Layer1:
-		db = db.Where("l1_cross_chain_status = ?", types.CrossChainStatusTypeValid)
-	case types.Layer2:
-		db = db.Where("l2_cross_chain_status = ?", types.CrossChainStatusTypeValid)
-	}
-	if err := db.Last(&message).Error; err != nil {
-		log.Warn("MessageMatch.GetLatestValidCrossChainMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetLatestValidCrossChainMessageMatch failed err:%w", err)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
 	return &message, nil
 }
@@ -160,29 +153,15 @@ func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context,
 	case types.Layer2:
 		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
 	}
-	if err := db.Last(&message).Error; err != nil {
+	err := db.Last(&message).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
 		return nil, fmt.Errorf("MessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
 	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	return &message, nil
-}
-
-// GetMessageMatchesByBlockNumberRange fetches all MessageMatch records in the block number range (inclusive).
-func (m *MessageMatch) GetMessageMatchesByBlockNumberRange(ctx context.Context, layer types.LayerType, startHeight, endHeight uint64) ([]MessageMatch, error) {
-	var messages []MessageMatch
-	db := m.db.WithContext(ctx)
-	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
-	switch layer {
-	case types.Layer1:
-		db = db.Where("l1_block_number >= ?", startHeight).Where("l1_block_number <= ?", endHeight)
-	case types.Layer2:
-		db = db.Where("l2_block_number >= ?", startHeight).Where("l2_block_number <= ?", endHeight)
-	}
-	if err := db.Find(&messages).Error; err != nil {
-		log.Warn("MessageMatch.GetMessageMatchesByBlockNumberRange failed", "start height", startHeight, "end height", endHeight, "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetMessageMatchesByBlockNumberRange failed, start height: %v, end height: %v, err: %w", startHeight, endHeight, err)
-	}
-	return messages, nil
 }
 
 // GetMessageMatchByL2BlockNumber fetches the message match record by L2 block number with the maximum id.
@@ -190,9 +169,13 @@ func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, block
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("l2_block_number = ?", blockNumber)
-	if err := db.Last(&message).Error; err != nil {
+	err := db.Last(&message).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Warn("GetMessageMatchByL2BlockNumber failed", "block number", blockNumber, "error", err)
 		return nil, fmt.Errorf("GetMessageMatchByL2BlockNumber failed, block number:%v, err:%w", blockNumber, err)
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
 	return &message, nil
 }

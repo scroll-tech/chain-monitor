@@ -28,6 +28,10 @@ func (t *Logic) GetLatestBlockNumber(ctx context.Context, layer types.LayerType)
 		return 0, blockValidErr
 	}
 
+	if blockValidMessageMatch == nil {
+		return 0, nil
+	}
+
 	var number uint64
 	switch layer {
 	case types.Layer1:
