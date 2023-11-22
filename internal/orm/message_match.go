@@ -43,7 +43,6 @@ type MessageMatch struct {
 
 	// status
 	CheckStatus        int    `json:"check_status" gorm:"check_status"`
-	WithdrawRootStatus int    `json:"withdraw_root_status" gorm:"withdraw_root_status"`
 	L1BlockStatus      int    `json:"l1_block_status" gorm:"l1_block_status"`
 	L2BlockStatus      int    `json:"l2_block_status" gorm:"l2_block_status"`
 	L1CrossChainStatus int    `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`

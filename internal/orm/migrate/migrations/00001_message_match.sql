@@ -26,7 +26,6 @@ CREATE TABLE message_match
 
     -- status
     check_status             INTEGER         NOT NULL,
-    withdraw_root_status     INTEGER         NOT NULL,
     l1_chain_status          INTEGER         NOT NULL,
     l2_chain_status          INTEGER         NOT NULL,
     l1_cross_chain_status    INTEGER         NOT NULL,
