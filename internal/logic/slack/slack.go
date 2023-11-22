@@ -55,6 +55,7 @@ func (as *AlertSlack) Start() {
 	go as.run()
 }
 
+// Stop the slack alert
 func (as *AlertSlack) Stop() {
 	as.stopTimeoutChan <- struct{}{}
 }
