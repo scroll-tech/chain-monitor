@@ -64,7 +64,7 @@ func action(ctx *cli.Context) error {
 	go contractCtl.Watch(subCtx)
 
 	crossChainCtl := controller.NewCrossChainController(cfg, db, l1Client, l2Client)
-	go crossChainCtl.Proposer(subCtx)
+	go crossChainCtl.Watch(subCtx)
 
 	defer func() {
 		contractCtl.Stop()

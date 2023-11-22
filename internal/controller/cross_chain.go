@@ -30,9 +30,9 @@ func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client
 	}
 }
 
-// Proposer is a method that triggers the proposer methods for Layer 1 and Layer 2, as well as the
+// Watch is a method that triggers the proposer methods for Layer 1 and Layer 2, as well as the
 // eth balance checker methods for both layers.
-func (c *CrossChainController) Proposer(ctx context.Context) {
+func (c *CrossChainController) Watch(ctx context.Context) {
 	defer func() {
 		if err := recover(); err != nil {
 			nerr := fmt.Errorf("CrossChainController watch panic error: %v", err)
@@ -46,8 +46,8 @@ func (c *CrossChainController) Proposer(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			go c.l1Proposer(ctx)
-			go c.l2Proposer(ctx)
+			go c.l1Watcher(ctx)
+			go c.l2Watcher(ctx)
 		case <-ctx.Done():
 			if ctx.Err() != nil {
 				log.Error("CrossChainController proposer canceled with error", "error", ctx.Err())
@@ -65,7 +65,7 @@ func (c *CrossChainController) Stop() {
 	c.stopTimeoutChan <- struct{}{}
 }
 
-func (c *CrossChainController) l1Proposer(ctx context.Context) {
+func (c *CrossChainController) l1Watcher(ctx context.Context) {
 	defer func() {
 		if err := recover(); err != nil {
 			nerr := fmt.Errorf("l1Proposer panic error: %v", err)
@@ -76,7 +76,7 @@ func (c *CrossChainController) l1Proposer(ctx context.Context) {
 	c.crossChainLogic.CheckETHBalance(ctx, types.Layer1)
 }
 
-func (c *CrossChainController) l2Proposer(ctx context.Context) {
+func (c *CrossChainController) l2Watcher(ctx context.Context) {
 	defer func() {
 		if err := recover(); err != nil {
 			nerr := fmt.Errorf("l2Proposer panic error: %v", err)
