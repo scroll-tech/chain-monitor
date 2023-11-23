@@ -1,7 +1,8 @@
 {
   "l1_config": {
-    "l1_url": "http://10.5.12.230:8545/l1",
+    "l1_url": "http://sepolia-l1geth.scroll.tech:8545/l1",
     "confirm": "0x4",
+    "start_number": 4038000,
     "l1_contracts": {
       "l1_gateways": {
         "eth_gateway": "0x8A54A2347Da2562917304141ab67324615e9866d",
@@ -14,12 +15,14 @@
         "usdc_gateway": "0x0000000000000000000000000000000000000000",
         "lido_gateway": "0x0000000000000000000000000000000000000000"
       },
-      "scroll_messenger": "0x50c7d3e7f7c656493D1D76aaa1a836CedfCBB16A"
+      "scroll_messenger": "0x50c7d3e7f7c656493D1D76aaa1a836CedfCBB16A",
+      "message_queue": "0xF0B2293F5D834eAe920c6974D50957A1732de763",
+      "scroll_chain": "0x2D567EcE699Eabe5afCd141eDB7A4f2D0D6ce8a0"
     }
   },
   "l2_config": {
-    "l2_url": "http://10.5.11.195:8545",
-    "confirm": "0x4",
+    "l2_url": "http://sepolia-l2geth-rpc-internal0.scroll.tech:8545",
+    "confirm": "0x6",
     "l2_contracts": {
       "l2_gateways": {
         "eth_gateway": "0x91e8ADDFe1358aCa5314c644312d38237fC1101C",
@@ -37,15 +40,14 @@
     }
   },
   "slack_webhook_config": {
-    "channel": "#test_chain_monitor",
-    "user_name": "chain_monitor_balance",
-    "webhook_url": "https://hooks.slack.com/services/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"
+    "webhook_url": "https://hooks.slack.com/services/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",
+    "worker_count": 5,
+    "worker_buffer_size": 1000
   },
   "db_config": {
     "driver_name": "postgres",
-    "dsn": "postgres://maskpp:123456@localhost/postgres?sslmode=disable",
-    "maxOpenNum": 100,
-    "maxIdleNum": 20,
-    "logLevel": 1
+    "dsn": "postgres://localhost/scroll?sslmode=disable",
+    "maxOpenNum": 200,
+    "maxIdleNum": 20
   }
 }

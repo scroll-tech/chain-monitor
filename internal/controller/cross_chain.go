@@ -16,7 +16,7 @@ import (
 
 // CrossChainController is a struct that contains a reference to the Logic object.
 type CrossChainController struct {
-	crossChainLogic *crosschain.Logic
+	crossChainLogic *crosschain.LogicCrossChain
 	stopTimeoutChan chan struct{}
 }
 
@@ -26,7 +26,7 @@ func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client
 	l2MessengerAddr := cfg.L2Config.L2Contracts.ScrollMessenger
 	return &CrossChainController{
 		stopTimeoutChan: make(chan struct{}),
-		crossChainLogic: crosschain.NewLogic(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr),
+		crossChainLogic: crosschain.NewCrossChainLogic(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr),
 	}
 }
 

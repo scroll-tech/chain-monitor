@@ -5,30 +5,37 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-// Logic defines the logic related to message matching.
-type Logic struct {
+// LogicMessageMatch defines the logic related to message matching.
+type LogicMessageMatch struct {
+	conf            *config.Config
 	messageMatchOrm *orm.MessageMatch
 }
 
-// NewLogic initializes a new instance of Logic with an instance of orm.MessageMatch.
-func NewLogic(db *gorm.DB) *Logic {
-	return &Logic{
+// NewMessageMatchLogic initializes a new instance of Logic with an instance of orm.MessageMatch.
+func NewMessageMatchLogic(cfg *config.Config, db *gorm.DB) *LogicMessageMatch {
+	return &LogicMessageMatch{
+		conf:            cfg,
 		messageMatchOrm: orm.NewMessageMatch(db),
 	}
 }
 
 // GetLatestBlockNumber retrieves the latest block number for a given layer type.
-func (t *Logic) GetLatestBlockNumber(ctx context.Context, layer types.LayerType) (uint64, error) {
+func (t *LogicMessageMatch) GetLatestBlockNumber(ctx context.Context, layer types.LayerType) (uint64, error) {
 	blockValidMessageMatch, blockValidErr := t.messageMatchOrm.GetLatestBlockValidMessageMatch(ctx, layer)
 	if blockValidErr != nil {
 		return 0, blockValidErr
 	}
 
-	if blockValidMessageMatch == nil {
+	if layer == types.Layer2 && blockValidMessageMatch == nil {
+		return t.conf.L1Config.StartNumber, nil
+	}
+
+	if layer == types.Layer1 && blockValidMessageMatch == nil {
 		return 0, nil
 	}
 

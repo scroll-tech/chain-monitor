@@ -30,7 +30,7 @@ type ContractController struct {
 	eventGatherLogic  *events.EventGather
 	contractsLogic    *contracts.Contracts
 	checker           *checker.Checker
-	messageMatchLogic *messagematch.Logic
+	messageMatchLogic *messagematch.LogicMessageMatch
 
 	stopTimeoutChan     chan struct{}
 	l1EventCategoryList []types.EventCategory
@@ -46,7 +46,7 @@ func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *
 		eventGatherLogic:  events.NewEventGather(),
 		contractsLogic:    contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
 		checker:           checker.NewChecker(db),
-		messageMatchLogic: messagematch.NewLogic(db),
+		messageMatchLogic: messagematch.NewMessageMatchLogic(&conf, db),
 		stopTimeoutChan:   make(chan struct{}),
 	}
 

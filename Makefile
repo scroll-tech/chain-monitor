@@ -3,10 +3,7 @@
 IMAGE_NAME=chain-monitor
 IMAGE_VERSION=latest
 
-L2GETH_TAG=scroll-v4.3.63
-
-# scroll path is used when update abi.
-SCROLL_PATH=-1
+L2GETH_TAG=scroll-v5.1.5
 
 format:
 	go mod tidy
@@ -21,6 +18,9 @@ abi:
 
 chain-monitor:
 	go build -o build/bin/chain-monitor ./cmd/main.go
+
+test:
+	go test -v -race -gcflags="-l" -ldflags="-s=false" -coverprofile=coverage.txt -covermode=atomic ./...
 
 docker:
 	docker build --platform linux/amd64 -t scrolltech/${IMAGE_NAME}:${IMAGE_VERSION} ./

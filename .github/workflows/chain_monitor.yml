@@ -46,3 +46,23 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             exit 1
           fi
+  tests:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.19.x
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Test chain-monitor packages
+      working-directory: '.'
+      run: |
+        make test
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      with:
+        flags: chain-monitor

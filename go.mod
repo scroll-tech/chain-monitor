@@ -8,11 +8,11 @@ require (
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.19
 	github.com/pressly/goose/v3 v3.15.0
-	github.com/scroll-tech/go-ethereum v1.10.14-0.20230905030315-0b6c3be40d3c
+	github.com/scroll-tech/go-ethereum v1.10.14-0.20231122064408-9f143b47b25b
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.25.7
-	golang.org/x/sync v0.3.0
+	golang.org/x/sync v0.4.0
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.3
 	modernc.org/mathutil v1.6.0
@@ -97,10 +97,10 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/crypto v0.15.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect

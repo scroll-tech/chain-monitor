@@ -7,6 +7,8 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/rpc"
+
+	"github.com/scroll-tech/chain-monitor/internal/utils/database"
 )
 
 // Gateway address list.
@@ -37,6 +39,7 @@ type L1Config struct {
 	L1URL       string `json:"l1_url"`
 	Confirm     rpc.BlockNumber
 	L1Contracts *L1Contracts `json:"l1_contracts"`
+	StartNumber uint64       `json:"start_number"`
 }
 
 // L2Contracts l1chain config.
@@ -53,20 +56,8 @@ type L2Config struct {
 	L2Contracts *L2Contracts `json:"l2_contracts"`
 }
 
-// DBConfig db config
-type DBConfig struct {
-	// data source name
-	DSN        string `json:"dsn"`
-	DriverName string `json:"driver_name"`
-	MaxOpenNum int    `json:"maxOpenNum"`
-	MaxIdleNum int    `json:"maxIdleNum"`
-	LogLevel   int    `json:"logLevel,omitempty"`
-}
-
 // SlackWebhookConfig slack webhook config.
 type SlackWebhookConfig struct {
-	Channel          string `json:"channel"`
-	UserName         string `json:"user_name"`
 	WebhookURL       string `json:"webhook_url,omitempty"`
 	WorkerCount      int    `json:"worker_count"`
 	WorkerBufferSize int    `json:"worker_buffer_size"`
@@ -77,7 +68,7 @@ type Config struct {
 	L1Config    *L1Config           `json:"l1_config"`
 	L2Config    *L2Config           `json:"l2_config"`
 	AlertConfig *SlackWebhookConfig `json:"slack_webhook_config"`
-	DBConfig    *DBConfig           `json:"db_config"`
+	DBConfig    *database.Config    `json:"db_config"`
 }
 
 // NewConfig return a unmarshalled config instance.
