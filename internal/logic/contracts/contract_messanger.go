@@ -47,7 +47,7 @@ func (l *Contracts) l2MessengerFilter(_ context.Context, opts *bind.FilterOpts) 
 
 	sentMessageWrapIter := types.WrapIterator{
 		Iter:      sentMessageIter,
-		EventType: types.L1SentMessage,
+		EventType: types.L2SentMessage,
 	}
 	iterators = append(iterators, sentMessageWrapIter)
 
@@ -59,7 +59,7 @@ func (l *Contracts) l2MessengerFilter(_ context.Context, opts *bind.FilterOpts) 
 
 	relayedMessageWrapIter := types.WrapIterator{
 		Iter:      relayedMessageIter,
-		EventType: types.L1RelayedMessage,
+		EventType: types.L2RelayedMessage,
 	}
 	iterators = append(iterators, relayedMessageWrapIter)
 	return iterators, nil

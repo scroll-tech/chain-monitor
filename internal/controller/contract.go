@@ -102,11 +102,11 @@ func (c *ContractController) Stop() {
 }
 
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Warn("watcherStart panic", "error", err)
-		}
-	}()
+	//defer func() {
+	//	if err := recover(); err != nil {
+	//		log.Warn("watcherStart panic", "error", err)
+	//	}
+	//}()
 
 	// 1. get the max l1_number and l2_number
 	blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
@@ -136,7 +136,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 
 	switch layer {
 	case types.Layer1:
-		c.l1Watch(ctx, start, end)
+		//c.l1Watch(ctx, start, end)
 	case types.Layer2:
 		c.l2Watch(ctx, start, end)
 	}

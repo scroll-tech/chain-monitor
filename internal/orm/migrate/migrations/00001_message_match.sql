@@ -39,5 +39,7 @@ CREATE TABLE message_match
 );
 
 CREATE UNIQUE INDEX idx_message_match_message_hash ON message_match (message_hash);
-CREATE INDEX idx_message_l1_block_number ON message_match (l1_block_number);
-CREATE INDEX idx_message_l2_block_number ON message_match (l2_block_number);
+CREATE INDEX if not exists idx_check_status_deleted_at ON message_match (check_status, deleted_at);
+CREATE INDEX if not exists idx_l1_l2_block_status_deleted_id_desc ON message_match (l1_block_status, l2_block_status, deleted_at, id DESC);
+CREATE INDEX if not exists idx_message_l1_block_number ON message_match (l1_block_number);
+CREATE INDEX if not exists idx_message_l2_block_number ON message_match (l2_block_number);

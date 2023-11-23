@@ -6,10 +6,8 @@ package types
 type BlockStatus int
 
 const (
-	// BlockStatusTypeUnknown represents an unknown or undefined block status.
-	BlockStatusTypeUnknown BlockStatus = iota
 	// BlockStatusTypeInvalid represents an invalid block.
-	BlockStatusTypeInvalid
+	BlockStatusTypeInvalid BlockStatus = iota
 	// BlockStatusTypeValid represents a valid block.
 	BlockStatusTypeValid
 )
