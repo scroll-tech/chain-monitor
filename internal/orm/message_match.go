@@ -229,6 +229,7 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, l1Mes
 func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, messages []MessageMatch) (int64, error) {
 	var affectRow int64
 	for _, message := range messages {
+		msg := message
 		db := m.db.WithContext(ctx)
 		db = db.Model(&MessageMatch{})
 		var columns []string
@@ -253,7 +254,7 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, messages 
 			DoUpdates: clause.AssignmentColumns(columns),
 		})
 
-		result := db.Create(&message)
+		result := db.Create(&msg)
 		if result.Error != nil {
 			return 0, fmt.Errorf("MessageMatch.InsertOrUpdateETHEventInfo error: %w, message: %v", result.Error, message)
 		}

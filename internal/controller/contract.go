@@ -142,6 +142,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 	}
 }
 
+// nolint
 func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint64) {
 	opts := bind.FilterOpts{
 		Start:   start,
