@@ -347,7 +347,7 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 
 		// update the db
 		mm := orm.MessageMatch{
-			MessageHash: v.MessageHash,
+			ID:          v.ID,
 			CheckStatus: int(types.CheckStatusChecked),
 		}
 
