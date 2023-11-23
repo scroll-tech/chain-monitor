@@ -214,7 +214,7 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, l1Mes
 	}
 
 	db = db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "message_hash"}},
+		Columns:   []clause.Column{{Name: "message_hash"}, {Name: "token_type"}},
 		DoUpdates: assignmentColumn,
 	})
 
@@ -250,7 +250,7 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, messages 
 		}
 
 		db = db.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "message_hash"}},
+			Columns:   []clause.Column{{Name: "message_hash"}, {Name: "token_type"}},
 			DoUpdates: clause.AssignmentColumns(columns),
 		})
 
@@ -309,7 +309,7 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layerType types.LayerType, messageMatch MessageMatch) error {
 	db := m.db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
-	db = db.Where("message_hash = ?", messageMatch.MessageHash)
+	db = db.Where("id = ?", messageMatch.ID)
 
 	var err error
 	switch layerType {
