@@ -13,6 +13,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/controller"
 	"github.com/scroll-tech/chain-monitor/internal/utils"
+	"github.com/scroll-tech/chain-monitor/internal/utils/database"
 )
 
 var app *cli.App
@@ -42,7 +43,7 @@ func action(ctx *cli.Context) error {
 	}
 
 	// Create db instance.
-	db, err := utils.InitDB(cfg.DBConfig)
+	db, err := database.InitDB(cfg.DBConfig)
 	if err != nil {
 		log.Crit("failed to connect to db", "err", err)
 	}
@@ -71,7 +72,7 @@ func action(ctx *cli.Context) error {
 		crossChainCtl.Stop()
 		slackAlert.Stop()
 		cancel()
-		if err = utils.CloseDB(db); err != nil {
+		if err = database.CloseDB(db); err != nil {
 			log.Error("failed to close database", "err", err)
 		}
 	}()
