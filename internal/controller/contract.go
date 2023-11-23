@@ -30,7 +30,7 @@ type ContractController struct {
 	eventGatherLogic  *events.EventGather
 	contractsLogic    *contracts.Contracts
 	checker           *checker.Checker
-	messageMatchLogic *messagematch.MessageMatchLogic
+	messageMatchLogic *messagematch.LogicMessageMatch
 
 	stopTimeoutChan     chan struct{}
 	l1EventCategoryList []types.EventCategory

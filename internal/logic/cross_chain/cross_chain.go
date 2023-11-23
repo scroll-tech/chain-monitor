@@ -20,12 +20,12 @@ import (
 
 const ethBalanceGap = 50
 
-// CrossChainLogic is a struct for checking the l1/l2 event match from the database.
+// LogicCrossChain is a struct for checking the l1/l2 event match from the database.
 // FinalizeWithdraw value corresponds to the withdrawal value.
 // FinalizeDeposit value corresponds to the deposit value.
 // This is because not every deposit/withdrawal event in the system will have a finalize event,
 // as users have the ability to refund deposits independently.
-type CrossChainLogic struct {
+type LogicCrossChain struct {
 	messageOrm      *orm.MessageMatch
 	checker         *checker.Checker
 	l1Client        *rpc.Client
@@ -35,8 +35,8 @@ type CrossChainLogic struct {
 }
 
 // NewCrossChainLogic is a constructor for Logic.
-func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *rpc.Client, l1MessengerAddr, l2MessengerAddr common.Address) *CrossChainLogic {
-	return &CrossChainLogic{
+func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *rpc.Client, l1MessengerAddr, l2MessengerAddr common.Address) *LogicCrossChain {
+	return &LogicCrossChain{
 		messageOrm:      orm.NewMessageMatch(db),
 		checker:         checker.NewChecker(db),
 		l1Client:        l1Client,
@@ -47,7 +47,7 @@ func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *rpc.Client, l1Messenger
 }
 
 // CheckCrossChainGatewayMessage is a method for checking cross-chain messages.
-func (c *CrossChainLogic) CheckCrossChainGatewayMessage(ctx context.Context, layerType types.LayerType) {
+func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, layerType types.LayerType) {
 	messages, err := c.messageOrm.GetUncheckedLatestGatewayMessageMatch(ctx, 1000)
 	if err != nil {
 		log.Error("CheckCrossChainGatewayMessage.GetUncheckedLatestGatewayMessageMatch failed", "error", err)
@@ -71,7 +71,7 @@ func (c *CrossChainLogic) CheckCrossChainGatewayMessage(ctx context.Context, lay
 }
 
 // CheckETHBalance checks the ETH balance for the given Ethereum layer (either Layer1 or Layer2).
-func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.LayerType) {
+func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.LayerType) {
 	latestMsg, err := c.messageOrm.GetLatestDoubleLayerValidMessageMatch(ctx)
 	if err != nil {
 		log.Error("c.messageOrm GetLatestDoubleValidMessageMatch failed", "error", err)
@@ -127,7 +127,7 @@ func (c *CrossChainLogic) CheckETHBalance(ctx context.Context, layerType types.L
 	c.checkETH(ctx, layerType, latestMsg, latestValidMessage, ignoredLastMessageMatch)
 }
 
-func (c *CrossChainLogic) checkETH(ctx context.Context, layer types.LayerType, latestMsg, latestValidMessage *orm.MessageMatch, messages []orm.MessageMatch) {
+func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, latestMsg, latestValidMessage *orm.MessageMatch, messages []orm.MessageMatch) {
 	var startBlockNumber, endBlockNumber, latestBlockNumber uint64
 	var messengerAddr common.Address
 	var client *rpc.Client
@@ -180,7 +180,7 @@ func (c *CrossChainLogic) checkETH(ctx context.Context, layer types.LayerType, l
 	c.computeBlockBalance(ctx, layer, messages, latestValidMessage)
 }
 
-func (c *CrossChainLogic) checkBlockBalanceOneByOne(ctx context.Context, client *ethclient.Client, messengerAddr common.Address, layer types.LayerType, messages []orm.MessageMatch) {
+func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client *ethclient.Client, messengerAddr common.Address, layer types.LayerType, messages []orm.MessageMatch) {
 	var startBalance *big.Int
 	var startIndex int
 	for idx, message := range messages {
@@ -231,7 +231,7 @@ func (c *CrossChainLogic) checkBlockBalanceOneByOne(ctx context.Context, client 
 	}
 }
 
-func (c *CrossChainLogic) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []orm.MessageMatch) (bool, *big.Int, *big.Int, error) {
+func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []orm.MessageMatch) (bool, *big.Int, *big.Int, error) {
 	balanceDiff := big.NewInt(0)
 	for _, message := range messages {
 		var amount *big.Int
@@ -265,7 +265,7 @@ func (c *CrossChainLogic) checkBalance(layer types.LayerType, startBalance, endB
 	return false, expectedEndBalance, endBalance, nil
 }
 
-func (c *CrossChainLogic) computeBlockBalance(ctx context.Context, layer types.LayerType, messages []orm.MessageMatch, latestValidMessage *orm.MessageMatch) {
+func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.LayerType, messages []orm.MessageMatch, latestValidMessage *orm.MessageMatch) {
 	var messengerETHBalance *big.Int
 	if latestValidMessage != nil {
 		if layer == types.Layer1 {

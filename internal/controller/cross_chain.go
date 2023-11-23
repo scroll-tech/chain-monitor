@@ -16,7 +16,7 @@ import (
 
 // CrossChainController is a struct that contains a reference to the Logic object.
 type CrossChainController struct {
-	crossChainLogic *crosschain.CrossChainLogic
+	crossChainLogic *crosschain.LogicCrossChain
 	stopTimeoutChan chan struct{}
 }
 
