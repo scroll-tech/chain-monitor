@@ -2,12 +2,13 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/scroll-tech/chain-monitor/internal/utils/database"
 	"os"
 	"path/filepath"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/rpc"
+
+	"github.com/scroll-tech/chain-monitor/internal/utils/database"
 )
 
 // Gateway address list.
