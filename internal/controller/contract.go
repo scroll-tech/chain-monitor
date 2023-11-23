@@ -24,8 +24,8 @@ const maxBlockFetchSize uint64 = 200
 
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
-	l1Client          *rpc.Client
-	l2Client          *rpc.Client
+	l1Client          *ethclient.Client
+	l2Client          *ethclient.Client
 	conf              config.Config
 	eventGatherLogic  *events.EventGather
 	contractsLogic    *contracts.Contracts
@@ -38,13 +38,13 @@ type ContractController struct {
 }
 
 // NewContractController creates a new ContractController object.
-func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *rpc.Client) *ContractController {
+func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *ethclient.Client) *ContractController {
 	c := &ContractController{
 		l1Client:          l1Client,
 		l2Client:          l2Client,
 		conf:              conf,
 		eventGatherLogic:  events.NewEventGather(),
-		contractsLogic:    contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
+		contractsLogic:    contracts.NewContracts(l1Client, l2Client),
 		checker:           checker.NewChecker(db),
 		messageMatchLogic: messagematch.NewMessageMatchLogic(&conf, db),
 		stopTimeoutChan:   make(chan struct{}),
@@ -82,8 +82,8 @@ func (c *ContractController) Watch(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
-			go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
+			go c.watcherStart(ctx, c.l1Client, types.Layer1, c.conf.L1Config.Confirm)
+			go c.watcherStart(ctx, c.l2Client, types.Layer2, c.conf.L2Config.Confirm)
 		case <-ctx.Done():
 			if ctx.Err() != nil {
 				log.Error("ContractController watch context canceled with error", "error", ctx.Err())
@@ -231,7 +231,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		// parse the event data
 		gatewayEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, eventCategory, wrapIterList)
 		if gatewayEvents == nil {
-			log.Info("dispatch gateway events returns empty data", "layer", types.Layer2, "eventCategory", eventCategory)
+			log.Debug("dispatch gateway events returns empty data", "layer", types.Layer2, "eventCategory", eventCategory)
 			continue
 		}
 

@@ -7,13 +7,11 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi"
 	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/common/hexutil"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/crypto"
 	"github.com/scroll-tech/go-ethereum/ethclient"
+	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/scroll-tech/go-ethereum/rpc"
-	"golang.org/x/sync/errgroup"
-	"modernc.org/mathutil"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2scrollmessenger"
 )
@@ -72,57 +70,18 @@ func GetLatestConfirmedBlockNumber(ctx context.Context, client *ethclient.Client
 	}
 }
 
-func toBlockNumArg(number *big.Int) string {
-	if number == nil {
-		return "latest"
-	}
-	latest := big.NewInt(int64(rpc.LatestBlockNumber))
-	if number.Cmp(latest) == 0 {
-		return "latest"
-	}
-	pending := big.NewInt(int64(rpc.PendingBlockNumber))
-	if number.Cmp(pending) == 0 {
-		return "pending"
-	}
-	finalized := big.NewInt(int64(rpc.FinalizedBlockNumber))
-	if number.Cmp(finalized) == 0 {
-		return "finalized"
-	}
-	safe := big.NewInt(int64(rpc.SafeBlockNumber))
-	if number.Cmp(safe) == 0 {
-		return "safe"
-	}
-	return hexutil.EncodeBig(number)
-}
-
-var emptyHash = common.BigToHash(big.NewInt(0))
-
 // GetL2WithdrawRootsInRange gets batch withdraw roots within a block range (inclusive) from the geth node.
-func GetL2WithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
-	blockNumbers := make([]uint64, endBlockNumber-startBlockNumber+1)
-	for i := startBlockNumber; i <= endBlockNumber; i++ {
-		blockNumbers[i-startBlockNumber] = i
-	}
-	reqs := make([]rpc.BatchElem, len(blockNumbers))
+func GetL2WithdrawRootsInRange(ctx context.Context, cli *ethclient.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
 	withdrawRootsMap := make(map[uint64]common.Hash)
-	for i, number := range blockNumbers {
-		nb := big.NewInt(0).SetUint64(number)
-		reqs[i] = rpc.BatchElem{
-			Method: "eth_getStorageAt",
-			Args:   []interface{}{queueAddr, emptyHash, toBlockNumArg(nb)},
-			Result: withdrawRootsMap[number],
+	for number := startBlockNumber; number <= endBlockNumber; number++ {
+		withdrawRoot, err := cli.StorageAt(ctx, queueAddr, common.Hash{}, new(big.Int).SetUint64(number))
+		if err != nil {
+			log.Error("failed to get withdraw root", "addr", queueAddr, "number", number, "err", err)
+			return nil, err
 		}
+		withdrawRootsMap[number] = common.BytesToHash(withdrawRoot)
 	}
-	parallels := 8
-	eg := errgroup.Group{}
-	eg.SetLimit(parallels)
-	for i := 0; i < len(blockNumbers); i += parallels {
-		start := i
-		eg.Go(func() error {
-			return cli.BatchCallContext(ctx, reqs[start:mathutil.Min(start+parallels, len(reqs))])
-		})
-	}
-	return withdrawRootsMap, eg.Wait()
+	return withdrawRootsMap, nil
 }
 
 // UnpackLog unpacks a retrieved log into the provided output structure.

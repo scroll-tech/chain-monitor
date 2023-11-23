@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/scroll-tech/go-ethereum/rpc"
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
@@ -21,7 +21,7 @@ type CrossChainController struct {
 }
 
 // NewCrossChainController is a constructor function that creates a new CrossChainController object.
-func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client *rpc.Client) *CrossChainController {
+func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client *ethclient.Client) *CrossChainController {
 	l1MessengerAddr := cfg.L1Config.L1Contracts.ScrollMessenger
 	l2MessengerAddr := cfg.L2Config.L2Contracts.ScrollMessenger
 	return &CrossChainController{

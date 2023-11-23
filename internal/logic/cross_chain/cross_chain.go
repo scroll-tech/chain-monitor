@@ -8,7 +8,6 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/scroll-tech/go-ethereum/rpc"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 
@@ -28,14 +27,14 @@ const ethBalanceGap = 50
 type LogicCrossChain struct {
 	messageOrm      *orm.MessageMatch
 	checker         *checker.Checker
-	l1Client        *rpc.Client
-	l2Client        *rpc.Client
+	l1Client        *ethclient.Client
+	l2Client        *ethclient.Client
 	l1MessengerAddr common.Address
 	l2MessengerAddr common.Address
 }
 
 // NewCrossChainLogic is a constructor for Logic.
-func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *rpc.Client, l1MessengerAddr, l2MessengerAddr common.Address) *LogicCrossChain {
+func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address) *LogicCrossChain {
 	return &LogicCrossChain{
 		messageOrm:      orm.NewMessageMatch(db),
 		checker:         checker.NewChecker(db),
@@ -134,7 +133,7 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, latestMsg, latestValidMessage *orm.MessageMatch, messages []orm.MessageMatch) {
 	var startBlockNumber, endBlockNumber, latestBlockNumber uint64
 	var messengerAddr common.Address
-	var client *rpc.Client
+	var client *ethclient.Client
 	if layer == types.Layer1 {
 		startBlockNumber = messages[0].L1BlockNumber
 		endBlockNumber = messages[len(messages)-1].L1BlockNumber
@@ -156,7 +155,7 @@ func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, l
 		return
 	}
 
-	endBalance, err := ethclient.NewClient(client).BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(endBlockNumber))
+	endBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(endBlockNumber))
 	if err != nil {
 		log.Error("get messenger balance failed", "layer types", layer, "addr", messengerAddr, "err", err)
 		return
@@ -176,7 +175,7 @@ func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, l
 	}
 
 	if !ok {
-		c.checkBlockBalanceOneByOne(ctx, ethclient.NewClient(client), messengerAddr, layer, messages)
+		c.checkBlockBalanceOneByOne(ctx, client, messengerAddr, layer, messages)
 		return
 	}
 

@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
-	"github.com/scroll-tech/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
@@ -48,14 +48,14 @@ func action(ctx *cli.Context) error {
 		log.Crit("failed to connect to db", "err", err)
 	}
 
-	l1Client, err := rpc.Dial(cfg.L1Config.L1URL)
+	l1Client, err := ethclient.Dial(cfg.L1Config.L1URL)
 	if err != nil {
-		log.Crit("failed to connect to l1 eth", "l1 eth url", cfg.L1Config.L1URL, "err", err)
+		log.Crit("failed to connect to l1 geth", "l1 geth url", cfg.L1Config.L1URL, "err", err)
 	}
 
-	l2Client, err := rpc.Dial(cfg.L2Config.L2URL)
+	l2Client, err := ethclient.Dial(cfg.L2Config.L2URL)
 	if err != nil {
-		log.Crit("failed to connect to l2 eth", "l2 eth url", cfg.L2Config.L2URL, "err", err)
+		log.Crit("failed to connect to l2 geth", "l2 geth url", cfg.L2Config.L2URL, "err", err)
 	}
 
 	slackAlert := controller.NewSlackAlertController(subCtx, cfg.AlertConfig)
