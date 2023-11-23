@@ -49,7 +49,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Amounts:      []*big.Int{iter.Event.Amount},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1BatchDepositERC1155:
 		iter := it.(*il1erc1155gateway.Il1erc1155gatewayBatchDepositERC1155Iterator)
@@ -61,7 +61,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     iter.Event.TokenIds,
 			Amounts:      iter.Event.Amounts,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1FinalizeWithdrawERC1155:
 		iter := it.(*il1erc1155gateway.Il1erc1155gatewayFinalizeWithdrawERC1155Iterator)
@@ -73,7 +73,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Amounts:      []*big.Int{iter.Event.Amount},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1FinalizeBatchWithdrawERC1155:
 		iter := it.(*il1erc1155gateway.Il1erc1155gatewayFinalizeBatchWithdrawERC1155Iterator)
@@ -85,7 +85,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     iter.Event.TokenIds,
 			Amounts:      iter.Event.Amounts,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1RefundERC1155:
 		iter := it.(*il1erc1155gateway.Il1erc1155gatewayRefundERC1155Iterator)
@@ -97,7 +97,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Amounts:      []*big.Int{iter.Event.Amount},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.Token,
 		}
 	case types.L1BatchRefundERC1155:
 		iter := it.(*il1erc1155gateway.Il1erc1155gatewayBatchRefundERC1155Iterator)
@@ -109,7 +109,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     iter.Event.TokenIds,
 			Amounts:      iter.Event.Amounts,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.Token,
 		}
 	case types.L2WithdrawERC1155:
 		iter := it.(*il2erc1155gateway.Il2erc1155gatewayWithdrawERC1155Iterator)
@@ -121,7 +121,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Amounts:      []*big.Int{iter.Event.Amount},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	case types.L2BatchWithdrawERC1155:
 		iter := it.(*il2erc1155gateway.Il2erc1155gatewayBatchWithdrawERC1155Iterator)
@@ -133,7 +133,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     iter.Event.TokenIds,
 			Amounts:      iter.Event.Amounts,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	case types.L2FinalizeDepositERC1155:
 		iter := it.(*il2erc1155gateway.Il2erc1155gatewayFinalizeDepositERC1155Iterator)
@@ -145,7 +145,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Amounts:      []*big.Int{iter.Event.Amount},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	case types.L2FinalizeBatchDepositERC1155:
 		iter := it.(*il2erc1155gateway.Il2erc1155gatewayFinalizeBatchDepositERC1155Iterator)
@@ -157,7 +157,7 @@ func (e *ERC1155GatewayEventUnmarshaler) erc1155(layerType types.LayerType, it t
 			TokenIds:     iter.Event.TokenIds,
 			Amounts:      iter.Event.Amounts,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	}
 	return event

@@ -48,7 +48,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1BatchDepositERC721:
 		iter := it.(*il1erc721gateway.Il1erc721gatewayBatchDepositERC721Iterator)
@@ -59,7 +59,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     iter.Event.TokenIds,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 
 	case types.L1FinalizeWithdrawERC721:
@@ -71,7 +71,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1FinalizeBatchWithdrawERC721:
 		iter := it.(*il1erc721gateway.Il1erc721gatewayFinalizeBatchWithdrawERC721Iterator)
@@ -82,7 +82,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     iter.Event.TokenIds,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1RefundERC721:
 		iter := it.(*il1erc721gateway.Il1erc721gatewayRefundERC721Iterator)
@@ -93,7 +93,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.Token,
 		}
 	case types.L1BatchRefundERC721:
 		iter := it.(*il1erc721gateway.Il1erc721gatewayBatchRefundERC721Iterator)
@@ -104,7 +104,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     iter.Event.TokenIds,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.Token,
 		}
 	case types.L2WithdrawERC721:
 		iter := it.(*il2erc721gateway.Il2erc721gatewayWithdrawERC721Iterator)
@@ -115,7 +115,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	case types.L2BatchWithdrawERC721:
 		iter := it.(*il2erc721gateway.Il2erc721gatewayBatchWithdrawERC721Iterator)
@@ -126,7 +126,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     iter.Event.TokenIds,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	case types.L2FinalizeDepositERC721:
 		iter := it.(*il2erc721gateway.Il2erc721gatewayFinalizeDepositERC721Iterator)
@@ -137,7 +137,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     []*big.Int{iter.Event.TokenId},
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	case types.L2FinalizeBatchDepositERC721:
 		iter := it.(*il2erc721gateway.Il2erc721gatewayFinalizeBatchDepositERC721Iterator)
@@ -148,7 +148,7 @@ func (e *ERC721GatewayEventUnmarshaler) erc721(layerType types.LayerType, it typ
 			TxHash:       iter.Event.Raw.TxHash,
 			TokenIds:     iter.Event.TokenIds,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	}
 	return event

@@ -68,7 +68,7 @@ func (c *CrossChainController) Stop() {
 func (c *CrossChainController) l1Watcher(ctx context.Context) {
 	defer func() {
 		if err := recover(); err != nil {
-			nerr := fmt.Errorf("l1Proposer panic error: %v", err)
+			nerr := fmt.Errorf("l1Watcher panic error: %v", err)
 			log.Warn(nerr.Error())
 		}
 	}()

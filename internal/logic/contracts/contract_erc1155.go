@@ -12,6 +12,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc1155"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
 func (l *Contracts) l1Erc1155Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
@@ -190,19 +191,15 @@ func (l *Contracts) getL1Erc1155GatewayTransferSingle(ctx context.Context, start
 
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
-		event := struct {
-			From    common.Address
-			To      common.Address
-			TokenID *big.Int
-			Value   *big.Int
-		}{}
-		if unpackErr := erc1155ABI.UnpackIntoInterface(&event, "TransferSingle", vLog.Data); unpackErr != nil {
-			return nil, err
+		event := iscrollerc1155.Iscrollerc1155TransferSingle{}
+		if err := utils.UnpackLog(erc1155ABI, &event, "TransferSingle", vLog); err != nil {
+			log.Debug("unpack into interface failed", "tx hash", vLog.TxHash.String(), "err", err)
+			continue
 		}
 
 		if l.l1Contracts.ERC1155GatewayAddress == event.From {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenID},
+				TokenIds:     []*big.Int{event.Id},
 				Amounts:      []*big.Int{new(big.Int).Neg(event.Value)},
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
@@ -213,7 +210,7 @@ func (l *Contracts) getL1Erc1155GatewayTransferSingle(ctx context.Context, start
 
 		if l.l1Contracts.ERC1155GatewayAddress == event.To {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenID},
+				TokenIds:     []*big.Int{event.Id},
 				Amounts:      []*big.Int{event.Value},
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
@@ -244,14 +241,10 @@ func (l *Contracts) getL1Erc1155GatewayTransferBatch(ctx context.Context, startB
 
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
-		event := struct {
-			From   common.Address
-			To     common.Address
-			Ids    []*big.Int
-			Values []*big.Int
-		}{}
-		if unpackErr := erc1155ABI.UnpackIntoInterface(&event, "TransferBatch", vLog.Data); unpackErr != nil {
-			return nil, err
+		event := iscrollerc1155.Iscrollerc1155TransferBatch{}
+		if err := utils.UnpackLog(erc1155ABI, &event, "TransferBatch", vLog); err != nil {
+			log.Debug("unpack into interface failed", "tx hash", vLog.TxHash.String(), "err", err)
+			continue
 		}
 
 		if l.l1Contracts.ERC1155GatewayAddress == event.From {
@@ -318,19 +311,15 @@ func (l *Contracts) getL2Erc1155GatewayTransferSingle(ctx context.Context, start
 
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
-		event := struct {
-			From    common.Address
-			To      common.Address
-			TokenID *big.Int
-			Value   *big.Int
-		}{}
-		if err := erc1155ABI.UnpackIntoInterface(&event, "TransferSingle", vLog.Data); err != nil {
-			return nil, err
+		event := iscrollerc1155.Iscrollerc1155TransferSingle{}
+		if err := utils.UnpackLog(erc1155ABI, &event, "TransferSingle", vLog); err != nil {
+			log.Debug("unpack into interface failed", "tx hash", vLog.TxHash.String(), "err", err)
+			continue
 		}
 
 		if event.From == l.l2Contracts.ERC1155GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenID},
+				TokenIds:     []*big.Int{event.Id},
 				Amounts:      []*big.Int{new(big.Int).Neg(event.Value)},
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
@@ -341,7 +330,7 @@ func (l *Contracts) getL2Erc1155GatewayTransferSingle(ctx context.Context, start
 
 		if event.To == l.l2Contracts.ERC1155GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.Value},
+				TokenIds:     []*big.Int{event.Id},
 				Amounts:      []*big.Int{event.Value},
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
@@ -372,14 +361,10 @@ func (l *Contracts) getL2Erc1155GatewayTransferBatch(ctx context.Context, startB
 
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
-		event := struct {
-			From   common.Address
-			To     common.Address
-			Ids    []*big.Int
-			Values []*big.Int
-		}{}
-		if err := erc1155ABI.UnpackIntoInterface(&event, "TransferBatch", vLog.Data); err != nil {
-			return nil, err
+		event := iscrollerc1155.Iscrollerc1155TransferBatch{}
+		if err := utils.UnpackLog(erc1155ABI, &event, "TransferBatch", vLog); err != nil {
+			log.Debug("unpack into interface failed", "tx hash", vLog.TxHash.String(), "err", err)
+			continue
 		}
 
 		if event.From == l.l2Contracts.ERC1155GatewayAddress {

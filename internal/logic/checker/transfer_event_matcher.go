@@ -69,6 +69,7 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				eventType:   event.Type,
 				blockNumber: event.Number,
 				messageHash: event.MessageHash,
+				balance:     common.Big0,
 			}
 		}
 		transferBalances[k].balance.Add(transferBalances[k].balance, event.Amount)
@@ -86,6 +87,7 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				eventType:   event.Type,
 				blockNumber: event.Number,
 				messageHash: event.MessageHash,
+				balance:     common.Big0,
 			}
 		}
 		if event.Type == types.L1DepositERC20 || event.Type == types.L2WithdrawERC20 {
@@ -115,8 +117,8 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("balance mismatch for token %s: transfer balance = %s, gateway balance = %s",
-				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String())
+			return fmt.Errorf("balance mismatch for token %s: transfer balance = %s, gateway balance = %s, info = %v",
+				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String(), info)
 		}
 	}
 
@@ -140,8 +142,8 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("balance mismatch for token %s: gateway balance = %s, transfer balance = %s",
-				info.TokenAddress.Hex(), info.GatewayBalance.String(), info.TransferBalance.String())
+			return fmt.Errorf("balance mismatch for token %s: gateway balance = %s, transfer balance = %s, info = %v",
+				info.TokenAddress.Hex(), info.GatewayBalance.String(), info.TransferBalance.String(), info)
 		}
 	}
 	return nil
@@ -169,6 +171,7 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 					eventType:   event.Type,
 					blockNumber: event.Number,
 					messageHash: event.MessageHash,
+					balance:     common.Big0,
 				}
 			}
 			transferTokenIds[key].balance.Add(transferTokenIds[key].balance, event.Amounts[idx])
@@ -194,6 +197,7 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 					eventType:   event.Type,
 					blockNumber: event.Number,
 					messageHash: event.MessageHash,
+					balance:     common.Big0,
 				}
 			}
 
@@ -282,6 +286,7 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 					eventType:   event.Type,
 					blockNumber: event.Number,
 					messageHash: event.MessageHash,
+					balance:     common.Big0,
 				}
 			}
 			transferTokenIds[key].balance.Add(transferTokenIds[key].balance, event.Amounts[idx])
@@ -306,6 +311,7 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				eventType:   event.Type,
 				blockNumber: event.Number,
 				messageHash: event.MessageHash,
+				balance:     common.Big0,
 			}
 
 			if event.Type == types.L1DepositERC1155 || event.Type == types.L2WithdrawERC1155 ||

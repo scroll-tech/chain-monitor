@@ -12,6 +12,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc721"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
 func (l *Contracts) l1Erc721Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
@@ -174,18 +175,15 @@ func (l *Contracts) getL1Erc721GatewayTransfer(ctx context.Context, startBlockNu
 
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
-		event := struct {
-			From    common.Address
-			To      common.Address
-			TokenID *big.Int
-		}{}
-		if unpackErr := erc721ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data); unpackErr != nil {
-			return nil, err
+		event := iscrollerc721.Iscrollerc721Transfer{}
+		if err := utils.UnpackLog(erc721ABI, &event, "Transfer", vLog); err != nil {
+			log.Debug("unpack into interface failed", "tx hash", vLog.TxHash.String(), "err", err)
+			continue
 		}
 
 		if l.l1Contracts.erc721GatewayAddress == event.From {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenID},
+				TokenIds:     []*big.Int{event.TokenId},
 				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
@@ -196,7 +194,7 @@ func (l *Contracts) getL1Erc721GatewayTransfer(ctx context.Context, startBlockNu
 
 		if l.l1Contracts.erc721GatewayAddress == event.To {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenID},
+				TokenIds:     []*big.Int{event.TokenId},
 				Amounts:      []*big.Int{big.NewInt(1)},
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
@@ -227,18 +225,15 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
-		event := struct {
-			From    common.Address
-			To      common.Address
-			TokenID *big.Int
-		}{}
-		if err := erc721ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data); err != nil {
-			return nil, err
+		event := iscrollerc721.Iscrollerc721Transfer{}
+		if err := utils.UnpackLog(erc721ABI, &event, "Transfer", vLog); err != nil {
+			log.Debug("unpack into interface failed", "tx hash", vLog.TxHash.String(), "err", err)
+			continue
 		}
 
 		if event.From == l.l2Contracts.erc721GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenID},
+				TokenIds:     []*big.Int{event.TokenId},
 				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,
@@ -249,7 +244,7 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 
 		if event.To == l.l2Contracts.erc721GatewayAddress {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
-				TokenIds:     []*big.Int{event.TokenID},
+				TokenIds:     []*big.Int{event.TokenId},
 				Amounts:      []*big.Int{big.NewInt(1)},
 				TokenAddress: vLog.Address,
 				TxHash:       vLog.TxHash,

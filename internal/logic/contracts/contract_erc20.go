@@ -13,6 +13,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/iscrollerc20"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
 func (l *Contracts) l1Erc20Filter(_ context.Context, opts *bind.FilterOpts) ([]types.WrapIterator, error) {
@@ -132,14 +133,15 @@ func (l *Contracts) getL1Erc20GatewayTransfer(ctx context.Context, startBlockNum
 
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
-		event := struct {
-			From  common.Address
-			To    common.Address
-			Value *big.Int
-		}{}
-		err := erc20ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data)
-		if err != nil {
-			return nil, err
+		event := iscrollerc20.Iscrollerc20Transfer{}
+		if err := utils.UnpackLog(erc20ABI, &event, "Transfer", vLog); err != nil {
+			log.Debug("unpack into interface failed", "tx hash", vLog.TxHash.String(), "err", err)
+			continue
+		}
+
+		// weth burn and mint.
+		if event.From == common.HexToAddress("0x0") || event.To == common.HexToAddress("0x0") {
+			continue
 		}
 
 		if _, ok := tokenAddressMap[event.From]; ok {
@@ -189,14 +191,15 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
-		event := struct {
-			From  common.Address
-			To    common.Address
-			Value *big.Int
-		}{}
-		err := erc20ABI.UnpackIntoInterface(&event, "Transfer", vLog.Data)
-		if err != nil {
-			return nil, err
+		event := iscrollerc20.Iscrollerc20Transfer{}
+		if err := utils.UnpackLog(erc20ABI, &event, "Transfer", vLog); err != nil {
+			log.Debug("unpack into interface failed", "tx hash", vLog.TxHash.String(), "err", err)
+			continue
+		}
+
+		// weth burn and mint.
+		if event.From == common.HexToAddress("0x0") || event.To == common.HexToAddress("0x0") {
+			continue
 		}
 
 		if _, ok := tokenAddressMap[event.From]; ok {

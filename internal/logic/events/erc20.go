@@ -47,7 +47,7 @@ func (e *ERC20GatewayEventUnmarshaler) erc20(layerType types.LayerType, it types
 			TxHash:       iter.Event.Raw.TxHash,
 			Amount:       iter.Event.Amount,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1FinalizeWithdrawERC20:
 		iter := it.(*il1erc20gateway.Il1erc20gatewayFinalizeWithdrawERC20Iterator)
@@ -58,7 +58,7 @@ func (e *ERC20GatewayEventUnmarshaler) erc20(layerType types.LayerType, it types
 			TxHash:       iter.Event.Raw.TxHash,
 			Amount:       iter.Event.Amount,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L1Token,
 		}
 	case types.L1RefundERC20:
 		iter := it.(*il1erc20gateway.Il1erc20gatewayRefundERC20Iterator)
@@ -69,7 +69,7 @@ func (e *ERC20GatewayEventUnmarshaler) erc20(layerType types.LayerType, it types
 			TxHash:       iter.Event.Raw.TxHash,
 			Amount:       iter.Event.Amount,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.Token,
 		}
 	case types.L2WithdrawERC20:
 		iter := it.(*il2erc20gateway.Il2erc20gatewayWithdrawERC20Iterator)
@@ -80,7 +80,7 @@ func (e *ERC20GatewayEventUnmarshaler) erc20(layerType types.LayerType, it types
 			TxHash:       iter.Event.Raw.TxHash,
 			Amount:       iter.Event.Amount,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	case types.L2FinalizeDepositERC20:
 		iter := it.(*il2erc20gateway.Il2erc20gatewayFinalizeDepositERC20Iterator)
@@ -91,7 +91,7 @@ func (e *ERC20GatewayEventUnmarshaler) erc20(layerType types.LayerType, it types
 			TxHash:       iter.Event.Raw.TxHash,
 			Amount:       iter.Event.Amount,
 			Index:        iter.Event.Raw.Index,
-			TokenAddress: iter.Event.Raw.Address,
+			TokenAddress: iter.Event.L2Token,
 		}
 	}
 	return event

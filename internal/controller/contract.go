@@ -152,7 +152,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 
 	messengerIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer1, types.MessengerEventCategory)
 	if err != nil {
-		log.Error("get gateway related transfer events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
+		log.Error("get messenger iterator failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
@@ -204,7 +204,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 
 	messengerIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer2, types.MessengerEventCategory)
 	if err != nil {
-		log.Error("get gateway related transfer events failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
+		log.Error("get messenger iterator failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
