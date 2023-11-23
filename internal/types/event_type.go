@@ -91,39 +91,3 @@ const (
 	// L2BatchWithdrawERC1155 represents the event for batch withdrawing ERC1155 tokens on Layer 2.
 	L2BatchWithdrawERC1155
 )
-
-// EventCategory represents the category of events.
-type EventCategory int
-
-const (
-	// EventCategoryUnknown represents an unknown or undefined event category.
-	EventCategoryUnknown EventCategory = iota
-	// ERC20EventCategory represents the ERC20 gateway events.
-	ERC20EventCategory
-	// ERC721EventCategory represents the ERC721 gateway events.
-	ERC721EventCategory
-	// ERC1155EventCategory represents the ERC1155 gateway events.
-	ERC1155EventCategory
-	// MessengerEventCategory represents the messenger events.
-	MessengerEventCategory
-)
-
-// ERC20 represents the type of ERC20 token.
-type ERC20 int
-
-const (
-	// ERC20Unknown represents an unknown or undefined ERC20 token.
-	ERC20Unknown ERC20 = iota
-	// WETH represents Wrapped Ethereum (WETH) token.
-	WETH
-	// StandardERC20 represents a standard ERC20 token.
-	StandardERC20
-	// CustomERC20 represents a custom ERC20 token.
-	CustomERC20
-	// USDC represents USD Coin (USDC) token.
-	USDC
-	// DAI represents DAI stablecoin token.
-	DAI
-	// LIDO represents Lido DAO token.
-	LIDO
-)

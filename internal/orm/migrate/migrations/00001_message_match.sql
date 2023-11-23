@@ -26,8 +26,8 @@ CREATE TABLE message_match
 
     -- status
     check_status             INTEGER         NOT NULL,
-    l1_chain_status          INTEGER         NOT NULL,
-    l2_chain_status          INTEGER         NOT NULL,
+    l1_block_status          INTEGER         NOT NULL,
+    l2_block_status          INTEGER         NOT NULL,
     l1_cross_chain_status    INTEGER         NOT NULL,
     l2_cross_chain_status    INTEGER         NOT NULL,
     message_proof            BYTEA           DEFAULT NULl,

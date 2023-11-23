@@ -104,8 +104,7 @@ func (c *ContractController) Stop() {
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber) {
 	defer func() {
 		if err := recover(); err != nil {
-			nerr := fmt.Errorf("watcherStart panic error: %v", err)
-			log.Warn(nerr.Error())
+			log.Warn("watcherStart panic", "error", err)
 		}
 	}()
 
@@ -120,13 +119,12 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 	// 2. get latest chain confirmation number
 	confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
 	if err != nil {
-		log.Error("ContractController.Watch get latest confirmation block number failed", "err", err)
+		log.Error("ContractController.Watch get latest confirmation block number failed", "layer", layer.String(), "err", err)
 		return
 	}
 
 	if start >= confirmationNumber {
-		err := fmt.Errorf("ContractController.Watch startBlockNumber:%d >= l1ConfirmationNumber:%d", blockNumberInDB, confirmationNumber)
-		log.Error("l1Watcher starting", "err", err)
+		log.Error("Watcher start block number >= l1ConfirmationNumber", "layer", layer.String(), "startBlockNumber", blockNumberInDB, "confirmationNumber", confirmationNumber, "err", err)
 		return
 	}
 

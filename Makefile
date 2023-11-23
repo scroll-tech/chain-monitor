@@ -5,12 +5,10 @@ IMAGE_VERSION=latest
 
 L2GETH_TAG=scroll-v5.1.5
 
-format:
+lint:
 	go mod tidy
 	goimports -w .
 	gofumpt -l -w .
-
-lint:
 	GOBIN=$(PWD)/build/bin go run ./build/lint.go
 
 abi:
