@@ -227,10 +227,11 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, l1Mes
 
 // InsertOrUpdateETHEventInfo insert or update the eth event info
 func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, messages []MessageMatch) (int64, error) {
-	db := m.db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
 	var affectRow int64
 	for _, message := range messages {
+		msg := message
+		db := m.db.WithContext(ctx)
+		db = db.Model(&MessageMatch{})
 		var columns []string
 		if message.L1EventType != 0 && message.L1EventType == int(types.L1SentMessage) {
 			columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_amounts", "l2_amounts")
@@ -253,9 +254,9 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, messages 
 			DoUpdates: clause.AssignmentColumns(columns),
 		})
 
-		result := db.Create(&messages)
+		result := db.Create(&msg)
 		if result.Error != nil {
-			return 0, fmt.Errorf("MessageMatch.InsertOrUpdateETHEventInfo error: %w, messages: %v", result.Error, messages)
+			return 0, fmt.Errorf("MessageMatch.InsertOrUpdateETHEventInfo error: %w, message: %v", result.Error, message)
 		}
 		affectRow += result.RowsAffected
 	}

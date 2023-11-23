@@ -102,12 +102,11 @@ func (c *ContractController) Stop() {
 }
 
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber) {
-	defer func() {
-		if err := recover(); err != nil {
-			nerr := fmt.Errorf("watcherStart panic error: %v", err)
-			log.Warn(nerr.Error())
-		}
-	}()
+	//defer func() {
+	//	if err := recover(); err != nil {
+	//		log.Warn("watcherStart panic", "error", err)
+	//	}
+	//}()
 
 	// 1. get the max l1_number and l2_number
 	blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
@@ -120,13 +119,12 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 	// 2. get latest chain confirmation number
 	confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
 	if err != nil {
-		log.Error("ContractController.Watch get latest confirmation block number failed", "err", err)
+		log.Error("ContractController.Watch get latest confirmation block number failed", "layer", layer.String(), "err", err)
 		return
 	}
 
 	if start >= confirmationNumber {
-		err := fmt.Errorf("ContractController.Watch startBlockNumber:%d >= l1ConfirmationNumber:%d", blockNumberInDB, confirmationNumber)
-		log.Error("l1Watcher starting", "err", err)
+		log.Error("Watcher start block number >= l1ConfirmationNumber", "layer", layer.String(), "startBlockNumber", blockNumberInDB, "confirmationNumber", confirmationNumber, "err", err)
 		return
 	}
 
@@ -138,12 +136,13 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 
 	switch layer {
 	case types.Layer1:
-		c.l1Watch(ctx, start, end)
+		//c.l1Watch(ctx, start, end)
 	case types.Layer2:
 		c.l2Watch(ctx, start, end)
 	}
 }
 
+// nolint
 func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint64) {
 	opts := bind.FilterOpts{
 		Start:   start,

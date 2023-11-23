@@ -8,14 +8,13 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[BlockStatusTypeUnknown-0]
-	_ = x[BlockStatusTypeInvalid-1]
-	_ = x[BlockStatusTypeValid-2]
+	_ = x[BlockStatusTypeInvalid-0]
+	_ = x[BlockStatusTypeValid-1]
 }
 
-const _BlockStatus_name = "BlockStatusTypeUnknownBlockStatusTypeInvalidBlockStatusTypeValid"
+const _BlockStatus_name = "BlockStatusTypeInvalidBlockStatusTypeValid"
 
-var _BlockStatus_index = [...]uint8{0, 22, 44, 64}
+var _BlockStatus_index = [...]uint8{0, 22, 42}
 
 func (i BlockStatus) String() string {
 	if i < 0 || i >= BlockStatus(len(_BlockStatus_index)-1) {

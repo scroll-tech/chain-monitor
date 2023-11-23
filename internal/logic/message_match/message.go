@@ -31,11 +31,11 @@ func (t *LogicMessageMatch) GetLatestBlockNumber(ctx context.Context, layer type
 		return 0, blockValidErr
 	}
 
-	if layer == types.Layer2 && blockValidMessageMatch == nil {
+	if layer == types.Layer1 && blockValidMessageMatch == nil {
 		return t.conf.L1Config.StartNumber, nil
 	}
 
-	if layer == types.Layer1 && blockValidMessageMatch == nil {
+	if layer == types.Layer2 && blockValidMessageMatch == nil {
 		return 0, nil
 	}
 

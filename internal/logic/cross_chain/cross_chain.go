@@ -54,6 +54,10 @@ func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, lay
 		return
 	}
 
+	if len(messages) == 0 {
+		return
+	}
+
 	var messageMatchIds []int64
 	for _, message := range messages {
 		checkResult := c.checker.CrossChainCheck(ctx, layerType, message)

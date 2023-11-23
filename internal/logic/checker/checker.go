@@ -114,14 +114,22 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 	}
 
 	effectRows, err := c.messageMatchOrm.InsertOrUpdateMsgProofNonce(ctx, messageMatches)
-	if err != nil || int(effectRows) != len(messageMatches) {
+	if err != nil {
 		return fmt.Errorf("message proof orm insert failed, err: %w", err)
+	}
+
+	if int(effectRows) != len(messageMatches) {
+		return fmt.Errorf("message proof orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(messageMatches))
 	}
 	return nil
 }
 
 // MessengerCheck checks the messenger events.
 func (c *Checker) MessengerCheck(ctx context.Context, messengerEvents []events.EventUnmarshaler) error {
+	if len(messengerEvents) == 0 {
+		return nil
+	}
+
 	var messageMatches []orm.MessageMatch
 	for _, eventData := range messengerEvents {
 		var tmpMessageMatch orm.MessageMatch
@@ -174,8 +182,12 @@ func (c *Checker) MessengerCheck(ctx context.Context, messengerEvents []events.E
 	}
 
 	effectRows, err := c.messageMatchOrm.InsertOrUpdateETHEventInfo(ctx, messageMatches)
-	if err != nil || int(effectRows) != len(messageMatches) {
+	if err != nil {
 		return fmt.Errorf("messenger event orm insert failed, err: %w", err)
+	}
+
+	if int(effectRows) != len(messageMatches) {
+		return fmt.Errorf("messenger event orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(messageMatches))
 	}
 	return nil
 }
@@ -295,8 +307,12 @@ func (c *Checker) erc1155EventUnmarshaler(ctx context.Context, gatewayEventsData
 	}
 
 	effectRows, err := c.messageMatchOrm.InsertOrUpdateGatewayEventInfo(ctx, l1MessageMatches, l2MessageMatches)
-	if err != nil || int(effectRows) != len(l1MessageMatches)+len(l2MessageMatches) {
+	if err != nil {
 		return fmt.Errorf("erc1155EventUnmarshaler orm insert failed, err: %w", err)
+	}
+
+	if int(effectRows) != len(l1MessageMatches)+len(l2MessageMatches) {
+		return fmt.Errorf("erc1155EventUnmarshaler orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(l1MessageMatches)+len(l2MessageMatches))
 	}
 
 	var transferEvents []events.ERC1155GatewayEventUnmarshaler
@@ -406,8 +422,12 @@ func (c *Checker) erc721EventUnmarshaler(ctx context.Context, gatewayEventsData,
 	}
 
 	effectRows, err := c.messageMatchOrm.InsertOrUpdateGatewayEventInfo(ctx, l1MessageMatches, l2MessageMatches)
-	if err != nil || int(effectRows) != len(l1MessageMatches)+len(l2MessageMatches) {
+	if err != nil {
 		return fmt.Errorf("erc721EventUnmarshaler orm insert failed, err: %w", err)
+	}
+
+	if int(effectRows) != len(l1MessageMatches)+len(l2MessageMatches) {
+		return fmt.Errorf("erc721EventUnmarshaler orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(l1MessageMatches)+len(l2MessageMatches))
 	}
 
 	var transferEvents []events.ERC721GatewayEventUnmarshaler
@@ -501,8 +521,12 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 	}
 
 	effectRows, err := c.messageMatchOrm.InsertOrUpdateGatewayEventInfo(ctx, l1MessageMatches, l2MessageMatches)
-	if err != nil || int(effectRows) != len(l1MessageMatches)+len(l2MessageMatches) {
+	if err != nil {
 		return fmt.Errorf("erc20EventUnmarshaler orm insert failed, err: %w", err)
+	}
+
+	if int(effectRows) != len(l1MessageMatches)+len(l2MessageMatches) {
+		return fmt.Errorf("erc20EventUnmarshaler orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(l1MessageMatches)+len(l2MessageMatches))
 	}
 
 	var transferEvents []events.ERC20GatewayEventUnmarshaler

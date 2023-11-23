@@ -80,12 +80,12 @@ func (l *l2Contracts) register(conf config.Config) error {
 
 func (l *l2Contracts) registerERC20Gateway(gatewayAddress common.Address, tokenType types.ERC20) error {
 	if gatewayAddress == (common.Address{}) {
-		log.Warn("gateway unconfigured", "address", gatewayAddress, "token type", tokenType)
+		log.Warn("l2 erc20 gateway unconfigured", "address", gatewayAddress, "token type", tokenType.String())
 		return nil
 	}
 	erc20Gateway, err := il2erc20gateway.NewIl2erc20gateway(gatewayAddress, l.client)
 	if err != nil {
-		log.Error("register erc20 gateway contract failed", "address", gatewayAddress, "error", err)
+		log.Error("l2 register erc20 gateway contract failed", "address", gatewayAddress, "error", err)
 		return fmt.Errorf("register erc20 gateway contract failed, err:%w", err)
 	}
 
@@ -97,7 +97,7 @@ func (l *l2Contracts) registerERC20Gateway(gatewayAddress common.Address, tokenT
 
 func (l *l2Contracts) registerERC721Gateway(gatewayAddress common.Address) error {
 	if gatewayAddress == (common.Address{}) {
-		log.Warn("erc721 gateway unconfigured", "address", gatewayAddress)
+		log.Warn("l2 erc721 gateway unconfigured", "address", gatewayAddress)
 		return nil
 	}
 
@@ -105,7 +105,7 @@ func (l *l2Contracts) registerERC721Gateway(gatewayAddress common.Address) error
 
 	erc721Gateways, err := il2erc721gateway.NewIl2erc721gateway(gatewayAddress, l.client)
 	if err != nil {
-		return fmt.Errorf("register erc721 gateway contract failed, err:%w", err)
+		return fmt.Errorf("l2 register erc721 gateway contract failed, err:%w", err)
 	}
 	l.erc721Gateway = erc721Gateways
 	return nil
@@ -113,7 +113,7 @@ func (l *l2Contracts) registerERC721Gateway(gatewayAddress common.Address) error
 
 func (l *l2Contracts) registerERC1155Gateway(gatewayAddress common.Address) error {
 	if gatewayAddress == (common.Address{}) {
-		log.Warn("erc1155 gateway unconfigured", "address", gatewayAddress)
+		log.Warn("l2 erc1155 gateway unconfigured", "address", gatewayAddress)
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func (l *l2Contracts) registerERC1155Gateway(gatewayAddress common.Address) erro
 
 	erc1155Gateways, err := il2erc1155gateway.NewIl2erc1155gateway(gatewayAddress, l.client)
 	if err != nil {
-		return fmt.Errorf("register erc1155 gateway contract failed, err:%w", err)
+		return fmt.Errorf("l2 register erc1155 gateway contract failed, err:%w", err)
 	}
 	l.ERC1155Gateway = erc1155Gateways
 	return nil
