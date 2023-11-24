@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+
 	"github.com/scroll-tech/go-ethereum/log"
 
 	"github.com/scroll-tech/chain-monitor/internal/types"
