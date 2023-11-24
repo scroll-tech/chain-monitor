@@ -2,8 +2,6 @@ package events
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/scroll-tech/go-ethereum/log"
 
 	"github.com/scroll-tech/chain-monitor/internal/types"
@@ -31,12 +29,11 @@ func NewEventGather() *EventGather {
 
 // Dispatch takes a context, layer type, event category, and a list of iterators, and dispatches
 // the events to the appropriate unmarshaler based on the event category. It returns a list of the
-// unmarshaled events.
+// unmarshalled events.
 func (e *EventGather) Dispatch(ctx context.Context, layer types.LayerType, eventCategory types.EventCategory, iterators []types.WrapIterator) []EventUnmarshaler {
 	gather, exist := e.gathers[eventCategory]
 	if !exist {
-		err := fmt.Errorf("there no event unmarshaler exist, layer type:%d, event category:%d", layer, eventCategory)
-		log.Error("EventGather.Dispatch failed", "error", err)
+		log.Error("EventGather.Dispatch failed: there no event unmarshaler exist", "layer", layer.String(), "event category", eventCategory.String())
 		return nil
 	}
 

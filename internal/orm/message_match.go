@@ -214,7 +214,7 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, l1Mes
 	}
 
 	db = db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "message_hash"}, {Name: "token_type"}},
+		Columns:   []clause.Column{{Name: "message_hash"}},
 		DoUpdates: assignmentColumn,
 	})
 
@@ -250,7 +250,7 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, messages 
 		}
 
 		db = db.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "message_hash"}, {Name: "token_type"}},
+			Columns:   []clause.Column{{Name: "message_hash"}},
 			DoUpdates: clause.AssignmentColumns(columns),
 		})
 
