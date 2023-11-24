@@ -136,7 +136,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 
 	switch layer {
 	case types.Layer1:
-		//c.l1Watch(ctx, start, end)
+		// c.l1Watch(ctx, start, end)
 	case types.Layer2:
 		c.l2Watch(ctx, start, end)
 	}
