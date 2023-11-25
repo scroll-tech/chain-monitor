@@ -33,7 +33,6 @@ func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client
 // Watch is a method that triggers the proposer methods for Layer 1 and Layer 2, as well as the
 // eth balance checker methods for both layers.
 func (c *CrossChainController) Watch(ctx context.Context) {
-	return
 	defer func() {
 		if err := recover(); err != nil {
 			nerr := fmt.Errorf("CrossChainController watch panic error: %v", err)

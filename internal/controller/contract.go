@@ -264,7 +264,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 	}
 
 	c.replaceGatewayEventInfo(types.Layer2, l2GatewayMessageMatches, messengerMessageMatches)
-	if err := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, messengerMessageMatches); err != nil {
+	if err = c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, messengerMessageMatches); err != nil {
 		log.Error("insert message events failed", "layer", types.Layer2, "error", err)
 		return
 	}

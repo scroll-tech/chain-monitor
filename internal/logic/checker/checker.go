@@ -322,7 +322,7 @@ func (c *Checker) erc1155EventUnmarshaler(_ context.Context, gatewayEventsData, 
 	return messageMatches, c.transferMatcher.erc1155Matcher(transferEvents, gatewayEvents)
 }
 
-func (c *Checker) erc721EventUnmarshaler(ctx context.Context, gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) ([]orm.MessageMatch, error) {
+func (c *Checker) erc721EventUnmarshaler(_ context.Context, gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) ([]orm.MessageMatch, error) {
 	messageHashes := make(map[messageEventKey]common.Hash)
 	for _, eventData := range messengerEventsData {
 		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
