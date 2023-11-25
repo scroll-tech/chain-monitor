@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/scroll-tech/go-ethereum/common"
-	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 
@@ -74,7 +73,6 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 		return err
 	}
 	if msg != nil {
-		log.Error("withdrawTrie.Initialize", "MessageNonce", msg.MessageNonce-1)
 		withdrawTrie.Initialize(msg.MessageNonce-1, common.HexToHash(msg.MessageHash), msg.MessageProof)
 	}
 

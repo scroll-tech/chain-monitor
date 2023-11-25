@@ -179,9 +179,9 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 		return nil, err
 	}
 
-	tokenAddressMap := make(map[common.Address]struct{})
-	for _, token := range l.l2Contracts.erc20GatewayTokens {
-		tokenAddressMap[token.address] = struct{}{}
+	tokenAddressMap := map[common.Address]struct{}{
+		common.HexToAddress("0x0"):       {},
+		l.l2Contracts.WETHGatewayAddress: {},
 	}
 
 	var transferEvents []events.EventUnmarshaler
@@ -192,7 +192,7 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 			continue
 		}
 
-		// weth burn and mint.
+		// wrapped eth burn and mint.
 		if vLog.Address == l.l2Contracts.WETHGatewayAddress && event.From == common.HexToAddress("0x0") || event.To == common.HexToAddress("0x0") {
 			continue
 		}

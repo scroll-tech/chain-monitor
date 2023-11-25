@@ -80,7 +80,7 @@ func (c *ContractController) Watch(ctx context.Context) {
 	log.Info("contract controller start successful")
 
 	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
-	//go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
 }
 
 // Stop the contract controller
