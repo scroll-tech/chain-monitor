@@ -79,8 +79,8 @@ func (c *ContractController) Watch(ctx context.Context) {
 
 	log.Info("contract controller start successful")
 
-	// go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
-	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
+	//go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
 }
 
 // Stop the contract controller
@@ -141,7 +141,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 
 		switch layer {
 		case types.Layer1:
-			// c.l1Watch(ctx, start, end)
+			c.l1Watch(ctx, start, end)
 		case types.Layer2:
 			c.l2Watch(ctx, start, end)
 		}
@@ -186,7 +186,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		// parse the gateway and messenger event data
 		gatewayEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, eventCategory, wrapIterList)
 		if gatewayEvents == nil {
-			log.Error("event gather deal event return empty data", "layer", types.Layer1, "eventCategory", eventCategory)
+			log.Debug("event gather deal event return empty data", "layer", types.Layer1, "eventCategory", eventCategory)
 			continue
 		}
 
@@ -269,11 +269,6 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 
-	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
-	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
-	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
-	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
-	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
 	withdrawRootsMap, err := utils.GetL2WithdrawRootsInRange(ctx, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue, start, end)
 	if err != nil {
 		log.Error("get l2 withdraw roots in range failed", "message queue addr", c.conf.L2Config.L2Contracts.MessageQueue, "start", start, "end", end, "error", err)
