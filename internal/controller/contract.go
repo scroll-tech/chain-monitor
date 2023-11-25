@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -20,7 +21,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
-const maxBlockFetchSize uint64 = 200
+const maxBlockFetchSize uint64 = 199
 
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
@@ -93,6 +94,14 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 	//		log.Warn("watcherStart panic", "error", err)
 	//	}
 	//}()
+	// 1. get the max l1_number and l2_number
+	blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
+	if err != nil {
+		log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", err)
+		return
+	}
+	start := blockNumberInDB + 1
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -106,14 +115,6 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		default:
 		}
 
-		// 1. get the max l1_number and l2_number
-		blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
-		if err != nil {
-			log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", err)
-			return
-		}
-		start := blockNumberInDB
-
 		// 2. get latest chain confirmation number
 		confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
 		if err != nil {
@@ -121,9 +122,15 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			return
 		}
 
-		if start >= confirmationNumber {
-			log.Error("Watcher start block number >= l1ConfirmationNumber", "layer", layer.String(), "startBlockNumber", blockNumberInDB, "confirmationNumber", confirmationNumber, "err", err)
-			return
+		if start > confirmationNumber {
+			log.Info("Watcher start block number > l1ConfirmationNumber",
+				"layer", layer.String(),
+				"startBlockNumber", blockNumberInDB,
+				"confirmationNumber", confirmationNumber,
+				"err", err,
+			)
+			time.Sleep(time.Millisecond * 500)
+			continue
 		}
 
 		// 3. get the max fetch number
@@ -138,6 +145,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		case types.Layer2:
 			c.l2Watch(ctx, start, end)
 		}
+		start = end + 1
 	}
 }
 
