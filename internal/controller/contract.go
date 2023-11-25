@@ -269,6 +269,11 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 
+	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
+	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
+	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
+	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
+	log.Error("GetL2WithdrawRootsInRange", "start", start, "end", end)
 	withdrawRootsMap, err := utils.GetL2WithdrawRootsInRange(ctx, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue, start, end)
 	if err != nil {
 		log.Error("get l2 withdraw roots in range failed", "message queue addr", c.conf.L2Config.L2Contracts.MessageQueue, "start", start, "end", end, "error", err)
