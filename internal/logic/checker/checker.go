@@ -447,7 +447,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 	for _, eventData := range messengerEventsData {
 		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
 		if !ok {
-			return fmt.Errorf("eventData is not of type *events.MessengerEventUnmarshaler")
+			return fmt.Errorf("erc20 eventData is not of type *events.MessengerEventUnmarshaler")
 		}
 		key := messageEventKey{TxHash: messengerEventUnmarshaler.TxHash, LogIndex: messengerEventUnmarshaler.Index}
 		messageHashes[key] = messengerEventUnmarshaler.MessageHash
@@ -475,6 +475,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 				L1Amounts:     decimal.NewFromBigInt(erc20EventUnmarshaler.Amount, 0).String(),
 			}
 			l1MessageMatches = append(l1MessageMatches, tmpMessageMatch)
+			erc20EventUnmarshaler.MessageHash = messageHash
 		case types.L1FinalizeWithdrawERC20:
 			messageHash, exists := findNextMessageEvent(erc20EventUnmarshaler.TxHash, erc20EventUnmarshaler.Index, messageHashes)
 			if !exists {
@@ -489,6 +490,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 				L1Amounts:     decimal.NewFromBigInt(erc20EventUnmarshaler.Amount, 0).String(),
 			}
 			l1MessageMatches = append(l1MessageMatches, tmpMessageMatch)
+			erc20EventUnmarshaler.MessageHash = messageHash
 		case types.L2WithdrawERC20:
 			messageHash, exists := findPrevMessageEvent(erc20EventUnmarshaler.TxHash, erc20EventUnmarshaler.Index, messageHashes)
 			if !exists {
@@ -503,6 +505,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 				L2Amounts:     decimal.NewFromBigInt(erc20EventUnmarshaler.Amount, 0).String(),
 			}
 			l2MessageMatches = append(l2MessageMatches, tmpMessageMatch)
+			erc20EventUnmarshaler.MessageHash = messageHash
 		case types.L2FinalizeDepositERC20:
 			messageHash, exists := findNextMessageEvent(erc20EventUnmarshaler.TxHash, erc20EventUnmarshaler.Index, messageHashes)
 			if !exists {
@@ -517,6 +520,7 @@ func (c *Checker) erc20EventUnmarshaler(ctx context.Context, gatewayEventsData, 
 				L2Amounts:     decimal.NewFromBigInt(erc20EventUnmarshaler.Amount, 0).String(),
 			}
 			l2MessageMatches = append(l2MessageMatches, tmpMessageMatch)
+			erc20EventUnmarshaler.MessageHash = messageHash
 		}
 	}
 

@@ -29,7 +29,7 @@ func NewContracts(l1Client, l2Client *ethclient.Client) *Contracts {
 }
 
 // Register registers all gateway/messenger/transfer contracts present in the configuration.
-func (l *Contracts) Register(conf config.Config) error {
+func (l *Contracts) Register(conf *config.Config) error {
 	if err := l.l1Contracts.register(conf); err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (l *Contracts) Iterator(ctx context.Context, opts *bind.FilterOpts, layerTy
 	return nil, fmt.Errorf("invalid type, layerType: %v, txEventCategory: %v", layerType, txEventCategory)
 }
 
-// GetGatewayTransfer returns a list of unmarshaled events for gateway transfers of a specific event category
+// GetGatewayTransfer returns a list of unmarshalled events for gateway transfers of a specific event category
 // between the startBlockNumber and endBlockNumber. It returns an error if the layer type or transaction
 // event category is invalid.
 func (l *Contracts) GetGatewayTransfer(ctx context.Context, startBlockNumber, endBlockNumber uint64, layerType types.LayerType, txEventCategory types.EventCategory) ([]events.EventUnmarshaler, error) {

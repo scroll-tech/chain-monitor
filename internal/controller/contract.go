@@ -3,9 +3,9 @@ package controller
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
+	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/scroll-tech/go-ethereum/rpc"
@@ -26,7 +26,7 @@ const maxBlockFetchSize uint64 = 200
 type ContractController struct {
 	l1Client          *ethclient.Client
 	l2Client          *ethclient.Client
-	conf              config.Config
+	conf              *config.Config
 	eventGatherLogic  *events.EventGather
 	contractsLogic    *contracts.Contracts
 	checker           *checker.Checker
@@ -38,7 +38,7 @@ type ContractController struct {
 }
 
 // NewContractController creates a new ContractController object.
-func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *ethclient.Client) *ContractController {
+func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client *ethclient.Client) *ContractController {
 	c := &ContractController{
 		l1Client:          l1Client,
 		l2Client:          l2Client,
@@ -46,7 +46,7 @@ func NewContractController(conf config.Config, db *gorm.DB, l1Client, l2Client *
 		eventGatherLogic:  events.NewEventGather(),
 		contractsLogic:    contracts.NewContracts(l1Client, l2Client),
 		checker:           checker.NewChecker(db),
-		messageMatchLogic: messagematch.NewMessageMatchLogic(&conf, db),
+		messageMatchLogic: messagematch.NewMessageMatchLogic(conf, db),
 		stopTimeoutChan:   make(chan struct{}),
 	}
 
@@ -78,22 +78,8 @@ func (c *ContractController) Watch(ctx context.Context) {
 
 	log.Info("contract controller start successful")
 
-	ticker := time.NewTicker(time.Second * 2)
-	for {
-		select {
-		case <-ticker.C:
-			go c.watcherStart(ctx, c.l1Client, types.Layer1, c.conf.L1Config.Confirm)
-			go c.watcherStart(ctx, c.l2Client, types.Layer2, c.conf.L2Config.Confirm)
-		case <-ctx.Done():
-			if ctx.Err() != nil {
-				log.Error("ContractController watch context canceled with error", "error", ctx.Err())
-			}
-			return
-		case <-c.stopTimeoutChan:
-			log.Info("ContractController the run loop exit")
-			return
-		}
-	}
+	// go c.watcherStart(ctx, c.l1Client, types.Layer1, c.conf.L1Config.Confirm)
+	go c.watcherStart(ctx, c.l2Client, types.Layer2, c.conf.L2Config.Confirm)
 }
 
 // Stop the contract controller
@@ -107,38 +93,51 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 	//		log.Warn("watcherStart panic", "error", err)
 	//	}
 	//}()
+	for {
+		select {
+		case <-ctx.Done():
+			if ctx.Err() != nil {
+				log.Error("CrossChainController proposer canceled with error", "error", ctx.Err())
+			}
+			return
+		case <-c.stopTimeoutChan:
+			log.Info("CrossChainController proposer the run loop exit")
+			return
+		default:
+		}
 
-	// 1. get the max l1_number and l2_number
-	blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
-	if err != nil {
-		log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", err)
-		return
-	}
-	start := blockNumberInDB
+		// 1. get the max l1_number and l2_number
+		blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
+		if err != nil {
+			log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", err)
+			return
+		}
+		start := blockNumberInDB
 
-	// 2. get latest chain confirmation number
-	confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
-	if err != nil {
-		log.Error("ContractController.Watch get latest confirmation block number failed", "layer", layer.String(), "err", err)
-		return
-	}
+		// 2. get latest chain confirmation number
+		confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
+		if err != nil {
+			log.Error("ContractController.Watch get latest confirmation block number failed", "layer", layer.String(), "err", err)
+			return
+		}
 
-	if start >= confirmationNumber {
-		log.Error("Watcher start block number >= l1ConfirmationNumber", "layer", layer.String(), "startBlockNumber", blockNumberInDB, "confirmationNumber", confirmationNumber, "err", err)
-		return
-	}
+		if start >= confirmationNumber {
+			log.Error("Watcher start block number >= l1ConfirmationNumber", "layer", layer.String(), "startBlockNumber", blockNumberInDB, "confirmationNumber", confirmationNumber, "err", err)
+			return
+		}
 
-	// 3. get the max fetch number
-	end := start + maxBlockFetchSize
-	if start+maxBlockFetchSize > confirmationNumber {
-		end = confirmationNumber
-	}
+		// 3. get the max fetch number
+		end := start + maxBlockFetchSize
+		if start+maxBlockFetchSize > confirmationNumber {
+			end = confirmationNumber
+		}
 
-	switch layer {
-	case types.Layer1:
-		// c.l1Watch(ctx, start, end)
-	case types.Layer2:
-		c.l2Watch(ctx, start, end)
+		switch layer {
+		case types.Layer1:
+			// c.l1Watch(ctx, start, end)
+		case types.Layer2:
+			c.l2Watch(ctx, start, end)
+		}
 	}
 }
 
@@ -156,11 +155,8 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
-	if err = c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
-		log.Error("insert message events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
-		return
-	}
 
+	var ethMessengerEvent []events.EventUnmarshaler
 	for _, eventCategory := range c.l1EventCategoryList {
 		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer1, eventCategory)
 		if err != nil {
@@ -186,6 +182,17 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 			log.Error("event matcher deal failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
+
+		// filter the non-eth messenger messages
+		retMessengerEvents := c.filterNonETHMessenger(eventCategory, gatewayEvents, messengerEvents)
+		ethMessengerEvent = append(ethMessengerEvent, retMessengerEvents...)
+	}
+
+	// because the messengerEvents contains the non-eth messenger messages and eth messenger messages,
+	// but only eth messenger messages need insert to db. so need filter the non-eth messenger messages.
+	if err = c.checker.MessengerCheck(ctx, ethMessengerEvent); err != nil {
+		log.Error("insert message events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
 	}
 
 	// update l1 block status
@@ -208,11 +215,8 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
-	if err = c.checker.MessengerCheck(ctx, messengerEvents); err != nil {
-		log.Error("insert message events failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
-		return
-	}
 
+	var ethMessengerEvent []events.EventUnmarshaler
 	for _, eventCategory := range c.l2EventCategoryList {
 		var wrapIterList []types.WrapIterator
 		wrapIterList, err = c.contractsLogic.Iterator(ctx, &opts, types.Layer2, eventCategory)
@@ -240,6 +244,17 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 			log.Error("event matcher deal failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
+
+		// filter the non-eth messenger messages
+		retMessengerEvents := c.filterNonETHMessenger(eventCategory, gatewayEvents, messengerEvents)
+		ethMessengerEvent = append(ethMessengerEvent, retMessengerEvents...)
+	}
+
+	// because the messengerEvents contains the non-eth messenger messages and eth messenger messages,
+	// but only eth messenger messages need insert to db. so need filter the non-eth messenger messages.
+	if err = c.checker.MessengerCheck(ctx, ethMessengerEvent); err != nil {
+		log.Error("insert message events failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
 	}
 
 	withdrawRootsMap, err := utils.GetL2WithdrawRootsInRange(ctx, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue, start, end)
@@ -258,4 +273,35 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		log.Error("update block status failed", "layer", types.Layer2, "start", start, "end", end, "error", err)
 		return
 	}
+}
+
+func (c *ContractController) filterNonETHMessenger(eventCategory types.EventCategory, gatewayEvents, messengerEvents []events.EventUnmarshaler) []events.EventUnmarshaler {
+	gatewayEventMap := make(map[common.Hash]struct{})
+	for _, gatewayEvent := range gatewayEvents {
+		switch eventCategory {
+		case types.ERC20EventCategory:
+			event := gatewayEvent.(*events.ERC20GatewayEventUnmarshaler)
+			log.Info("xxx", "xxx", event.MessageHash.Hex())
+			gatewayEventMap[event.MessageHash] = struct{}{}
+		case types.ERC721EventCategory:
+			event := gatewayEvent.(*events.ERC721GatewayEventUnmarshaler)
+			log.Info("xxx", "xxx", event.MessageHash.Hex())
+			gatewayEventMap[event.MessageHash] = struct{}{}
+		case types.ERC1155EventCategory:
+			event := gatewayEvent.(*events.ERC1155GatewayEventUnmarshaler)
+			log.Info("xxx", "xxx", event.MessageHash.Hex())
+			gatewayEventMap[event.MessageHash] = struct{}{}
+		}
+	}
+
+	var ret []events.EventUnmarshaler
+	for _, messengerEvent := range messengerEvents {
+		event := messengerEvent.(*events.MessengerEventUnmarshaler)
+		if _, ok := gatewayEventMap[event.MessageHash]; ok {
+			continue
+		}
+		ret = append(ret, messengerEvent)
+	}
+
+	return ret
 }

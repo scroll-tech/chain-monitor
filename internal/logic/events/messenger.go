@@ -11,7 +11,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 )
 
-// MessengerEventUnmarshaler is a struct representing the unmarshaled data of a SentMessage event
+// MessengerEventUnmarshaler is a struct representing the unmarshalled data of a SentMessage event
 // raised by the L1/L2 scroll messenger contract.
 type MessengerEventUnmarshaler struct {
 	Layer        types.LayerType

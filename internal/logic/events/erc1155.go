@@ -25,7 +25,7 @@ type ERC1155GatewayEventUnmarshaler struct {
 }
 
 // Unmarshal takes a context, layer type, and a list of iterators and unmarshals each iterator
-// into an EventUnmarshaler, returning a list of these unmarshaled events.
+// into an EventUnmarshaler, returning a list of these unmarshalled events.
 func (e *ERC1155GatewayEventUnmarshaler) Unmarshal(context context.Context, layerType types.LayerType, iterators []types.WrapIterator) []EventUnmarshaler {
 	var events []EventUnmarshaler
 	for _, it := range iterators {

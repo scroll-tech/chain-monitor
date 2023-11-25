@@ -270,9 +270,11 @@ func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerT
 
 	switch layer {
 	case types.Layer1:
+		db = db.Where("l1_block_status = ?", types.BlockStatusTypeInvalid)
 		db = db.Where("l1_block_number >= ? AND l1_block_number <= ?", startBlockNumber, endBlockNumber)
 		db = db.Update("l1_block_status", types.BlockStatusTypeValid)
 	case types.Layer2:
+		db = db.Where("l2_block_status = ?", types.BlockStatusTypeInvalid)
 		db = db.Where("l2_block_number >= ? AND l2_block_number <= ?", startBlockNumber, endBlockNumber)
 		db = db.Update("l2_block_status", types.BlockStatusTypeValid)
 	}
