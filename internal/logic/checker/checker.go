@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 
 	"github.com/scroll-tech/go-ethereum/common"
@@ -127,7 +128,7 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 }
 
 // MessengerCheck checks the messenger events.
-func (c *Checker) MessengerCheck(_ context.Context, messengerEvents []events.EventUnmarshaler) ([]orm.MessageMatch, error) {
+func (c *Checker) MessengerCheck(_ context.Context, layer types.LayerType, messengerEvents []events.EventUnmarshaler) ([]orm.MessageMatch, error) {
 	if len(messengerEvents) == 0 {
 		return nil, nil
 	}
@@ -182,6 +183,13 @@ func (c *Checker) MessengerCheck(_ context.Context, messengerEvents []events.Eve
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		}
 	}
+
+	sort.SliceStable(messageMatches, func(i, j int) bool {
+		if layer == types.Layer1 {
+			return messageMatches[i].L1BlockNumber < messageMatches[j].L1BlockNumber
+		}
+		return messageMatches[i].L2BlockNumber < messageMatches[j].L2BlockNumber
+	})
 
 	return messageMatches, nil
 }

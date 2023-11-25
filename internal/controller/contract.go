@@ -155,7 +155,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
-	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, messengerEvents)
+	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, types.Layer1, messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
@@ -217,7 +217,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
-	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, messengerEvents)
+	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, types.Layer2, messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return
