@@ -3,6 +3,7 @@ package messagematch
 import (
 	"context"
 	"fmt"
+
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"

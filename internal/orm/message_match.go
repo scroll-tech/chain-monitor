@@ -197,7 +197,6 @@ func (m *MessageMatch) InsertOrUpdateMsgProofNonce(ctx context.Context, messages
 
 // InsertOrUpdateGatewayEventInfo insert or update eth event info
 func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer types.LayerType, messages MessageMatch) (int64, error) {
-
 	db := m.db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
 
