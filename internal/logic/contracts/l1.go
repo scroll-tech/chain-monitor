@@ -41,7 +41,7 @@ func newL1Contracts(c *ethclient.Client) *l1Contracts {
 	}
 }
 
-func (l *l1Contracts) register(conf config.Config) error {
+func (l *l1Contracts) register(conf *config.Config) error {
 	var err error
 	l.messenger, err = il1scrollmessenger.NewIl1scrollmessenger(conf.L1Config.L1Contracts.ScrollMessenger, l.client)
 	if err != nil {

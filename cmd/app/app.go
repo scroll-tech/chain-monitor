@@ -61,7 +61,7 @@ func action(ctx *cli.Context) error {
 	slackAlert := controller.NewSlackAlertController(subCtx, cfg.AlertConfig)
 	slackAlert.Start()
 
-	contractCtl := controller.NewContractController(*cfg, db, l1Client, l2Client)
+	contractCtl := controller.NewContractController(cfg, db, l1Client, l2Client)
 	go contractCtl.Watch(subCtx)
 
 	crossChainCtl := controller.NewCrossChainController(cfg, db, l1Client, l2Client)

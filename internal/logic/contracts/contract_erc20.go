@@ -139,11 +139,6 @@ func (l *Contracts) getL1Erc20GatewayTransfer(ctx context.Context, startBlockNum
 			continue
 		}
 
-		// weth burn and mint.
-		if event.From == common.HexToAddress("0x0") || event.To == common.HexToAddress("0x0") {
-			continue
-		}
-
 		if _, ok := tokenAddressMap[event.From]; ok {
 			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
 				Amount:       new(big.Int).Neg(event.Value),
@@ -198,7 +193,7 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 		}
 
 		// weth burn and mint.
-		if event.From == common.HexToAddress("0x0") || event.To == common.HexToAddress("0x0") {
+		if vLog.Address == l.l2Contracts.WETHGatewayAddress && event.From == common.HexToAddress("0x0") || event.To == common.HexToAddress("0x0") {
 			continue
 		}
 
