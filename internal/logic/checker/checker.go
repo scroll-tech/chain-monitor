@@ -68,7 +68,7 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCat
 func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, messengerEventsData []events.EventUnmarshaler, withdrawRoots map[uint64]common.Hash) error {
 	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
-	msg, err := c.messageMatchOrm.GetLargestMessageNonceMessageMatch(ctx)
+	msg, err := c.messageMatchOrm.GetLargestMessageNonceL2MessageMatch(ctx)
 	if err != nil {
 		return err
 	}

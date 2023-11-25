@@ -163,19 +163,20 @@ func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context,
 	return &message, nil
 }
 
-// GetLargestMessageNonceMessageMatch fetches the message match record with the maximum MessageNonce.
-func (m *MessageMatch) GetLargestMessageNonceMessageMatch(ctx context.Context) (*MessageMatch, error) {
+// GetLargestMessageNonceL2MessageMatch fetches the message match record with the maximum MessageNonce.
+func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("message_nonce > ?", 0)
 	db = db.Order("message_nonce DESC")
+	db = db.Order("id DESC")
 	err := db.First(&message).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	if err != nil {
-		log.Warn("GetLargestMessageNonceMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("GetLargestMessageNonceMessageMatch failed, err:%w", err)
+		log.Warn("GetLargestMessageNonceL2MessageMatch failed", "error", err)
+		return nil, fmt.Errorf("GetLargestMessageNonceL2MessageMatch failed, err:%w", err)
 	}
 	return &message, nil
 }

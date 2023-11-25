@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/scroll-tech/chain-monitor/internal/orm"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -16,6 +15,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	messagematch "github.com/scroll-tech/chain-monitor/internal/logic/message_match"
+	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
