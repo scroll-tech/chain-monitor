@@ -317,7 +317,7 @@ func (l *Contracts) getL2Erc1155GatewayTransferSingle(ctx context.Context, start
 			continue
 		}
 
-		if event.From == l.l2Contracts.ERC1155GatewayAddress {
+		if event.From == common.HexToAddress("0x0") {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
 				TokenIds:     []*big.Int{event.Id},
 				Amounts:      []*big.Int{new(big.Int).Neg(event.Value)},
@@ -328,7 +328,7 @@ func (l *Contracts) getL2Erc1155GatewayTransferSingle(ctx context.Context, start
 			})
 		}
 
-		if event.To == l.l2Contracts.ERC1155GatewayAddress {
+		if event.To == common.HexToAddress("0x0") {
 			transferEvents = append(transferEvents, &events.ERC1155GatewayEventUnmarshaler{
 				TokenIds:     []*big.Int{event.Id},
 				Amounts:      []*big.Int{event.Value},

@@ -231,7 +231,7 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 			continue
 		}
 
-		if event.From == l.l2Contracts.erc721GatewayAddress {
+		if event.From == common.HexToAddress("0x0") {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
 				TokenIds:     []*big.Int{event.TokenId},
 				Amounts:      []*big.Int{new(big.Int).Neg(big.NewInt(1))},
@@ -242,7 +242,7 @@ func (l *Contracts) getL2Erc721GatewayTransfer(ctx context.Context, startBlockNu
 			})
 		}
 
-		if event.To == l.l2Contracts.erc721GatewayAddress {
+		if event.To == common.HexToAddress("0x0") {
 			transferEvents = append(transferEvents, &events.ERC721GatewayEventUnmarshaler{
 				TokenIds:     []*big.Int{event.TokenId},
 				Amounts:      []*big.Int{big.NewInt(1)},
