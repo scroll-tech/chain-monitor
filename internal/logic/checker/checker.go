@@ -67,12 +67,12 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCat
 func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, messengerEventsData []events.EventUnmarshaler, withdrawRoots map[uint64]common.Hash) error {
 	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
-	msg, err := c.messageMatchOrm.GetLargestMessageNonceMessageMatch(ctx, startBlockNumber-1)
+	msg, err := c.messageMatchOrm.GetLargestMessageNonceMessageMatch(ctx)
 	if err != nil {
 		return err
 	}
 	if msg != nil {
-		withdrawTrie.Initialize(msg.MessageNonce, common.HexToHash(msg.MessageHash), msg.MessageProof)
+		withdrawTrie.Initialize(msg.MessageNonce-1, common.HexToHash(msg.MessageHash), msg.MessageProof)
 	}
 
 	sentMessageEventHashesMap := make(map[uint64][]common.Hash)
@@ -108,7 +108,7 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 			messageMatches = append(messageMatches, orm.MessageMatch{
 				MessageHash:  eventHashes[numEvents-1].Hex(),
 				MessageProof: proofs[numEvents-1],
-				MessageNonce: withdrawTrie.NextMessageNonce,
+				MessageNonce: withdrawTrie.NextMessageNonce + 1, // +1 to distinguish from the zero value
 			})
 		}
 	}
