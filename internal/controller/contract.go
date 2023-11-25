@@ -3,9 +3,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/scroll-tech/chain-monitor/internal/orm"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
-	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/scroll-tech/go-ethereum/rpc"
@@ -155,8 +155,13 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
+	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, messengerEvents)
+	if err != nil {
+		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
+	}
 
-	var ethMessengerEvent []events.EventUnmarshaler
+	var l1GatewayMessageMatches []orm.MessageMatch
 	for _, eventCategory := range c.l1EventCategoryList {
 		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer1, eventCategory)
 		if err != nil {
@@ -178,20 +183,17 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		}
 
 		// match transfer event
-		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, gatewayEvents, messengerEvents, transferEvents); checkErr != nil {
+		retL1MessageMatches, checkErr := c.checker.GatewayCheck(ctx, eventCategory, gatewayEvents, messengerEvents, transferEvents)
+		l1GatewayMessageMatches = append(l1GatewayMessageMatches, retL1MessageMatches...)
+		if checkErr != nil {
 			log.Error("event matcher deal failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
-
-		// filter the non-eth messenger messages
-		retMessengerEvents := c.filterNonETHMessenger(eventCategory, gatewayEvents, messengerEvents)
-		ethMessengerEvent = append(ethMessengerEvent, retMessengerEvents...)
 	}
 
-	// because the messengerEvents contains the non-eth messenger messages and eth messenger messages,
-	// but only eth messenger messages need insert to db. so need filter the non-eth messenger messages.
-	if err = c.checker.MessengerCheck(ctx, ethMessengerEvent); err != nil {
-		log.Error("insert message events failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
+	c.replaceGatewayEventInfo(types.Layer1, l1GatewayMessageMatches, messengerMessageMatches)
+	if err := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer1, messengerMessageMatches); err != nil {
+		log.Error("insert message events failed", "layer", types.Layer1, "error", err)
 		return
 	}
 
@@ -215,8 +217,13 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
+	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, messengerEvents)
+	if err != nil {
+		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
+	}
 
-	var ethMessengerEvent []events.EventUnmarshaler
+	var l2GatewayMessageMatches []orm.MessageMatch
 	for _, eventCategory := range c.l2EventCategoryList {
 		var wrapIterList []types.WrapIterator
 		wrapIterList, err = c.contractsLogic.Iterator(ctx, &opts, types.Layer2, eventCategory)
@@ -240,20 +247,17 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		}
 
 		// match transfer event
-		if checkErr := c.checker.GatewayCheck(ctx, eventCategory, gatewayEvents, messengerEvents, transferEvents); checkErr != nil {
+		retL2MessageMatches, checkErr := c.checker.GatewayCheck(ctx, eventCategory, gatewayEvents, messengerEvents, transferEvents)
+		l2GatewayMessageMatches = append(l2GatewayMessageMatches, retL2MessageMatches...)
+		if checkErr != nil {
 			log.Error("event matcher deal failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", checkErr)
 			continue
 		}
-
-		// filter the non-eth messenger messages
-		retMessengerEvents := c.filterNonETHMessenger(eventCategory, gatewayEvents, messengerEvents)
-		ethMessengerEvent = append(ethMessengerEvent, retMessengerEvents...)
 	}
 
-	// because the messengerEvents contains the non-eth messenger messages and eth messenger messages,
-	// but only eth messenger messages need insert to db. so need filter the non-eth messenger messages.
-	if err = c.checker.MessengerCheck(ctx, ethMessengerEvent); err != nil {
-		log.Error("insert message events failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
+	c.replaceGatewayEventInfo(types.Layer2, l2GatewayMessageMatches, messengerMessageMatches)
+	if err := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, messengerMessageMatches); err != nil {
+		log.Error("insert message events failed", "layer", types.Layer2, "error", err)
 		return
 	}
 
@@ -275,33 +279,29 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 	}
 }
 
-func (c *ContractController) filterNonETHMessenger(eventCategory types.EventCategory, gatewayEvents, messengerEvents []events.EventUnmarshaler) []events.EventUnmarshaler {
-	gatewayEventMap := make(map[common.Hash]struct{})
-	for _, gatewayEvent := range gatewayEvents {
-		switch eventCategory {
-		case types.ERC20EventCategory:
-			event := gatewayEvent.(*events.ERC20GatewayEventUnmarshaler)
-			log.Info("xxx", "xxx", event.MessageHash.Hex())
-			gatewayEventMap[event.MessageHash] = struct{}{}
-		case types.ERC721EventCategory:
-			event := gatewayEvent.(*events.ERC721GatewayEventUnmarshaler)
-			log.Info("xxx", "xxx", event.MessageHash.Hex())
-			gatewayEventMap[event.MessageHash] = struct{}{}
-		case types.ERC1155EventCategory:
-			event := gatewayEvent.(*events.ERC1155GatewayEventUnmarshaler)
-			log.Info("xxx", "xxx", event.MessageHash.Hex())
-			gatewayEventMap[event.MessageHash] = struct{}{}
-		}
+func (c *ContractController) replaceGatewayEventInfo(layer types.LayerType, gatewayMessages, messengerMessages []orm.MessageMatch) {
+	messageHashGatewayMessageMatchMap := make(map[string]orm.MessageMatch)
+	for _, gatewayMessage := range gatewayMessages {
+		messageHashGatewayMessageMatchMap[gatewayMessage.MessageHash] = gatewayMessage
 	}
 
-	var ret []events.EventUnmarshaler
-	for _, messengerEvent := range messengerEvents {
-		event := messengerEvent.(*events.MessengerEventUnmarshaler)
-		if _, ok := gatewayEventMap[event.MessageHash]; ok {
+	for i := 0; i < len(messengerMessages); i++ {
+		m := messengerMessages[i]
+		gatewayMessageMatch, ok := messageHashGatewayMessageMatchMap[m.MessageHash]
+		if !ok {
 			continue
 		}
-		ret = append(ret, messengerEvent)
-	}
 
-	return ret
+		messengerMessages[i].TokenType = gatewayMessageMatch.TokenType
+		switch layer {
+		case types.Layer1:
+			messengerMessages[i].L1EventType = gatewayMessageMatch.L1EventType
+			messengerMessages[i].L1TokenIds = gatewayMessageMatch.L1TokenIds
+			messengerMessages[i].L1Amounts = gatewayMessageMatch.L1Amounts
+		case types.Layer2:
+			messengerMessages[i].L2EventType = gatewayMessageMatch.L2EventType
+			messengerMessages[i].L2TokenIds = gatewayMessageMatch.L2TokenIds
+			messengerMessages[i].L2Amounts = gatewayMessageMatch.L2Amounts
+		}
+	}
 }

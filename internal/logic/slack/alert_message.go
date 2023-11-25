@@ -35,9 +35,8 @@ type WithdrawRootInfo struct {
 // MrkDwnWithdrawRootMessage make the markdown message of withdraw root alert message
 func MrkDwnWithdrawRootMessage(info WithdrawRootInfo) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(":warning: ")
-	buffer.WriteString("*L2 withdraw root check failed*")
-	buffer.WriteString(" :warning:\n")
+	buffer.WriteString("\n:bangbang: ")
+	buffer.WriteString("*L2 withdraw root check failed*\n")
 	buffer.WriteString(fmt.Sprintf("• block number: %d\n", info.BlockNumber))
 	buffer.WriteString(fmt.Sprintf("• got withdraw root: %s\n", info.LastWithdrawRoot.Hex()))
 	buffer.WriteString(fmt.Sprintf("• excepted withdraw root: %s\n", info.ExpectedWithdrawRoot.Hex()))
@@ -47,9 +46,8 @@ func MrkDwnWithdrawRootMessage(info WithdrawRootInfo) string {
 // MrkDwnGatewayTransferMessage make the markdown message of gateway and transfer alert message
 func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(":warning: ")
-	buffer.WriteString("*Gateway event and transfer event check failed*")
-	buffer.WriteString(" :warning:\n")
+	buffer.WriteString("\n:bangbang: ")
+	buffer.WriteString("*Gateway event and transfer event check failed*\n")
 	buffer.WriteString(fmt.Sprintf("• token type: %s\n", info.TokenType.String()))
 	buffer.WriteString(fmt.Sprintf("• layer type: %s\n", info.Layer.String()))
 	buffer.WriteString(fmt.Sprintf("• event type: %s\n", info.EventType.String()))
@@ -65,9 +63,8 @@ func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
 // MrkDwnGatewayCrossChainMessage make the markdown message of cross chain alert message
 func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.MismatchType) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(":warning: ")
-	buffer.WriteString("*Cross chain gateway event check failed*")
-	buffer.WriteString(" :warning:\n")
+	buffer.WriteString("\n:bangbang: ")
+	buffer.WriteString("*Cross chain gateway event check failed*\n")
 	buffer.WriteString(fmt.Sprintf("• database id: %d\n", message.ID))
 	buffer.WriteString(fmt.Sprintf("• token type: %s\n", types.TokenType(message.TokenType).String()))
 	buffer.WriteString(fmt.Sprintf("• l1 event type: %s\n", types.EventType(message.L1EventType).String()))
@@ -88,9 +85,8 @@ func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.
 // MrkDwnETHGatewayMessage make the markdown message of cross chain eth alert message
 func MrkDwnETHGatewayMessage(message *orm.MessageMatch, expectedEndBalance, actualEndBalance *big.Int) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(":warning: ")
-	buffer.WriteString("*Cross chain ETH balance check failed*")
-	buffer.WriteString(" :warning:\n")
+	buffer.WriteString("\n:bangbang: ")
+	buffer.WriteString("*Cross chain ETH balance check failed*\n")
 	buffer.WriteString(fmt.Sprintf("• database id: %d\n", message.ID))
 	buffer.WriteString(fmt.Sprintf("• token type: %s\n", types.TokenType(message.TokenType).String()))
 	buffer.WriteString(fmt.Sprintf("• l1 event type: %s\n", types.EventType(message.L1EventType).String()))
