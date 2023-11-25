@@ -203,9 +203,9 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer
 
 	var assignmentColumn clause.Set
 	if layer == types.Layer1 {
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type, l1_event_type", "l1_token_ids", "l1_amounts"})
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_token_ids", "l1_amounts"})
 	} else if layer == types.Layer2 {
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type, l2_event_type", "l2_token_ids", "l2_amounts"})
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_token_ids", "l2_amounts"})
 	}
 
 	db = db.Clauses(clause.OnConflict{
