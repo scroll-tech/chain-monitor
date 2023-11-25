@@ -8,6 +8,7 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/scroll-tech/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
@@ -48,12 +49,12 @@ func action(ctx *cli.Context) error {
 		log.Crit("failed to connect to db", "err", err)
 	}
 
-	l1Client, err := ethclient.Dial(cfg.L1Config.L1URL)
+	l1Client, err := rpc.Dial(cfg.L1Config.L1URL)
 	if err != nil {
 		log.Crit("failed to connect to l1 geth", "l1 geth url", cfg.L1Config.L1URL, "err", err)
 	}
 
-	l2Client, err := ethclient.Dial(cfg.L2Config.L2URL)
+	l2Client, err := rpc.Dial(cfg.L2Config.L2URL)
 	if err != nil {
 		log.Crit("failed to connect to l2 geth", "l2 geth url", cfg.L2Config.L2URL, "err", err)
 	}
@@ -64,7 +65,7 @@ func action(ctx *cli.Context) error {
 	contractCtl := controller.NewContractController(cfg, db, l1Client, l2Client)
 	go contractCtl.Watch(subCtx)
 
-	crossChainCtl := controller.NewCrossChainController(cfg, db, l1Client, l2Client)
+	crossChainCtl := controller.NewCrossChainController(cfg, db, ethclient.NewClient(l1Client), ethclient.NewClient(l2Client))
 	go crossChainCtl.Watch(subCtx)
 
 	defer func() {

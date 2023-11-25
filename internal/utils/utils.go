@@ -10,8 +10,9 @@ import (
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/crypto"
 	"github.com/scroll-tech/go-ethereum/ethclient"
-	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/scroll-tech/go-ethereum/rpc"
+	"golang.org/x/sync/errgroup"
+	"modernc.org/mathutil"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/il2scrollmessenger"
 )
@@ -71,15 +72,33 @@ func GetLatestConfirmedBlockNumber(ctx context.Context, client *ethclient.Client
 }
 
 // GetL2WithdrawRootsInRange gets batch withdraw roots within a block range (inclusive) from the geth node.
-func GetL2WithdrawRootsInRange(ctx context.Context, cli *ethclient.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
-	withdrawRootsMap := make(map[uint64]common.Hash)
-	for number := startBlockNumber; number <= endBlockNumber; number++ {
-		withdrawRoot, err := cli.StorageAt(ctx, queueAddr, common.Hash{}, new(big.Int).SetUint64(number))
-		if err != nil {
-			log.Error("failed to get withdraw root", "addr", queueAddr, "number", number, "err", err)
-			return nil, err
+func GetL2WithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
+	numbers := endBlockNumber - startBlockNumber + 1
+	withdrawRoots := make([][]byte, numbers)
+	reqs := make([]rpc.BatchElem, numbers)
+	for i := startBlockNumber; i <= endBlockNumber; i++ {
+		n := big.NewInt(0).SetUint64(i + startBlockNumber)
+		reqs[i-startBlockNumber] = rpc.BatchElem{
+			Method: "eth_getStorageAt",
+			Args:   []interface{}{queueAddr, common.Hash{}, n},
+			Result: &withdrawRoots[i-startBlockNumber],
 		}
-		withdrawRootsMap[number] = common.BytesToHash(withdrawRoot)
+	}
+	parallels := 8
+	eg := errgroup.Group{}
+	eg.SetLimit(parallels)
+	for i := 0; i < int(numbers); i += parallels {
+		start := i
+		eg.Go(func() error {
+			return cli.BatchCallContext(ctx, reqs[start:mathutil.Min(start+parallels, len(reqs))])
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	withdrawRootsMap := make(map[uint64]common.Hash)
+	for i, withdrawRoot := range withdrawRoots {
+		withdrawRootsMap[startBlockNumber+uint64(i)] = common.BytesToHash(withdrawRoot)
 	}
 	return withdrawRootsMap, nil
 }

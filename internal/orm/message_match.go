@@ -163,15 +163,15 @@ func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context,
 	return &message, nil
 }
 
-// GetMessageMatchByL2BlockNumber fetches the message match record by L2 block number with the maximum id.
-func (m *MessageMatch) GetMessageMatchByL2BlockNumber(ctx context.Context, blockNumber uint64) (*MessageMatch, error) {
+// GetLargestMessageNonceMessageMatch fetches the message match record by L2 block number with the maximum MessageNonce.
+func (m *MessageMatch) GetLargestMessageNonceMessageMatch(ctx context.Context, blockNumber uint64) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
-	db = db.Where("l2_block_number = ?", blockNumber)
-	err := db.Last(&message).Error
+	db = db.Order("message_nonce DESC")
+	err := db.First(&message).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warn("GetMessageMatchByL2BlockNumber failed", "block number", blockNumber, "error", err)
-		return nil, fmt.Errorf("GetMessageMatchByL2BlockNumber failed, block number:%v, err:%w", blockNumber, err)
+		log.Warn("GetLargestMessageNonceMessageMatch failed", "block number", blockNumber, "error", err)
+		return nil, fmt.Errorf("GetLargestMessageNonceMessageMatch failed, block number:%v, err:%w", blockNumber, err)
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil

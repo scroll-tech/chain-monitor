@@ -68,7 +68,7 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
 	if startBlockNumber > 1 {
-		msg, err := c.messageMatchOrm.GetMessageMatchByL2BlockNumber(ctx, startBlockNumber-1)
+		msg, err := c.messageMatchOrm.GetLargestMessageNonceMessageMatch(ctx, startBlockNumber-1)
 		if err != nil {
 			return err
 		}
