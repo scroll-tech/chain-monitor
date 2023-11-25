@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -77,7 +78,7 @@ func (c *ContractController) Watch(ctx context.Context) {
 
 	log.Info("contract controller start successful")
 
-	//go c.watcherStart(ctx, c.l1Client, types.Layer1, c.conf.L1Config.Confirm)
+	// go c.watcherStart(ctx, c.l1Client, types.Layer1, c.conf.L1Config.Confirm)
 	go c.watcherStart(ctx, c.l2Client, types.Layer2, c.conf.L2Config.Confirm)
 }
 
