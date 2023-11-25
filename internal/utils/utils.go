@@ -7,6 +7,7 @@ import (
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi"
 	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/common/hexutil"
 	"github.com/scroll-tech/go-ethereum/core/types"
 	"github.com/scroll-tech/go-ethereum/crypto"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -74,13 +75,13 @@ func GetLatestConfirmedBlockNumber(ctx context.Context, client *ethclient.Client
 // GetL2WithdrawRootsInRange gets batch withdraw roots within a block range (inclusive) from the geth node.
 func GetL2WithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
 	numbers := endBlockNumber - startBlockNumber + 1
-	withdrawRoots := make([][]byte, numbers)
+	withdrawRoots := make([]common.Hash, numbers)
 	reqs := make([]rpc.BatchElem, numbers)
 	for i := startBlockNumber; i <= endBlockNumber; i++ {
-		n := big.NewInt(0).SetUint64(i + startBlockNumber)
+		n := big.NewInt(0).SetUint64(i)
 		reqs[i-startBlockNumber] = rpc.BatchElem{
 			Method: "eth_getStorageAt",
-			Args:   []interface{}{queueAddr, common.Hash{}, n},
+			Args:   []interface{}{queueAddr, common.Hash{}, hexutil.EncodeBig(n)},
 			Result: &withdrawRoots[i-startBlockNumber],
 		}
 	}
@@ -89,8 +90,9 @@ func GetL2WithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr c
 	eg.SetLimit(parallels)
 	for i := 0; i < int(numbers); i += parallels {
 		start := i
+		end := mathutil.Min(start+parallels, len(reqs))
 		eg.Go(func() error {
-			return cli.BatchCallContext(ctx, reqs[start:mathutil.Min(start+parallels, len(reqs))])
+			return cli.BatchCallContext(ctx, reqs[start:end])
 		})
 	}
 	if err := eg.Wait(); err != nil {
@@ -98,7 +100,7 @@ func GetL2WithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr c
 	}
 	withdrawRootsMap := make(map[uint64]common.Hash)
 	for i, withdrawRoot := range withdrawRoots {
-		withdrawRootsMap[startBlockNumber+uint64(i)] = common.BytesToHash(withdrawRoot)
+		withdrawRootsMap[startBlockNumber+uint64(i)] = withdrawRoot
 	}
 	return withdrawRootsMap, nil
 }
