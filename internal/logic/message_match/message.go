@@ -2,6 +2,7 @@ package messagematch
 
 import (
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 
@@ -48,4 +49,29 @@ func (t *LogicMessageMatch) GetLatestBlockNumber(ctx context.Context, layer type
 	}
 
 	return number, nil
+}
+
+// InsertOrUpdateMessageMatches insert or update the gateway/messenger event info
+func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, layer types.LayerType, messengerMessageMatches []orm.MessageMatch) error {
+	var effectRows int64
+	for _, message := range messengerMessageMatches {
+		if message.TokenType == int(types.TokenTypeETH) {
+			effectRow, err := t.messageMatchOrm.InsertOrUpdateETHEventInfo(ctx, message)
+			if err != nil {
+				return fmt.Errorf("messenger event orm insert failed, err: %w", err)
+			}
+			effectRows += effectRow
+		} else {
+			effectRow, err := t.messageMatchOrm.InsertOrUpdateGatewayEventInfo(ctx, layer, message)
+			if err != nil {
+				return fmt.Errorf("gateway event orm insert failed, err: %w, layer:%s", err, layer.String())
+			}
+			effectRows += effectRow
+		}
+	}
+
+	if int(effectRows) != len(messengerMessageMatches) {
+		return fmt.Errorf("messenger event orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(messengerMessageMatches))
+	}
+	return nil
 }

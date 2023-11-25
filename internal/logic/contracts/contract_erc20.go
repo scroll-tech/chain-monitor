@@ -179,11 +179,6 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 		return nil, err
 	}
 
-	tokenAddressMap := make(map[common.Address]struct{})
-	for _, token := range l.l2Contracts.erc20GatewayTokens {
-		tokenAddressMap[token.address] = struct{}{}
-	}
-
 	var transferEvents []events.EventUnmarshaler
 	for _, vLog := range logs {
 		event := iscrollerc20.Iscrollerc20Transfer{}
@@ -192,12 +187,7 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 			continue
 		}
 
-		// weth burn and mint.
-		if vLog.Address == l.l2Contracts.WETHGatewayAddress && event.From == common.HexToAddress("0x0") || event.To == common.HexToAddress("0x0") {
-			continue
-		}
-
-		if _, ok := tokenAddressMap[event.From]; ok {
+		if event.From == common.HexToAddress("0x0") {
 			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
 				Amount:       new(big.Int).Neg(event.Value),
 				TokenAddress: vLog.Address,
@@ -207,7 +197,7 @@ func (l *Contracts) getL2Erc20GatewayTransfer(ctx context.Context, startBlockNum
 			})
 		}
 
-		if _, ok := tokenAddressMap[event.To]; ok {
+		if event.To == common.HexToAddress("0x0") {
 			transferEvents = append(transferEvents, &events.ERC20GatewayEventUnmarshaler{
 				Amount:       event.Value,
 				TokenAddress: vLog.Address,

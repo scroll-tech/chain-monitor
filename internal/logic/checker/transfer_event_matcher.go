@@ -110,6 +110,9 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				MessageHash:  transferMatcherValue.messageHash,
 			}
 			if !exists {
+				if transferMatcherValue.balance.Cmp(big.NewInt(0)) > 0 {
+					continue
+				}
 				info.Error = transferEventDontHaveGatewayEvent
 			} else {
 				info.Error = transferEventBalanceMismatchGatewayEvent
@@ -224,6 +227,9 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 				MessageHash:  transferMatcherValue.messageHash,
 			}
 			if !exists {
+				if transferMatcherValue.balance.Cmp(big.NewInt(0)) > 0 {
+					continue
+				}
 				info.Error = transferEventDontHaveGatewayEvent
 			} else {
 				info.Error = transferEventBalanceMismatchGatewayEvent
@@ -337,6 +343,9 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				MessageHash:  transferMatcherValue.messageHash,
 			}
 			if !exists {
+				if transferMatcherValue.balance.Cmp(big.NewInt(0)) > 0 {
+					continue
+				}
 				info.Error = transferEventDontHaveGatewayEvent
 			} else {
 				info.Error = transferEventBalanceMismatchGatewayEvent
