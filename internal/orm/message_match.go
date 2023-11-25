@@ -290,9 +290,9 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 	var err error
 	switch layerType {
 	case types.Layer1:
-		err = db.Update("l1_cross_chain_status", status).Error
+		err = db.Updates(map[string]interface{}{"l1_cross_chain_status": status, "check_status": types.CheckStatusChecked}).Error
 	case types.Layer2:
-		err = db.Update("l2_cross_chain_status", status).Error
+		err = db.Updates(map[string]interface{}{"l2_cross_chain_status": status, "check_status": types.CheckStatusChecked}).Error
 	}
 
 	if err != nil {
