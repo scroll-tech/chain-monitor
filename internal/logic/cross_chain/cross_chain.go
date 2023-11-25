@@ -47,9 +47,9 @@ func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1Mes
 
 // CheckCrossChainGatewayMessage is a method for checking cross-chain messages.
 func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, layerType types.LayerType) {
-	messages, err := c.messageOrm.GetUncheckedLatestGatewayMessageMatch(ctx, 1000)
+	messages, err := c.messageOrm.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs(ctx, 1000)
 	if err != nil {
-		log.Error("CheckCrossChainGatewayMessage.GetUncheckedLatestGatewayMessageMatch failed", "error", err)
+		log.Error("CheckCrossChainGatewayMessage.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs failed", "error", err)
 		return
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/go-ethereum/log"
 )
 
 // CrossEventMatcher is a utility struct used for verifying the consistency of events across different blockchain layers (L1 and L2).
@@ -47,7 +48,7 @@ func (c *CrossEventMatcher) checkL1EventAndAmountMatchL2(messageMatch orm.Messag
 	}
 
 	if !c.crossChainAmountMatch(messageMatch) {
-		return types.MismatchTypeL1MountNotMatch
+		return types.MismatchTypeL1AmountNotMatch
 	}
 
 	return types.MismatchTypeValid
@@ -86,7 +87,7 @@ func (c *CrossEventMatcher) checkL2EventAndAmountMatchL1(messageMatch orm.Messag
 	}
 
 	if !c.crossChainAmountMatch(messageMatch) {
-		return types.MismatchTypeL2MountNotMatch
+		return types.MismatchTypeL2AmountNotMatch
 	}
 
 	return types.MismatchTypeValid
@@ -117,7 +118,7 @@ func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) b
 		return false
 	}
 
-	return c.crossChainAmountMatch(messageMatch)
+	return true
 }
 
 // crossChainAmountMatch checks if the amounts and token IDs match for cross-chain events.
@@ -130,6 +131,7 @@ func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch)
 		for _, l1AmountSplit := range l1AmountSplits {
 			l1Amount, ok := new(big.Int).SetString(l1AmountSplit, 0)
 			if !ok {
+				log.Error("failed to parse l1AmountSplit", "l1AmountSplit", l1AmountSplit)
 				return false
 			}
 			l1Amounts = append(l1Amounts, l1Amount)
@@ -141,6 +143,7 @@ func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch)
 		for _, l1TokenIDSplit := range l1TokenIDSplits {
 			l1Token, ok := new(big.Int).SetString(l1TokenIDSplit, 0)
 			if !ok {
+				log.Error("failed to parse l1TokenIDSplit", "l1TokenIDSplit", l1TokenIDSplit)
 				return false
 			}
 			l1TokenIds = append(l1TokenIds, l1Token)
@@ -152,6 +155,7 @@ func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch)
 		for _, l2AmountSplit := range l2AmountSplits {
 			l2Amount, ok := new(big.Int).SetString(l2AmountSplit, 0)
 			if !ok {
+				log.Error("failed to parse l2AmountSplit", "l2AmountSplit", l2AmountSplit)
 				return false
 			}
 			l2Amounts = append(l2Amounts, l2Amount)
@@ -163,6 +167,7 @@ func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch)
 		for _, l2TokenIDSplit := range l2TokenIDSplits {
 			l2TokenID, ok := new(big.Int).SetString(l2TokenIDSplit, 0)
 			if !ok {
+				log.Error("failed to parse l2TokenIDSplit", "l2TokenIDSplit", l2TokenIDSplit)
 				return false
 			}
 			l2TokenIds = append(l2TokenIds, l2TokenID)
@@ -170,34 +175,45 @@ func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch)
 	}
 
 	switch types.TokenType(messageMatch.TokenType) {
-	case types.TokenTypeERC20, types.TokenTypeETH:
-		return len(messageMatch.L1Amounts) == len(messageMatch.L2Amounts) &&
-			len(messageMatch.L2Amounts) == 1 && messageMatch.L1Amounts[0] == messageMatch.L2Amounts[0]
+	case types.TokenTypeETH, types.TokenTypeERC20:
+		if len(l1Amounts) != len(l2Amounts) || len(l1Amounts) != 1 {
+			log.Error("invalid amounts length", "len l1Amounts", len(l1Amounts), "len l2Amounts", len(l2Amounts))
+			return false
+		}
+		if l1Amounts[0].Cmp(l2Amounts[0]) != 0 {
+			log.Error("mismatch in ETH/ERC20 L1 and L2 token amounts.", "l1Amount", l1Amounts[0], "l2Amount", l2Amounts[0])
+			return false
+		}
 	case types.TokenTypeERC721:
 		if len(l1TokenIds) != len(l2TokenIds) {
+			log.Error("mismatch in ERC721 L1 and L2 token IDs length")
 			return false
 		}
 		for l1Idx, l1TokenID := range l1TokenIds {
 			l2TokenID := l2TokenIds[l1Idx]
-			if l1TokenID != l2TokenID {
+			if l1TokenID.Cmp(l2TokenID) != 0 {
+				log.Error("mismatch in ERC721 token IDs", "l1TokenID", l1TokenID, "l2TokenID", l2TokenID)
 				return false
 			}
 		}
 	case types.TokenTypeERC1155:
 		if len(l1TokenIds) != len(l2TokenIds) || len(l1Amounts) != len(l2Amounts) || len(l1TokenIds) != len(l1Amounts) {
+			log.Error("mismatch in ERC1155 token IDs or amounts length")
 			return false
 		}
 		for l1TokenIdx, l1TokenID := range l1TokenIds {
 			l2TokenID := l2TokenIds[l1TokenIdx]
-			if l1TokenID != l2TokenID {
+			if l1TokenID.Cmp(l2TokenID) != 0 {
+				log.Error("mismatch in ERC1155 token IDs", "l1TokenID", l1TokenID, "l2TokenID", l2TokenID)
 				return false
 			}
 			l1Amount := l1Amounts[l1TokenIdx]
 			l2Amount := l2Amounts[l1TokenIdx]
-			if l1Amount != l2Amount {
+			if l1Amount.Cmp(l2Amount) != 0 {
+				log.Error("ismatch in ERC1155 token amounts", "l1Amount", l1Amount, "l2Amount", l2Amount)
 				return false
 			}
 		}
 	}
-	return false
+	return true
 }
