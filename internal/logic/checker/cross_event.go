@@ -210,7 +210,7 @@ func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch)
 			l1Amount := l1Amounts[l1TokenIdx]
 			l2Amount := l2Amounts[l1TokenIdx]
 			if l1Amount.Cmp(l2Amount) != 0 {
-				log.Error("ismatch in ERC1155 token amounts", "l1Amount", l1Amount, "l2Amount", l2Amount)
+				log.Error("mismatch in ERC1155 token amounts", "l1Amount", l1Amount, "l2Amount", l2Amount)
 				return false
 			}
 		}
