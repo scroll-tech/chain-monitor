@@ -66,16 +66,19 @@ func (*MessageMatch) TableName() string {
 	return "message_match"
 }
 
-// GetUncheckedLatestGatewayMessageMatch get the latest uncheck gateway message match record
-func (m *MessageMatch) GetUncheckedLatestGatewayMessageMatch(ctx context.Context, limit int) ([]MessageMatch, error) {
+// GetUncheckedAndDoubleLayerValidGatewayMessageMatchs retrieves the earliest unchecked gateway message match records
+// that are valid in both Layer1 and Layer2.
+func (m *MessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatchs(ctx context.Context, limit int) ([]MessageMatch, error) {
 	var messages []MessageMatch
 	db := m.db.WithContext(ctx)
+	db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
+	db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
 	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
 	db = db.Order("id asc")
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
-		log.Warn("MessageMatch.GetUncheckedLatestGatewayMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetUncheckedLatestGatewayMessageMatch failed err:%w", err)
+		log.Warn("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs failed err:%w", err)
 	}
 	return messages, nil
 }
@@ -182,6 +185,9 @@ func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context)
 
 // InsertOrUpdateMsgProofNonce insert or update the withdrawal tree root's message proof and nonce
 func (m *MessageMatch) InsertOrUpdateMsgProofNonce(ctx context.Context, messages []MessageMatch) (int64, error) {
+	if len(messages) == 0 {
+		return 0, nil
+	}
 	db := m.db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
 	db = db.Clauses(clause.OnConflict{
@@ -284,9 +290,9 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 	var err error
 	switch layerType {
 	case types.Layer1:
-		err = db.Update("l1_cross_chain_status", status).Error
+		err = db.Updates(map[string]interface{}{"l1_cross_chain_status": status, "check_status": types.CheckStatusChecked}).Error
 	case types.Layer2:
-		err = db.Update("l2_cross_chain_status", status).Error
+		err = db.Updates(map[string]interface{}{"l2_cross_chain_status": status, "check_status": types.CheckStatusChecked}).Error
 	}
 
 	if err != nil {

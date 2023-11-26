@@ -14,8 +14,8 @@ const (
 	MismatchTypeL1EventNotMatch
 	// MismatchTypeL2EventNotMatch represents a mismatch where the Layer 2 event does not match the Layer 1 event.
 	MismatchTypeL2EventNotMatch
-	// MismatchTypeL1MountNotMatch represents a mismatch where the layer1 amount does not match the Layer 2
-	MismatchTypeL1MountNotMatch
-	// MismatchTypeL2MountNotMatch represents a mismatch where the layer2 amount does not match the Layer 1
-	MismatchTypeL2MountNotMatch
+	// MismatchTypeL1AmountNotMatch represents a mismatch where the layer1 amount does not match the Layer 2
+	MismatchTypeL1AmountNotMatch
+	// MismatchTypeL2AmountNotMatch represents a mismatch where the layer2 amount does not match the Layer 1
+	MismatchTypeL2AmountNotMatch
 )

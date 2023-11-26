@@ -12,13 +12,13 @@ func _() {
 	_ = x[MismatchTypeValid-1]
 	_ = x[MismatchTypeL1EventNotMatch-2]
 	_ = x[MismatchTypeL2EventNotMatch-3]
-	_ = x[MismatchTypeL1MountNotMatch-4]
-	_ = x[MismatchTypeL2MountNotMatch-5]
+	_ = x[MismatchTypeL1AmountNotMatch-4]
+	_ = x[MismatchTypeL2AmountNotMatch-5]
 }
 
-const _MismatchType_name = "MismatchTypeUnknownMismatchTypeValidMismatchTypeL1EventNotMatchMismatchTypeL2EventNotMatchMismatchTypeL1MountNotMatchMismatchTypeL2MountNotMatch"
+const _MismatchType_name = "MismatchTypeUnknownMismatchTypeValidMismatchTypeL1EventNotMatchMismatchTypeL2EventNotMatchMismatchTypeL1AmountNotMatchMismatchTypeL2AmountNotMatch"
 
-var _MismatchType_index = [...]uint8{0, 19, 36, 63, 90, 117, 144}
+var _MismatchType_index = [...]uint8{0, 19, 36, 63, 90, 118, 146}
 
 func (i MismatchType) String() string {
 	if i < 0 || i >= MismatchType(len(_MismatchType_index)-1) {
