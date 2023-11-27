@@ -202,8 +202,13 @@ func (m *MessageMatch) InsertOrUpdateMsgProofNonce(ctx context.Context, messages
 }
 
 // InsertOrUpdateGatewayEventInfo insert or update eth event info
-func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer types.LayerType, messages MessageMatch) (int64, error) {
-	db := m.db.WithContext(ctx)
+func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer types.LayerType, messages MessageMatch, dbTX ...*gorm.DB) (int64, error) {
+	db := m.db
+	if len(dbTX) > 0 && dbTX[0] != nil {
+		db = dbTX[0]
+	}
+
+	db = db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
 
 	var assignmentColumn clause.Set
@@ -226,8 +231,13 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer
 }
 
 // InsertOrUpdateETHEventInfo insert or update the eth event info
-func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, message MessageMatch) (int64, error) {
-	db := m.db.WithContext(ctx)
+func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, message MessageMatch, dbTX ...*gorm.DB) (int64, error) {
+	db := m.db
+	if len(dbTX) > 0 && dbTX[0] != nil {
+		db = dbTX[0]
+	}
+
+	db = db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
 	var columns []string
 	if message.L1EventType != 0 && message.L1EventType == int(types.L1SentMessage) {
