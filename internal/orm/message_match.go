@@ -172,7 +172,6 @@ func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context)
 	db := m.db.WithContext(ctx)
 	db = db.Where("message_nonce > ?", 0)
 	db = db.Order("message_nonce DESC")
-	db = db.Order("id DESC")
 	err := db.First(&message).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
