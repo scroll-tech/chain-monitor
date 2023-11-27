@@ -99,7 +99,7 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				balance:     common.Big0,
 			}
 		}
-		transferBalances[key].balance.Add(transferBalances[k].balance, event.Amount)
+		transferBalances[key].balance.Add(transferBalances[key].balance, event.Amount)
 	}
 
 	for transferMatcherKey, transferMatcherValue := range transferBalances {
