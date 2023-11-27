@@ -57,49 +57,56 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 	transferBalances := make(map[erc20MatcherKey]matcherValue)
 	gatewayBalances := make(map[erc20MatcherKey]matcherValue)
 
-	for _, event := range transferEvents {
-		k := erc20MatcherKey{
-			tokenAddress: event.TokenAddress,
-			txHash:       event.TxHash,
-		}
-		if _, exists := transferBalances[k]; !exists {
-			transferBalances[k] = matcherValue{
-				tokenType:   types.TokenTypeERC20,
-				layer:       event.Layer,
-				eventType:   event.Type,
-				blockNumber: event.Number,
-				messageHash: event.MessageHash,
-				balance:     common.Big0,
-			}
-		}
-		transferBalances[k].balance.Add(transferBalances[k].balance, event.Amount)
-	}
-
 	for _, event := range gatewayEvents {
-		k := erc20MatcherKey{
+		key := erc20MatcherKey{
 			tokenAddress: event.TokenAddress,
 			txHash:       event.TxHash,
 		}
-		if _, exists := gatewayBalances[k]; !exists {
-			gatewayBalances[k] = matcherValue{
+		if _, exists := gatewayBalances[key]; !exists {
+			gatewayBalances[key] = matcherValue{
 				tokenType:   types.TokenTypeERC20,
 				layer:       event.Layer,
 				eventType:   event.Type,
 				blockNumber: event.Number,
 				messageHash: event.MessageHash,
-				balance:     common.Big0,
+				balance:     big.NewInt(0),
 			}
 		}
 		if event.Type == types.L1DepositERC20 || event.Type == types.L2WithdrawERC20 {
-			gatewayBalances[k].balance.Add(gatewayBalances[k].balance, event.Amount)
+			gatewayBalances[key].balance.Add(gatewayBalances[key].balance, event.Amount)
 		} else if event.Type == types.L2FinalizeDepositERC20 || event.Type == types.L1FinalizeWithdrawERC20 || event.Type == types.L1RefundERC20 {
-			gatewayBalances[k].balance.Sub(gatewayBalances[k].balance, event.Amount)
+			gatewayBalances[key].balance.Sub(gatewayBalances[key].balance, event.Amount)
 		}
+	}
+
+	for _, event := range transferEvents {
+		key := erc20MatcherKey{
+			tokenAddress: event.TokenAddress,
+			txHash:       event.TxHash,
+		}
+		// filter airdrop Transfers.
+		_, exists := gatewayBalances[key]
+		if !exists && event.Amount.Sign() >= 0 {
+			continue
+		}
+		if _, exists := transferBalances[key]; !exists {
+			transferBalances[key] = matcherValue{
+				tokenType:   types.TokenTypeERC20,
+				layer:       event.Layer,
+				eventType:   event.Type,
+				blockNumber: event.Number,
+				messageHash: event.MessageHash,
+				balance:     big.NewInt(0),
+			}
+		}
+		transferBalances[key].balance.Add(transferBalances[key].balance, event.Amount)
 	}
 
 	for transferMatcherKey, transferMatcherValue := range transferBalances {
 		gatewayMatcherValue, exists := gatewayBalances[transferMatcherKey]
-		if !exists || transferMatcherValue.balance.Cmp(gatewayMatcherValue.balance) != 0 {
+		// If the corresponding Transfer does not exist,
+		// or if the tokens of Transfer events < the difference of tokens in gateway events (more tokens out).
+		if !exists || transferMatcherValue.balance.Cmp(gatewayMatcherValue.balance) < 0 {
 			info := slack.GatewayTransferInfo{
 				TokenAddress:    transferMatcherKey.tokenAddress,
 				TokenType:       transferMatcherValue.tokenType,
@@ -111,8 +118,8 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				TransferBalance: transferMatcherValue.balance,
 			}
 			if !exists {
-				// Ignore additional Transfer events in Layer2 and transfers to gateways in Layer1.
-				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() >= 0 {
+				// Ignore additional Transfer events in Layer2.
+				if info.Layer == types.Layer2 {
 					continue
 				}
 				info.Error = transferEventDontHaveGatewayEvent
@@ -128,7 +135,9 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 
 	for gatewayMatcherKey, gatewayMatcherValue := range gatewayBalances {
 		transferMatcherValue, exists := transferBalances[gatewayMatcherKey]
-		if !exists || gatewayMatcherValue.balance.Cmp(transferMatcherValue.balance) != 0 {
+		// If the corresponding Transfer does not exist,
+		// or if the tokens of Transfer events < the difference of tokens in gateway events (more tokens out).
+		if !exists || gatewayMatcherValue.balance.Cmp(transferMatcherValue.balance) > 0 {
 			info := slack.GatewayTransferInfo{
 				TokenAddress:   gatewayMatcherKey.tokenAddress,
 				TokenType:      gatewayMatcherValue.tokenType,
@@ -157,31 +166,6 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 	transferTokenIds := make(map[erc721MatchKey]matcherValue)
 	gatewayTokenIds := make(map[erc721MatchKey]matcherValue)
 
-	for _, event := range transferEvents {
-		if len(event.TokenIds) != len(event.Amounts) {
-			return fmt.Errorf("erc721 transfer event tokenIds and amounts not match, %v", event)
-		}
-
-		for idx, tokenID := range event.TokenIds {
-			key := erc721MatchKey{
-				tokenAddress: event.TokenAddress,
-				tokenID:      tokenID,
-				txHash:       event.TxHash,
-			}
-			if _, exists := transferTokenIds[key]; !exists {
-				transferTokenIds[key] = matcherValue{
-					tokenType:   types.TokenTypeERC721,
-					layer:       event.Layer,
-					eventType:   event.Type,
-					blockNumber: event.Number,
-					messageHash: event.MessageHash,
-					balance:     common.Big0,
-				}
-			}
-			transferTokenIds[key].balance.Add(transferTokenIds[key].balance, event.Amounts[idx])
-		}
-	}
-
 	for _, event := range gatewayEvents {
 		if len(event.TokenIds) != len(event.Amounts) {
 			return fmt.Errorf("erc1155 gateway event tokenIds and amounts not match, %v", event)
@@ -201,7 +185,7 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 					eventType:   event.Type,
 					blockNumber: event.Number,
 					messageHash: event.MessageHash,
-					balance:     common.Big0,
+					balance:     big.NewInt(0),
 				}
 			}
 
@@ -215,9 +199,41 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 		}
 	}
 
+	for _, event := range transferEvents {
+		if len(event.TokenIds) != len(event.Amounts) {
+			return fmt.Errorf("erc721 transfer event tokenIds and amounts not match, %v", event)
+		}
+
+		for idx, tokenID := range event.TokenIds {
+			key := erc721MatchKey{
+				tokenAddress: event.TokenAddress,
+				tokenID:      tokenID,
+				txHash:       event.TxHash,
+			}
+			// filter airdrop Transfers.
+			_, exists := gatewayTokenIds[key]
+			if !exists && event.Amounts[idx].Sign() >= 0 {
+				continue
+			}
+			if _, exists := transferTokenIds[key]; !exists {
+				transferTokenIds[key] = matcherValue{
+					tokenType:   types.TokenTypeERC721,
+					layer:       event.Layer,
+					eventType:   event.Type,
+					blockNumber: event.Number,
+					messageHash: event.MessageHash,
+					balance:     big.NewInt(0),
+				}
+			}
+			transferTokenIds[key].balance.Add(transferTokenIds[key].balance, event.Amounts[idx])
+		}
+	}
+
 	for transferMatcherKey, transferMatcherValue := range transferTokenIds {
 		gatewayMatcherValue, exists := gatewayTokenIds[transferMatcherKey]
-		if !exists || transferMatcherValue.balance.Cmp(gatewayMatcherValue.balance) != 0 {
+		// If the corresponding Transfer does not exist,
+		// or if the tokens of Transfer events < the difference of tokens in gateway events (more tokens out).
+		if !exists || transferMatcherValue.balance.Cmp(gatewayMatcherValue.balance) < 0 {
 			info := slack.GatewayTransferInfo{
 				TokenAddress:    transferMatcherKey.tokenAddress,
 				TokenType:       transferMatcherValue.tokenType,
@@ -229,8 +245,8 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 				TransferBalance: transferMatcherValue.balance,
 			}
 			if !exists {
-				// Ignore additional Transfer events in Layer2 and transfers to gateways in Layer1.
-				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() >= 0 {
+				// Ignore additional Transfer events in Layer2.
+				if info.Layer == types.Layer2 {
 					continue
 				}
 				info.Error = transferEventDontHaveGatewayEvent
@@ -246,7 +262,9 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 
 	for gatewayMatcherKey, gatewayMatcherValue := range gatewayTokenIds {
 		transferMatcherValue, exists := transferTokenIds[gatewayMatcherKey]
-		if !exists || gatewayMatcherValue.balance.Cmp(transferMatcherValue.balance) != 0 {
+		// If the corresponding Transfer does not exist,
+		// or if the tokens of Transfer events < the difference of tokens in gateway events (more tokens out).
+		if !exists || gatewayMatcherValue.balance.Cmp(transferMatcherValue.balance) > 0 {
 			info := slack.GatewayTransferInfo{
 				TokenAddress:   gatewayMatcherKey.tokenAddress,
 				TokenType:      gatewayMatcherValue.tokenType,
@@ -276,31 +294,6 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 	transferTokenIds := make(map[erc1155MatchKey]matcherValue)
 	gatewayTokenIds := make(map[erc1155MatchKey]matcherValue)
 
-	for _, event := range transferEvents {
-		if len(event.TokenIds) != len(event.Amounts) {
-			return fmt.Errorf("erc1155 transfer event tokenIds and amounts not match, %v", event)
-		}
-
-		for idx, tokenID := range event.TokenIds {
-			key := erc1155MatchKey{
-				tokenAddress: event.TokenAddress,
-				tokenID:      tokenID,
-				txHash:       event.TxHash,
-			}
-			if _, exists := transferTokenIds[key]; !exists {
-				transferTokenIds[key] = matcherValue{
-					tokenType:   types.TokenTypeERC1155,
-					layer:       event.Layer,
-					eventType:   event.Type,
-					blockNumber: event.Number,
-					messageHash: event.MessageHash,
-					balance:     common.Big0,
-				}
-			}
-			transferTokenIds[key].balance.Add(transferTokenIds[key].balance, event.Amounts[idx])
-		}
-	}
-
 	for _, event := range gatewayEvents {
 		if len(event.TokenIds) != len(event.Amounts) {
 			return fmt.Errorf("erc1155 gateway event tokenIds and amounts not match, %v", event)
@@ -319,7 +312,7 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				eventType:   event.Type,
 				blockNumber: event.Number,
 				messageHash: event.MessageHash,
-				balance:     common.Big0,
+				balance:     big.NewInt(0),
 			}
 
 			if event.Type == types.L1DepositERC1155 || event.Type == types.L2WithdrawERC1155 ||
@@ -332,9 +325,41 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 		}
 	}
 
+	for _, event := range transferEvents {
+		if len(event.TokenIds) != len(event.Amounts) {
+			return fmt.Errorf("erc1155 transfer event tokenIds and amounts not match, %v", event)
+		}
+
+		for idx, tokenID := range event.TokenIds {
+			key := erc1155MatchKey{
+				tokenAddress: event.TokenAddress,
+				tokenID:      tokenID,
+				txHash:       event.TxHash,
+			}
+			// filter airdrop Transfers.
+			_, exists := gatewayTokenIds[key]
+			if !exists && event.Amounts[idx].Sign() >= 0 {
+				continue
+			}
+			if _, exists := transferTokenIds[key]; !exists {
+				transferTokenIds[key] = matcherValue{
+					tokenType:   types.TokenTypeERC1155,
+					layer:       event.Layer,
+					eventType:   event.Type,
+					blockNumber: event.Number,
+					messageHash: event.MessageHash,
+					balance:     big.NewInt(0),
+				}
+			}
+			transferTokenIds[key].balance.Add(transferTokenIds[key].balance, event.Amounts[idx])
+		}
+	}
+
 	for transferMatcherKey, transferMatcherValue := range transferTokenIds {
 		gatewayMatcherValue, exists := gatewayTokenIds[transferMatcherKey]
-		if !exists || transferMatcherValue.balance.Cmp(gatewayMatcherValue.balance) != 0 {
+		// If the corresponding Transfer does not exist,
+		// or if the tokens of Transfer events < the difference of tokens in gateway events (more tokens out).
+		if !exists || transferMatcherValue.balance.Cmp(gatewayMatcherValue.balance) < 0 {
 			info := slack.GatewayTransferInfo{
 				TokenAddress:    transferMatcherKey.tokenAddress,
 				TokenType:       transferMatcherValue.tokenType,
@@ -346,8 +371,8 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				TransferBalance: transferMatcherValue.balance,
 			}
 			if !exists {
-				// Ignore additional Transfer events in Layer2 and transfers to gateways in Layer1.
-				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() >= 0 {
+				// Ignore additional Transfer events in Layer2.
+				if info.Layer == types.Layer2 {
 					continue
 				}
 				info.Error = transferEventDontHaveGatewayEvent
@@ -363,7 +388,9 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 
 	for gatewayMatcherKey, gatewayMatcherValue := range gatewayTokenIds {
 		transferMatcherValue, exists := transferTokenIds[gatewayMatcherKey]
-		if !exists || gatewayMatcherValue.balance.Cmp(transferMatcherValue.balance) != 0 {
+		// If the corresponding Transfer does not exist,
+		// or if the tokens of Transfer events < the difference of tokens in gateway events (more tokens out).
+		if !exists || gatewayMatcherValue.balance.Cmp(transferMatcherValue.balance) > 0 {
 			info := slack.GatewayTransferInfo{
 				TokenAddress:   gatewayMatcherKey.tokenAddress,
 				TokenType:      gatewayMatcherValue.tokenType,
