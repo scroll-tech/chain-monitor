@@ -2,12 +2,16 @@ package controller
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/scroll-tech/go-ethereum/rpc"
+	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
@@ -21,6 +25,8 @@ import (
 )
 
 const maxBlockFetchSize uint64 = 199
+
+var errEmptyConfirmation = errors.New("block number > ConfirmationNumber")
 
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
@@ -69,8 +75,8 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 
 // Watch is an exported function that starts watching the Layer 1 and Layer 2 events, which include gateways events, transfer events, and messenger events.
 func (c *ContractController) Watch(ctx context.Context) {
-	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
-	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm, 5)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm, 1)
 }
 
 // Stop the contract controller
@@ -78,7 +84,7 @@ func (c *ContractController) Stop() {
 	c.stopTimeoutChan <- struct{}{}
 }
 
-func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber) {
+func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber, concurrency int) {
 	log.Info("contract controller start successful", "layer", layer.String(), "confirmation", confirmation)
 	//defer func() {
 	//	if err := recover(); err != nil {
@@ -106,42 +112,57 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		default:
 		}
 
-		// 2. get latest chain confirmation number
-		confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
-		if err != nil {
-			log.Error("ContractController.Watch get latest confirmation block number failed", "layer", layer.String(), "err", err)
-			return
+		var eg errgroup.Group
+		for i := 0; i < concurrency; i++ {
+			eg.Go(func() error {
+				// 2. get latest chain confirmation number
+				confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
+				if err != nil {
+					log.Error("ContractController.Watch get latest confirmation block number failed", "layer", layer.String(), "err", err)
+					return fmt.Errorf("ContractController.Watch, :%v", err)
+				}
+
+				if start > confirmationNumber {
+					log.Info("Watcher start block number > ConfirmationNumber",
+						"layer", layer.String(),
+						"startBlockNumber", blockNumberInDB,
+						"confirmationNumber", confirmationNumber,
+						"err", err,
+					)
+					return errEmptyConfirmation
+				}
+
+				// 3. get the max fetch number
+				end := start + maxBlockFetchSize
+				if start+maxBlockFetchSize > confirmationNumber {
+					end = confirmationNumber
+				}
+
+				currentStart := start
+				nextStart := end + 1
+				atomic.StoreUint64(&start, nextStart)
+
+				switch layer {
+				case types.Layer1:
+					c.l1Watch(ctx, currentStart, end)
+				case types.Layer2:
+					c.l2Watch(ctx, currentStart, end)
+				}
+				return nil
+			})
 		}
 
-		if start > confirmationNumber {
-			log.Info("Watcher start block number > l1ConfirmationNumber",
-				"layer", layer.String(),
-				"startBlockNumber", blockNumberInDB,
-				"confirmationNumber", confirmationNumber,
-				"err", err,
-			)
-			time.Sleep(time.Millisecond * 500)
-			continue
+		if egErr := eg.Wait(); egErr != nil {
+			if errors.Is(egErr, errEmptyConfirmation) {
+				time.Sleep(time.Millisecond * 500)
+			}
 		}
-
-		// 3. get the max fetch number
-		end := start + maxBlockFetchSize
-		if start+maxBlockFetchSize > confirmationNumber {
-			end = confirmationNumber
-		}
-
-		switch layer {
-		case types.Layer1:
-			c.l1Watch(ctx, start, end)
-		case types.Layer2:
-			c.l2Watch(ctx, start, end)
-		}
-		start = end + 1
 	}
 }
 
 // nolint
 func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint64) {
+	log.Info("watching block number", "layer", types.Layer1, "start", start, "end", end)
 	opts := bind.FilterOpts{
 		Start:   start,
 		End:     &end,
@@ -157,6 +178,10 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, types.Layer1, messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
+		return
+	}
+
+	if len(messengerMessageMatches) == 0 {
 		return
 	}
 
@@ -204,6 +229,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 }
 
 func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) {
+	log.Info("watching block number", "layer", types.Layer2, "start", start, "end", end)
 	opts := bind.FilterOpts{
 		Start:   start,
 		End:     &end,
