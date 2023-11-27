@@ -182,12 +182,11 @@ func (c *Checker) MessengerCheck(_ context.Context, layer types.LayerType, messe
 		}
 	}
 
-	sort.SliceStable(messageMatches, func(i, j int) bool {
-		if layer == types.Layer1 {
-			return messageMatches[i].L1BlockNumber < messageMatches[j].L1BlockNumber
-		}
-		return messageMatches[i].L2BlockNumber < messageMatches[j].L2BlockNumber
-	})
+	if layer == types.Layer2 {
+		sort.SliceStable(messageMatches, func(i, j int) bool {
+			return messageMatches[i].L2BlockNumber < messageMatches[j].L2BlockNumber
+		})
+	}
 
 	return messageMatches, nil
 }
