@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
