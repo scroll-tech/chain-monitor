@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
@@ -16,6 +18,8 @@ import (
 type CrossChainController struct {
 	crossChainLogic *crosschain.LogicCrossChain
 	stopTimeoutChan chan struct{}
+
+	crossChainControllerRunningTotal *prometheus.CounterVec
 }
 
 // NewCrossChainController is a constructor function that creates a new CrossChainController object.
@@ -25,6 +29,10 @@ func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client
 	return &CrossChainController{
 		stopTimeoutChan: make(chan struct{}),
 		crossChainLogic: crosschain.NewCrossChainLogic(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr),
+		crossChainControllerRunningTotal: promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
+			Name: "cross_chain_check_controller_running_total",
+			Help: "The total number of cross chain controller running.",
+		}, []string{"layer"}),
 	}
 }
 
@@ -42,12 +50,6 @@ func (c *CrossChainController) Stop() {
 
 func (c *CrossChainController) watcherStart(ctx context.Context, layer types.LayerType) {
 	log.Info("cross chain controller start successful", "layer", layer.String())
-	//defer func() {
-	//	if err := recover(); err != nil {
-	//		nerr := fmt.Errorf("layer:%s watcher start panic error: %v", layer.String(), err)
-	//		log.Warn(nerr.Error())
-	//	}
-	//}()
 
 	for {
 		select {
@@ -61,6 +63,8 @@ func (c *CrossChainController) watcherStart(ctx context.Context, layer types.Lay
 			return
 		default:
 		}
+
+		c.crossChainControllerRunningTotal.WithLabelValues(layer.String()).Inc()
 
 		c.crossChainLogic.CheckCrossChainGatewayMessage(ctx, layer)
 		c.crossChainLogic.CheckETHBalance(ctx, layer)
