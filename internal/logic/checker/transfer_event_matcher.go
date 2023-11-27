@@ -69,7 +69,7 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				eventType:   event.Type,
 				blockNumber: event.Number,
 				messageHash: event.MessageHash,
-				balance:     common.Big0,
+				balance:     big.NewInt(0),
 			}
 		}
 		if event.Type == types.L1DepositERC20 || event.Type == types.L2WithdrawERC20 {
@@ -96,7 +96,7 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				eventType:   event.Type,
 				blockNumber: event.Number,
 				messageHash: event.MessageHash,
-				balance:     common.Big0,
+				balance:     big.NewInt(0),
 			}
 		}
 		transferBalances[key].balance.Add(transferBalances[key].balance, event.Amount)
@@ -185,7 +185,7 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 					eventType:   event.Type,
 					blockNumber: event.Number,
 					messageHash: event.MessageHash,
-					balance:     common.Big0,
+					balance:     big.NewInt(0),
 				}
 			}
 
@@ -222,7 +222,7 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 					eventType:   event.Type,
 					blockNumber: event.Number,
 					messageHash: event.MessageHash,
-					balance:     common.Big0,
+					balance:     big.NewInt(0),
 				}
 			}
 			transferTokenIds[key].balance.Add(transferTokenIds[key].balance, event.Amounts[idx])
@@ -312,7 +312,7 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				eventType:   event.Type,
 				blockNumber: event.Number,
 				messageHash: event.MessageHash,
-				balance:     common.Big0,
+				balance:     big.NewInt(0),
 			}
 
 			if event.Type == types.L1DepositERC1155 || event.Type == types.L2WithdrawERC1155 ||
@@ -348,7 +348,7 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 					eventType:   event.Type,
 					blockNumber: event.Number,
 					messageHash: event.MessageHash,
-					balance:     common.Big0,
+					balance:     big.NewInt(0),
 				}
 			}
 			transferTokenIds[key].balance.Add(transferTokenIds[key].balance, event.Amounts[idx])
