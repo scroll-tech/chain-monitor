@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
@@ -70,15 +69,6 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 
 // Watch is an exported function that starts watching the Layer 1 and Layer 2 events, which include gateways events, transfer events, and messenger events.
 func (c *ContractController) Watch(ctx context.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			nerr := fmt.Errorf("ContractController watch panic error: %v", err)
-			log.Warn(nerr.Error())
-		}
-	}()
-
-	log.Info("contract controller start successful")
-
 	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm)
 	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm)
 }
@@ -89,6 +79,7 @@ func (c *ContractController) Stop() {
 }
 
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber) {
+	log.Info("contract controller start successful", "layer", layer.String(), "confirmation", confirmation)
 	//defer func() {
 	//	if err := recover(); err != nil {
 	//		log.Warn("watcherStart panic", "error", err)

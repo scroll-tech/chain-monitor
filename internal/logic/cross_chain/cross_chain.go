@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
@@ -54,6 +55,7 @@ func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, lay
 	}
 
 	if len(messages) == 0 {
+		time.Sleep(time.Second)
 		return
 	}
 
