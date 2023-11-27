@@ -5,10 +5,34 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/common"
 
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+)
+
+var (
+	withdrawRootNotMatchTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_withdraw_root_not_match_total",
+		Help: "The total number of alert withdraw root not match total.",
+	})
+
+	gatewayTransferEventNotMatchTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_gateway_transfer_not_match_total",
+		Help: "The total number of alert gateway transfer event not match total.",
+	})
+
+	crossChainGatewayEventNotMatchTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_cross_chain_gateway_event_not_match_total",
+		Help: "The total number of alert cross chain gateway event not match total.",
+	})
+
+	crossChainETHEventNotMatchTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_cross_chain_eth_event_not_match_total",
+		Help: "The total number of alert cross chain eth event not match total.",
+	})
 )
 
 // GatewayTransferInfo the alert message of gateway and transfer event
@@ -34,6 +58,8 @@ type WithdrawRootInfo struct {
 
 // MrkDwnWithdrawRootMessage make the markdown message of withdraw root alert message
 func MrkDwnWithdrawRootMessage(info WithdrawRootInfo) string {
+	withdrawRootNotMatchTotal.Inc()
+
 	var buffer bytes.Buffer
 	buffer.WriteString("\n:bangbang: ")
 	buffer.WriteString("*L2 withdraw root check failed*\n")
@@ -45,6 +71,8 @@ func MrkDwnWithdrawRootMessage(info WithdrawRootInfo) string {
 
 // MrkDwnGatewayTransferMessage make the markdown message of gateway and transfer alert message
 func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
+	gatewayTransferEventNotMatchTotal.Inc()
+
 	var buffer bytes.Buffer
 	buffer.WriteString("\n:bangbang: ")
 	buffer.WriteString("*Gateway event and transfer event check failed*\n")
@@ -62,6 +90,8 @@ func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
 
 // MrkDwnGatewayCrossChainMessage make the markdown message of cross chain alert message
 func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.MismatchType) string {
+	crossChainGatewayEventNotMatchTotal.Inc()
+
 	var buffer bytes.Buffer
 	buffer.WriteString("\n:bangbang: ")
 	buffer.WriteString("*Cross chain gateway event check failed*\n")
@@ -84,6 +114,8 @@ func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.
 
 // MrkDwnETHGatewayMessage make the markdown message of cross chain eth alert message
 func MrkDwnETHGatewayMessage(message *orm.MessageMatch, expectedEndBalance, actualEndBalance *big.Int) string {
+	crossChainETHEventNotMatchTotal.Inc()
+
 	var buffer bytes.Buffer
 	buffer.WriteString("\n:bangbang: ")
 	buffer.WriteString("*Cross chain ETH balance check failed*\n")

@@ -15,6 +15,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/controller"
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 	"github.com/scroll-tech/chain-monitor/internal/utils/database"
+	"github.com/scroll-tech/chain-monitor/internal/utils/observability"
 )
 
 var app *cli.App
@@ -58,6 +59,8 @@ func action(ctx *cli.Context) error {
 	if err != nil {
 		log.Crit("failed to connect to l2 geth", "l2 geth url", cfg.L2Config.L2URL, "err", err)
 	}
+
+	observability.Server(ctx, db)
 
 	slackAlert := controller.NewSlackAlertController(subCtx, cfg.AlertConfig)
 	slackAlert.Start()

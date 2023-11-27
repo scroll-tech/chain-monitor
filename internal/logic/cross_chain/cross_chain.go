@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -32,6 +34,9 @@ type LogicCrossChain struct {
 	l2Client        *ethclient.Client
 	l1MessengerAddr common.Address
 	l2MessengerAddr common.Address
+
+	crossChainGatewayCheckID *prometheus.GaugeVec
+	crossChainETHCheckID     *prometheus.GaugeVec
 }
 
 // NewCrossChainLogic is a constructor for Logic.
@@ -43,6 +48,16 @@ func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1Mes
 		l2Client:        l2Client,
 		l1MessengerAddr: l1MessengerAddr,
 		l2MessengerAddr: l2MessengerAddr,
+
+		crossChainGatewayCheckID: promauto.With(prometheus.DefaultRegisterer).NewGaugeVec(prometheus.GaugeOpts{
+			Name: "cross_chain_checked_gateway_event_database_id",
+			Help: "the database id of cross chain gateway checked",
+		}, []string{"layer"}),
+
+		crossChainETHCheckID: promauto.With(prometheus.DefaultRegisterer).NewGaugeVec(prometheus.GaugeOpts{
+			Name: "cross_chain_checked_eth_database_id",
+			Help: "the database id of cross chain eth checked",
+		}, []string{"layer"}),
 	}
 }
 
@@ -61,6 +76,7 @@ func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, lay
 
 	var messageMatchIds []int64
 	for _, message := range messages {
+		c.crossChainGatewayCheckID.WithLabelValues(layerType.String()).Inc()
 		checkResult := c.checker.CrossChainCheck(ctx, layerType, message)
 		if checkResult == types.MismatchTypeValid {
 			messageMatchIds = append(messageMatchIds, message.ID)
@@ -239,6 +255,8 @@ func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client 
 func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []orm.MessageMatch) (bool, *big.Int, *big.Int, error) {
 	balanceDiff := big.NewInt(0)
 	for _, message := range messages {
+		c.crossChainETHCheckID.WithLabelValues(layer.String()).Inc()
+
 		var amount *big.Int
 		var ok bool
 		if layer == types.Layer1 {

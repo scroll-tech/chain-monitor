@@ -3,8 +3,10 @@ package slack
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -24,6 +26,8 @@ type AlertSlack struct {
 	senderQueue     chan string
 	sendWorker      *fanout.Fanout
 	stopTimeoutChan chan struct{}
+
+	alertSlackRunningTotal prometheus.Counter
 }
 
 // NewAlertSlack init the alert slack
@@ -46,6 +50,11 @@ func NewAlertSlack(ctx context.Context, cfg *config.SlackWebhookConfig) *AlertSl
 	)
 
 	alertSlack = as
+
+	as.alertSlackRunningTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "alert_slack_running_total",
+		Help: "The total number of alert slack running.",
+	})
 
 	return as
 }
@@ -92,14 +101,9 @@ func (as *AlertSlack) send(msg string) {
 }
 
 func (as *AlertSlack) run() {
-	defer func() {
-		if err := recover(); err != nil {
-			nerr := fmt.Errorf("alert slack panic error: %v", err)
-			log.Warn(nerr.Error())
-		}
-	}()
-
 	for {
+		as.alertSlackRunningTotal.Inc()
+
 		select {
 		case senderMessage := <-as.senderQueue:
 			as.send(senderMessage)
