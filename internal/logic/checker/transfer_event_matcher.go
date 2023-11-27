@@ -101,23 +101,23 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 		gatewayMatcherValue, exists := gatewayBalances[transferMatcherKey]
 		if !exists || transferMatcherValue.balance.Cmp(gatewayMatcherValue.balance) != 0 {
 			info := slack.GatewayTransferInfo{
-				TokenAddress: transferMatcherKey.tokenAddress,
-				TokenType:    transferMatcherValue.tokenType,
-				Layer:        transferMatcherValue.layer,
-				EventType:    transferMatcherValue.eventType,
-				BlockNumber:  transferMatcherValue.blockNumber,
-				TxHash:       transferMatcherKey.txHash,
-				MessageHash:  transferMatcherValue.messageHash,
+				TokenAddress:    transferMatcherKey.tokenAddress,
+				TokenType:       transferMatcherValue.tokenType,
+				Layer:           transferMatcherValue.layer,
+				EventType:       transferMatcherValue.eventType,
+				BlockNumber:     transferMatcherValue.blockNumber,
+				TxHash:          transferMatcherKey.txHash,
+				MessageHash:     transferMatcherValue.messageHash,
+				TransferBalance: transferMatcherValue.balance,
 			}
 			if !exists {
 				// Ignore additional Transfer events in Layer2 and transfers to gateways in Layer1.
-				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() == 1 {
+				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() >= 0 {
 					continue
 				}
 				info.Error = transferEventDontHaveGatewayEvent
 			} else {
 				info.Error = transferEventBalanceMismatchGatewayEvent
-				info.TransferBalance = transferMatcherValue.balance
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
@@ -130,20 +130,20 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 		transferMatcherValue, exists := transferBalances[gatewayMatcherKey]
 		if !exists || gatewayMatcherValue.balance.Cmp(transferMatcherValue.balance) != 0 {
 			info := slack.GatewayTransferInfo{
-				TokenAddress: gatewayMatcherKey.tokenAddress,
-				TokenType:    gatewayMatcherValue.tokenType,
-				Layer:        gatewayMatcherValue.layer,
-				EventType:    gatewayMatcherValue.eventType,
-				BlockNumber:  gatewayMatcherValue.blockNumber,
-				TxHash:       gatewayMatcherKey.txHash,
-				MessageHash:  gatewayMatcherValue.messageHash,
+				TokenAddress:   gatewayMatcherKey.tokenAddress,
+				TokenType:      gatewayMatcherValue.tokenType,
+				Layer:          gatewayMatcherValue.layer,
+				EventType:      gatewayMatcherValue.eventType,
+				BlockNumber:    gatewayMatcherValue.blockNumber,
+				TxHash:         gatewayMatcherKey.txHash,
+				MessageHash:    gatewayMatcherValue.messageHash,
+				GatewayBalance: gatewayMatcherValue.balance,
 			}
 			if !exists {
 				info.Error = gatewayEventDontHaveTransferEvent
 			} else {
 				info.Error = gatewayEventBalanceMismatchTransferEvent
 				info.TransferBalance = transferMatcherValue.balance
-				info.GatewayBalance = gatewayMatcherValue.balance
 			}
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 			return fmt.Errorf("balance mismatch for token %s: gateway balance = %s, transfer balance = %s, info = %v",
@@ -230,7 +230,7 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 			}
 			if !exists {
 				// Ignore additional Transfer events in Layer2 and transfers to gateways in Layer1.
-				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() == 1 {
+				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() >= 0 {
 					continue
 				}
 				info.Error = transferEventDontHaveGatewayEvent
@@ -336,23 +336,23 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 		gatewayMatcherValue, exists := gatewayTokenIds[transferMatcherKey]
 		if !exists || transferMatcherValue.balance.Cmp(gatewayMatcherValue.balance) != 0 {
 			info := slack.GatewayTransferInfo{
-				TokenAddress: transferMatcherKey.tokenAddress,
-				TokenType:    transferMatcherValue.tokenType,
-				Layer:        transferMatcherValue.layer,
-				EventType:    transferMatcherValue.eventType,
-				BlockNumber:  transferMatcherValue.blockNumber,
-				TxHash:       transferMatcherKey.txHash,
-				MessageHash:  transferMatcherValue.messageHash,
+				TokenAddress:    transferMatcherKey.tokenAddress,
+				TokenType:       transferMatcherValue.tokenType,
+				Layer:           transferMatcherValue.layer,
+				EventType:       transferMatcherValue.eventType,
+				BlockNumber:     transferMatcherValue.blockNumber,
+				TxHash:          transferMatcherKey.txHash,
+				MessageHash:     transferMatcherValue.messageHash,
+				TransferBalance: transferMatcherValue.balance,
 			}
 			if !exists {
 				// Ignore additional Transfer events in Layer2 and transfers to gateways in Layer1.
-				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() == 1 {
+				if info.Layer == types.Layer2 || transferMatcherValue.balance.Sign() >= 0 {
 					continue
 				}
 				info.Error = transferEventDontHaveGatewayEvent
 			} else {
 				info.Error = transferEventBalanceMismatchGatewayEvent
-				info.TransferBalance = transferMatcherValue.balance
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
@@ -365,20 +365,20 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 		transferMatcherValue, exists := transferTokenIds[gatewayMatcherKey]
 		if !exists || gatewayMatcherValue.balance.Cmp(transferMatcherValue.balance) != 0 {
 			info := slack.GatewayTransferInfo{
-				TokenAddress: gatewayMatcherKey.tokenAddress,
-				TokenType:    gatewayMatcherValue.tokenType,
-				Layer:        gatewayMatcherValue.layer,
-				EventType:    gatewayMatcherValue.eventType,
-				BlockNumber:  gatewayMatcherValue.blockNumber,
-				TxHash:       gatewayMatcherKey.txHash,
-				MessageHash:  gatewayMatcherValue.messageHash,
+				TokenAddress:   gatewayMatcherKey.tokenAddress,
+				TokenType:      gatewayMatcherValue.tokenType,
+				Layer:          gatewayMatcherValue.layer,
+				EventType:      gatewayMatcherValue.eventType,
+				BlockNumber:    gatewayMatcherValue.blockNumber,
+				TxHash:         gatewayMatcherKey.txHash,
+				MessageHash:    gatewayMatcherValue.messageHash,
+				GatewayBalance: gatewayMatcherValue.balance,
 			}
 			if !exists {
 				info.Error = gatewayEventDontHaveTransferEvent
 			} else {
 				info.Error = gatewayEventBalanceMismatchTransferEvent
 				info.TransferBalance = transferMatcherValue.balance
-				info.GatewayBalance = gatewayMatcherValue.balance
 			}
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 			return fmt.Errorf("erc1155 mismatch for token %s: gateway amount = %s, transfer amount = %s",
