@@ -63,10 +63,10 @@ func action(ctx *cli.Context) error {
 	slackAlert.Start()
 
 	contractCtl := controller.NewContractController(cfg, db, l1Client, l2Client)
-	go contractCtl.Watch(subCtx)
+	contractCtl.Watch(subCtx)
 
 	crossChainCtl := controller.NewCrossChainController(cfg, db, ethclient.NewClient(l1Client), ethclient.NewClient(l2Client))
-	go crossChainCtl.Watch(subCtx)
+	crossChainCtl.Watch(subCtx)
 
 	defer func() {
 		contractCtl.Stop()

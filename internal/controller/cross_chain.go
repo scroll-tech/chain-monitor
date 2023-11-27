@@ -2,9 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
-	"time"
-
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
@@ -33,31 +30,8 @@ func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client
 // Watch is a method that triggers the proposer methods for Layer 1 and Layer 2, as well as the
 // eth balance checker methods for both layers.
 func (c *CrossChainController) Watch(ctx context.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			nerr := fmt.Errorf("CrossChainController watch panic error: %v", err)
-			log.Warn(nerr.Error())
-		}
-	}()
-
-	log.Info("cross chain controller start successful")
-
-	ticker := time.NewTicker(time.Millisecond * 500)
-	for {
-		select {
-		case <-ticker.C:
-			go c.l1Watcher(ctx)
-			go c.l2Watcher(ctx)
-		case <-ctx.Done():
-			if ctx.Err() != nil {
-				log.Error("CrossChainController proposer canceled with error", "error", ctx.Err())
-			}
-			return
-		case <-c.stopTimeoutChan:
-			log.Info("CrossChainController proposer the run loop exit")
-			return
-		}
-	}
+	go c.watcherStart(ctx, types.Layer1)
+	go c.watcherStart(ctx, types.Layer2)
 }
 
 // Stop all the cross chain controller
@@ -65,24 +39,29 @@ func (c *CrossChainController) Stop() {
 	c.stopTimeoutChan <- struct{}{}
 }
 
-func (c *CrossChainController) l1Watcher(ctx context.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			nerr := fmt.Errorf("l1Watcher panic error: %v", err)
-			log.Warn(nerr.Error())
-		}
-	}()
-	c.crossChainLogic.CheckCrossChainGatewayMessage(ctx, types.Layer1)
-	c.crossChainLogic.CheckETHBalance(ctx, types.Layer1)
-}
+func (c *CrossChainController) watcherStart(ctx context.Context, layer types.LayerType) {
+	log.Info("cross chain controller start successful", "layer", layer.String())
+	//defer func() {
+	//	if err := recover(); err != nil {
+	//		nerr := fmt.Errorf("layer:%s watcher start panic error: %v", layer.String(), err)
+	//		log.Warn(nerr.Error())
+	//	}
+	//}()
 
-func (c *CrossChainController) l2Watcher(ctx context.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			nerr := fmt.Errorf("l2Proposer panic error: %v", err)
-			log.Warn(nerr.Error())
+	for {
+		select {
+		case <-ctx.Done():
+			if ctx.Err() != nil {
+				log.Error("CrossChainController proposer canceled with error", "layer", layer.String(), "error", ctx.Err())
+			}
+			return
+		case <-c.stopTimeoutChan:
+			log.Info("CrossChainController proposer the run loop exit", "layer", layer.String())
+			return
+		default:
 		}
-	}()
-	c.crossChainLogic.CheckCrossChainGatewayMessage(ctx, types.Layer2)
-	c.crossChainLogic.CheckETHBalance(ctx, types.Layer2)
+
+		c.crossChainLogic.CheckCrossChainGatewayMessage(ctx, layer)
+		c.crossChainLogic.CheckETHBalance(ctx, layer)
+	}
 }
