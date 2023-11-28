@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -68,5 +69,8 @@ func (c *CrossChainController) watcherStart(ctx context.Context, layer types.Lay
 
 		c.crossChainLogic.CheckCrossChainGatewayMessage(ctx, layer)
 		c.crossChainLogic.CheckETHBalance(ctx, layer)
+
+		// To prevent frequent database access, obtaining empty values.
+		time.Sleep(60 * time.Second)
 	}
 }
