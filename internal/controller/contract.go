@@ -23,7 +23,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
-const maxBlockFetchSize uint64 = 499
+const maxBlockFetchSize uint64 = 49
 
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
@@ -149,7 +149,8 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
 		if err != nil {
 			log.Error("ContractController.watcherStart get latest confirmation block number failed", "layer", layer.String(), "err", err)
-			return
+			time.Sleep(time.Second)
+			continue
 		}
 
 		var eg errgroup.Group
@@ -163,7 +164,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 					"confirmationNumber", confirmationNumber,
 					"err", err,
 				)
-				time.Sleep(time.Millisecond * 500)
+				time.Sleep(time.Second)
 				break
 			}
 
@@ -192,14 +193,14 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 
 		if err := eg.Wait(); err != nil {
 			log.Error("error in watcher goroutines: ", err)
-			return
+			continue
 		}
 
 		if layer == types.Layer2 && originalStart <= end {
 			if checkErr := c.checker.CheckL2WithdrawRoots(ctx, originalStart, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue); checkErr != nil {
 				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 				log.Error("check withdraw roots failed", "layer", types.Layer2, "error", checkErr)
-				return
+				continue
 			}
 		}
 	}
