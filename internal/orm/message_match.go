@@ -254,7 +254,7 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer
 		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_token_ids", "l1_amounts", "l1_block_status_updated_at"})
 	} else if layer == types.Layer2 {
 		message.L2BlockStatusUpdatedAt = utils.NowUTC()
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_token_ids", "l2_amounts", "l2_block_status_updated_at"})
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_token_ids", "l2_amounts", "l2_block_status_updated_at", "next_message_nonce"})
 	}
 
 	db = db.Clauses(clause.OnConflict{
@@ -291,7 +291,7 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, message M
 
 	if message.L2EventType != 0 && message.L2EventType == int(types.L2SentMessage) {
 		message.L2BlockStatusUpdatedAt = utils.NowUTC()
-		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l1_amounts", "l2_amounts", "l2_block_status_updated_at")
+		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l1_amounts", "l2_amounts", "l2_block_status_updated_at", "next_message_nonce")
 	}
 
 	if message.L2EventType != 0 && message.L2EventType == int(types.L2RelayedMessage) {
