@@ -25,7 +25,6 @@ CREATE TABLE message_match
     l2_eth_balance_status    INTEGER         NOT NULL,
 
     -- status
-    check_status             INTEGER         NOT NULL,
     l1_block_status          INTEGER         NOT NULL,
     l2_block_status          INTEGER         NOT NULL,
     l1_cross_chain_status    INTEGER         NOT NULL,
@@ -33,13 +32,19 @@ CREATE TABLE message_match
     message_proof            BYTEA           DEFAULT NULl,
     message_nonce            BIGINT          DEFAULT NULL,
 
-    created_at               TIMESTAMP(0)    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at               TIMESTAMP(0)    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at               TIMESTAMP(0)    DEFAULT NULL
+    l1_block_status_updated_at       TIMESTAMP(0)    DEFAULT NULL,
+    l2_block_status_updated_at       TIMESTAMP(0)    DEFAULT NULL,
+    l1_cross_chain_status_updated_at TIMESTAMP(0)    DEFAULT NULL,
+    l2_cross_chain_status_updated_at TIMESTAMP(0)    DEFAULT NULL,
+    l1_eth_balance_status_updated_at TIMESTAMP(0)    DEFAULT NULL,
+    l2_eth_balance_status_updated_at TIMESTAMP(0)    DEFAULT NULL,
+    message_proof_nonce_updated_at   TIMESTAMP(0)    DEFAULT NULL,
+    created_at                       TIMESTAMP(0)    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                       TIMESTAMP(0)    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at                       TIMESTAMP(0)    DEFAULT NULL
 );
 
 CREATE UNIQUE INDEX idx_message_match_message_hash ON message_match (message_hash);
-CREATE INDEX if not exists idx_check_status_deleted_at ON message_match (check_status, deleted_at);
 CREATE INDEX if not exists idx_l1_l2_block_status_deleted_id_desc ON message_match (l1_block_status, l2_block_status, deleted_at, id DESC);
 CREATE INDEX if not exists idx_message_l1_block_number ON message_match (l1_block_number);
 CREATE INDEX if not exists idx_message_l2_block_number ON message_match (l2_block_number);

@@ -164,7 +164,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 				if start > confirmationNumber {
 					log.Info("Watcher start block number > ConfirmationNumber",
 						"layer", layer.String(),
-						"startBlockNumber", blockNumberInDB,
+						"startBlockNumber", start,
 						"confirmationNumber", confirmationNumber,
 						"err", err,
 					)
