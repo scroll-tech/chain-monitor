@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/log"
+	"github.com/scroll-tech/go-ethereum/rpc"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 
@@ -47,11 +49,6 @@ func (c *Checker) CrossChainCheck(_ context.Context, layer types.LayerType, mess
 	return types.MismatchTypeValid
 }
 
-// UpdateBlockStatus updates the block status in the database.
-func (c *Checker) UpdateBlockStatus(ctx context.Context, layer types.LayerType, start, end uint64) error {
-	return c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, end)
-}
-
 // GatewayCheck checks the gateway events.
 func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) ([]orm.MessageMatch, error) {
 	switch eventCategory {
@@ -66,31 +63,44 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCat
 }
 
 // CheckL2WithdrawRoots checks the L2 withdraw roots.
-func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, messengerEventsData []events.EventUnmarshaler, withdrawRoots map[uint64]common.Hash) error {
+func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) error {
+	log.Info("checking l2 withdraw roots", "start", startBlockNumber, "end", endBlockNumber)
 	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
 	msg, err := c.messageMatchOrm.GetLargestMessageNonceL2MessageMatch(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("get largest message nonce l2 message match failed, err: %w", err)
 	}
 	if msg != nil {
-		withdrawTrie.Initialize(msg.MessageNonce-1, common.HexToHash(msg.MessageHash), msg.MessageProof)
+		withdrawTrie.Initialize(msg.NextMessageNonce-1, common.HexToHash(msg.MessageHash), msg.MessageProof)
+	}
+
+	l2SentMessages, err := c.messageMatchOrm.GetL2SentMessagesInBlockRange(ctx, startBlockNumber, endBlockNumber)
+	if err != nil {
+		return fmt.Errorf("get l2 sent messages in block range failed, err: %w", err)
+	}
+	if len(l2SentMessages) == 0 {
+		return nil
 	}
 
 	sentMessageEventHashesMap := make(map[uint64][]common.Hash)
-	for _, eventData := range messengerEventsData {
-		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
-		if !ok {
-			return fmt.Errorf("eventData is not of type *events.MessengerEventUnmarshaler")
-		}
-		if messengerEventUnmarshaler.Type == types.L2SentMessage {
-			blockNum := messengerEventUnmarshaler.Number
-			sentMessageEventHashesMap[blockNum] = append(sentMessageEventHashesMap[blockNum], messengerEventUnmarshaler.MessageHash)
-		}
+	for _, message := range l2SentMessages {
+		sentMessageEventHashesMap[message.L2BlockNumber] = append(sentMessageEventHashesMap[message.L2BlockNumber], common.HexToHash(message.MessageHash))
+	}
+
+	var blockNums []uint64
+	for blockNumber := range sentMessageEventHashesMap {
+		blockNums = append(blockNums, blockNumber)
+	}
+	sort.Slice(blockNums, func(i, j int) bool { return blockNums[i] < blockNums[j] })
+
+	withdrawRoots, err := utils.GetL2WithdrawRootsForBlocks(ctx, client, messageQueueAddr, blockNums)
+	if err != nil {
+		return fmt.Errorf("get l2 withdraw roots failed, message queue addr: %v, blocks: %v, err: %w", messageQueueAddr, blockNums, err)
 	}
 
 	var messageMatches []orm.MessageMatch
-	for blockNum := startBlockNumber; blockNum <= endBlockNumber; blockNum++ {
+	for _, blockNum := range blockNums {
 		eventHashes := sentMessageEventHashesMap[blockNum]
 		proofs := withdrawTrie.AppendMessages(eventHashes)
 		lastWithdrawRoot := withdrawTrie.MessageRoot()
@@ -110,13 +120,13 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 			messageMatches = append(messageMatches, orm.MessageMatch{
 				MessageHash:                eventHashes[numEvents-1].Hex(),
 				MessageProof:               proofs[numEvents-1],
-				MessageNonce:               withdrawTrie.NextMessageNonce, // +1 to distinguish from the zero value
+				WithdrawRootStatus:         int(types.WithdrawRootStatusTypeValid),
 				MessageProofNonceUpdatedAt: utils.NowUTC(),
 			})
 		}
 	}
 
-	effectRows, err := c.messageMatchOrm.InsertOrUpdateMsgProofNonce(ctx, messageMatches)
+	effectRows, err := c.messageMatchOrm.InsertOrUpdateMsgProofAndStatus(ctx, messageMatches)
 	if err != nil {
 		return fmt.Errorf("message proof orm insert failed, err: %w", err)
 	}
@@ -139,10 +149,6 @@ func (c *Checker) MessengerCheck(_ context.Context, layer types.LayerType, messe
 		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
 		if !ok {
 			return nil, fmt.Errorf("eventData is not of type *events.MessengerEventUnmarshaler")
-		}
-		if messengerEventUnmarshaler.MessageHash.Hex() == "0x57c35d18cb7a4d8230432ab0a24ded50f59ae7d1993a81cbf3933e84cf24e2ae" {
-			aa := 0
-			aa++
 		}
 		switch messengerEventUnmarshaler.Type {
 		case types.L1SentMessage:
@@ -167,13 +173,14 @@ func (c *Checker) MessengerCheck(_ context.Context, layer types.LayerType, messe
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2SentMessage:
 			tmpMessageMatch = orm.MessageMatch{
-				MessageHash:   messengerEventUnmarshaler.MessageHash.Hex(),
-				TokenType:     int(types.TokenTypeETH), // default ETH.
-				L2EventType:   int(messengerEventUnmarshaler.Type),
-				L2BlockNumber: messengerEventUnmarshaler.Number,
-				L2TxHash:      messengerEventUnmarshaler.TxHash.Hex(),
-				L1Amounts:     decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
-				L2Amounts:     decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				MessageHash:      messengerEventUnmarshaler.MessageHash.Hex(),
+				TokenType:        int(types.TokenTypeETH), // default ETH.
+				L2EventType:      int(messengerEventUnmarshaler.Type),
+				L2BlockNumber:    messengerEventUnmarshaler.Number,
+				L2TxHash:         messengerEventUnmarshaler.TxHash.Hex(),
+				L1Amounts:        decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				L2Amounts:        decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				NextMessageNonce: messengerEventUnmarshaler.MessageNonce.Uint64() + 1,
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L2RelayedMessage:
@@ -187,13 +194,6 @@ func (c *Checker) MessengerCheck(_ context.Context, layer types.LayerType, messe
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		}
 	}
-
-	if layer == types.Layer2 {
-		sort.SliceStable(messageMatches, func(i, j int) bool {
-			return messageMatches[i].L2BlockNumber < messageMatches[j].L2BlockNumber
-		})
-	}
-
 	return messageMatches, nil
 }
 

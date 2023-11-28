@@ -2,9 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -27,8 +24,6 @@ import (
 )
 
 const maxBlockFetchSize uint64 = 199
-
-var errEmptyConfirmation = errors.New("block number > ConfirmationNumber")
 
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
@@ -116,8 +111,7 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 // Watch is an exported function that starts watching the Layer 1 and Layer 2 events, which include gateways events, transfer events, and messenger events.
 func (c *ContractController) Watch(ctx context.Context) {
 	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm, 5)
-	// l2 watcher only supports concurrency 1 (no concurrency).
-	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm, 1)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm, 5)
 }
 
 // Stop the contract controller
@@ -127,8 +121,8 @@ func (c *ContractController) Stop() {
 
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber, concurrency int) {
 	log.Info("contract controller start successful", "layer", layer.String(), "confirmation", confirmation)
-	// 1. get the max l1_number and l2_number
 
+	// 1. get the max l1_number and l2_number
 	blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
 	if err != nil {
 		log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", err)
@@ -151,57 +145,66 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 
 		c.contractControllerRunningTotal.WithLabelValues(layer.String()).Inc()
 
+		// 2. get latest chain confirmation number
+		confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
+		if err != nil {
+			log.Error("ContractController.watcherStart get latest confirmation block number failed", "layer", layer.String(), "err", err)
+			return
+		}
+
 		var eg errgroup.Group
+		originalStart := start
+		var end uint64
 		for i := 0; i < concurrency; i++ {
+			if start > confirmationNumber {
+				log.Info("Watcher start block number > ConfirmationNumber",
+					"layer", layer.String(),
+					"startBlockNumber", start,
+					"confirmationNumber", confirmationNumber,
+					"err", err,
+				)
+				time.Sleep(time.Millisecond * 500)
+				break
+			}
+
+			// 3. get the max fetch number
+			end = start + maxBlockFetchSize
+			if start+maxBlockFetchSize > confirmationNumber {
+				end = confirmationNumber
+			}
+
+			currentStart := start
+			currentEnd := end
+			start = end + 1
+
+			c.contractControllerBlockNumber.WithLabelValues(layer.String()).Set(float64(currentEnd))
+
 			eg.Go(func() error {
-				// 2. get latest chain confirmation number
-				confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
-				if err != nil {
-					log.Error("ContractController.Watch get latest confirmation block number failed", "layer", layer.String(), "err", err)
-					return fmt.Errorf("ContractController.Watch, :%v", err)
-				}
-
-				if start > confirmationNumber {
-					log.Info("Watcher start block number > ConfirmationNumber",
-						"layer", layer.String(),
-						"startBlockNumber", start,
-						"confirmationNumber", confirmationNumber,
-						"err", err,
-					)
-					return errEmptyConfirmation
-				}
-
-				// 3. get the max fetch number
-				end := start + maxBlockFetchSize
-				if start+maxBlockFetchSize > confirmationNumber {
-					end = confirmationNumber
-				}
-
-				c.contractControllerBlockNumber.WithLabelValues(layer.String()).Set(float64(end))
-
-				currentStart := start
-				nextStart := end + 1
-				atomic.StoreUint64(&start, nextStart)
-
 				switch layer {
 				case types.Layer1:
-					c.l1Watch(ctx, currentStart, end)
+					c.l1Watch(ctx, currentStart, currentEnd)
 				case types.Layer2:
-					c.l2Watch(ctx, currentStart, end)
+					c.l2Watch(ctx, currentStart, currentEnd)
 				}
 				return nil
 			})
 		}
 
-		if egErr := eg.Wait(); egErr != nil {
-			if errors.Is(egErr, errEmptyConfirmation) {
-				time.Sleep(time.Millisecond * 500)
+		if err := eg.Wait(); err != nil {
+			log.Error("error in watcher goroutines: ", err)
+			return
+		}
+
+		if layer == types.Layer2 && originalStart <= end {
+			if checkErr := c.checker.CheckL2WithdrawRoots(ctx, originalStart, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue); checkErr != nil {
+				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
+				log.Error("check withdraw roots failed", "layer", types.Layer2, "error", checkErr)
+				return
 			}
 		}
 	}
 }
 
-// nolint
 func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint64) {
 	log.Info("watching block number", "layer", types.Layer1, "start", start, "end", end)
 	opts := bind.FilterOpts{
@@ -266,12 +269,6 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		log.Error("insert message events failed", "layer", types.Layer1, "error", err)
 		return
 	}
-
-	// update l1 block status
-	if err := c.checker.UpdateBlockStatus(ctx, types.Layer1, start, end); err != nil {
-		log.Error("update block status failed", "layer", types.Layer1, "start", start, "end", end, "error", err)
-		return
-	}
 }
 
 func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) {
@@ -334,25 +331,6 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 	if err = c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, messengerMessageMatches); err != nil {
 		c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 		log.Error("insert message events failed", "layer", types.Layer2, "error", err)
-		return
-	}
-
-	withdrawRootsMap, err := utils.GetL2WithdrawRootsInRange(ctx, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue, start, end)
-	if err != nil {
-		c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
-		log.Error("get l2 withdraw roots in range failed", "message queue addr", c.conf.L2Config.L2Contracts.MessageQueue, "start", start, "end", end, "error", err)
-		return
-	}
-
-	if checkErr := c.checker.CheckL2WithdrawRoots(ctx, start, end, messengerEvents, withdrawRootsMap); checkErr != nil {
-		c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
-		log.Error("check withdraw roots failed", "layer", types.Layer2, "error", checkErr)
-		return
-	}
-
-	// update l2 block status
-	if err := c.checker.UpdateBlockStatus(ctx, types.Layer2, start, end); err != nil {
-		log.Error("update block status failed", "layer", types.Layer2, "start", start, "end", end, "error", err)
 		return
 	}
 }
