@@ -28,6 +28,7 @@ const ethBalanceGap = 50
 // This is because not every deposit/withdrawal event in the system will have a finalize event,
 // as users have the ability to refund deposits independently.
 type LogicCrossChain struct {
+	db              *gorm.DB
 	messageOrm      *orm.MessageMatch
 	checker         *checker.Checker
 	l1Client        *ethclient.Client
@@ -42,6 +43,7 @@ type LogicCrossChain struct {
 // NewCrossChainLogic is a constructor for Logic.
 func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address) *LogicCrossChain {
 	return &LogicCrossChain{
+		db:              db,
 		messageOrm:      orm.NewMessageMatch(db),
 		checker:         checker.NewChecker(db),
 		l1Client:        l1Client,
@@ -341,6 +343,7 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 		}
 	}
 
+	var updateETHMessageMatches []orm.MessageMatch
 	for k, v := range messages {
 		var ethBalance *big.Int
 		var blockETHBalance *big.Int
@@ -365,11 +368,7 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 		ethBalance = new(big.Int).Add(lastBlockETHBalance, blockETHBalance)
 
 		// update the db
-		mm := orm.MessageMatch{
-			ID:          v.ID,
-			MessageHash: v.MessageHash,
-		}
-
+		mm := orm.MessageMatch{ID: v.ID}
 		if layer == types.Layer1 {
 			mm.L1MessengerETHBalance = decimal.NewFromBigInt(ethBalance, 0)
 			mm.L1ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)
@@ -377,8 +376,20 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 			mm.L2MessengerETHBalance = decimal.NewFromBigInt(ethBalance, 0)
 			mm.L2ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)
 		}
-		if err := c.messageOrm.UpdateETHBalance(ctx, layer, mm); err != nil {
-			log.Error("computeOverageBlockBalance.UpdateETHBalance failed", "layer", layer, "message match:%v", mm, "error", err)
+		updateETHMessageMatches = append(updateETHMessageMatches, mm)
+	}
+
+	err := c.db.Transaction(func(tx *gorm.DB) error {
+		for _, updateEthMessageMatch := range updateETHMessageMatches {
+			if err := c.messageOrm.UpdateETHBalance(ctx, layer, updateEthMessageMatch, tx); err != nil {
+				log.Error("computeOverageBlockBalance.UpdateETHBalance failed", "layer", layer, "message match:%v", updateEthMessageMatch, "error", err)
+				return err
+			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		log.Error("computeOverageBlockBalance.UpdateETHBalance failed", "layer", layer, "error", err)
 	}
 }

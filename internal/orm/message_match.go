@@ -339,8 +339,13 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 }
 
 // UpdateETHBalance update the eth balance and eth status
-func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layerType types.LayerType, messageMatch MessageMatch) error {
-	db := m.db.WithContext(ctx)
+func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layerType types.LayerType, messageMatch MessageMatch, dbTX ...*gorm.DB) error {
+	db := m.db
+	if len(dbTX) > 0 && dbTX[0] != nil {
+		db = dbTX[0]
+	}
+
+	db = db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
 	db = db.Where("id = ?", messageMatch.ID)
 
