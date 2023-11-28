@@ -388,7 +388,6 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 		}
 		return nil
 	})
-
 	if err != nil {
 		log.Error("computeOverageBlockBalance.UpdateETHBalance failed", "layer", layer, "error", err)
 	}
