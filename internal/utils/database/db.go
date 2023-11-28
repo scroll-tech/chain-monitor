@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	slog "log"
-	"os"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
@@ -48,20 +46,11 @@ func (g *gormLogger) Trace(_ context.Context, begin time.Time, fc func() (string
 
 // InitDB init the db handler
 func InitDB(config *Config) (*gorm.DB, error) {
-	//tmpGormLogger := gormLogger{
-	//	gethLogger: log.Root(),
-	//}
-
-	newLogger := logger.New(
-		slog.New(os.Stdout, "\r\n", slog.LstdFlags), // io writer
-		logger.Config{
-			LogLevel: logger.Warn, // Log level
-			Colorful: true,
-		},
-	)
-
+	tmpGormLogger := gormLogger{
+		gethLogger: log.Root(),
+	}
 	db, err := gorm.Open(postgres.Open(config.DSN), &gorm.Config{
-		Logger: newLogger,
+		Logger: &tmpGormLogger,
 		NowFunc: func() time.Time {
 			// why set time to UTC.
 			// if now set this, the inserted data time will use local timezone. like 2023-07-18 18:24:00 CST+8
