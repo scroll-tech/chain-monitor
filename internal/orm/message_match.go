@@ -44,12 +44,16 @@ type MessageMatch struct {
 	L2ETHBalanceStatus    int             `json:"l2_eth_balance_status" gorm:"l2_eth_balance_status"`
 
 	// status
-	L1BlockStatus      int    `json:"l1_block_status" gorm:"l1_block_status"`
-	L2BlockStatus      int    `json:"l2_block_status" gorm:"l2_block_status"`
-	L1CrossChainStatus int    `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`
-	L2CrossChainStatus int    `json:"l2_cross_chain_status" gorm:"l2_cross_chain_status"`
-	MessageProof       []byte `json:"message_proof" gorm:"message_proof"` // only not null in the last message of each block.
-	MessageNonce       uint64 `json:"message_nonce" gorm:"message_nonce"` // only not null in the last message of each block.
+	L1BlockStatus      int `json:"l1_block_status" gorm:"l1_block_status"`
+	L2BlockStatus      int `json:"l2_block_status" gorm:"l2_block_status"`
+	L1CrossChainStatus int `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`
+	L2CrossChainStatus int `json:"l2_cross_chain_status" gorm:"l2_cross_chain_status"`
+	WithdrawRootStatus int `json:"withdraw_root_status" gorm:"withdraw_root_status"`
+
+	// only not null in the last message of each block.
+	MessageProof []byte `json:"message_proof" gorm:"message_proof"`
+	// only not null in l2 sent messages, and use next message nonce (+1) to distinguish from the zero values.
+	NextMessageNonce uint64 `json:"next_message_nonce" gorm:"next_message_nonce"`
 
 	L1BlockStatusUpdatedAt      time.Time      `json:"l1_block_status_updated_at" gorm:"l1_block_status_updated_at"`
 	L2BlockStatusUpdatedAt      time.Time      `json:"l2_block_status_updated_at" gorm:"l2_block_status_updated_at"`
@@ -57,7 +61,7 @@ type MessageMatch struct {
 	L2CrossChainStatusUpdatedAt time.Time      `json:"l2_cross_chain_status_updated_at" gorm:"l2_cross_chain_status_updated_at"`
 	L1EthBalanceStatusUpdatedAt time.Time      `json:"l1_eth_balance_status_updated_at" gorm:"l1_eth_balance_status_updated_at"`
 	L2EthBalanceStatusUpdatedAt time.Time      `json:"l2_eth_balance_status_updated_at" gorm:"l2_eth_balance_status_updated_at"`
-	MessageProofNonceUpdatedAt  time.Time      `json:"message_proof_nonce_updated_at" gorm:"message_proof_nonce_updated_at"`
+	MessageProofUpdatedAt       time.Time      `json:"message_proof_updated_at" gorm:"message_proof_updated_at"`
 	CreatedAt                   time.Time      `json:"created_at" gorm:"column:created_at"`
 	UpdatedAt                   time.Time      `json:"updated_at" gorm:"column:updated_at"`
 	DeletedAt                   gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
@@ -182,8 +186,9 @@ func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context,
 func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
-	db = db.Where("message_nonce > ?", 0)
-	db = db.Order("message_nonce DESC")
+	db = db.Where("withdraw_root_status = ?", types.WithdrawRootStatusTypeValid)
+	db = db.Where("next_message_nonce > 0")
+	db = db.Order("next_message_nonce DESC")
 	err := db.First(&message).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -195,8 +200,28 @@ func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context)
 	return &message, nil
 }
 
-// InsertOrUpdateMsgProofNonce insert or update the withdrawal tree root's message proof and nonce
-func (m *MessageMatch) InsertOrUpdateMsgProofNonce(ctx context.Context, messages []MessageMatch) (int64, error) {
+// GetL2SentMessagesInBlockRange fetches the message match records of l2 sent message within the block range.
+func (m *MessageMatch) GetL2SentMessagesInBlockRange(ctx context.Context, startBlockNumber, endBlockNumber uint64) ([]*MessageMatch, error) {
+	var messages []*MessageMatch
+	db := m.db.WithContext(ctx)
+	db = db.Where("withdraw_root_status = ?", types.WithdrawRootStatusTypeUnknown)
+	db = db.Where("l2_block_number >= ?", startBlockNumber)
+	db = db.Where("l2_block_number <= ?", endBlockNumber)
+	db = db.Where("next_message_nonce > 0")
+	db = db.Order("next_message_nonce ASC")
+	err := db.Find(&messages).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		log.Warn("GetL2SentMessagesInBlockRange failed", "error", err)
+		return nil, fmt.Errorf("GetL2SentMessagesInBlockRange failed, err:%w", err)
+	}
+	return messages, nil
+}
+
+// InsertOrUpdateMsgProofAndStatus insert or update the withdrawal tree root's message proof and withdraw root status
+func (m *MessageMatch) InsertOrUpdateMsgProofAndStatus(ctx context.Context, messages []MessageMatch) (int64, error) {
 	if len(messages) == 0 {
 		return 0, nil
 	}
@@ -204,11 +229,11 @@ func (m *MessageMatch) InsertOrUpdateMsgProofNonce(ctx context.Context, messages
 	db = db.Model(&MessageMatch{})
 	db = db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "message_hash"}},
-		DoUpdates: clause.AssignmentColumns([]string{"message_proof", "message_nonce"}),
+		DoUpdates: clause.AssignmentColumns([]string{"message_proof", "withdraw_root_status"}),
 	})
 	result := db.Create(&messages)
 	if result.Error != nil {
-		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateMsgProofNonce error: %w, messages: %v", result.Error, messages)
+		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateMsgProofAndStatus error: %w, messages: %v", result.Error, messages)
 	}
 	return result.RowsAffected, nil
 }
@@ -284,29 +309,6 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, message M
 		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateETHEventInfo error: %w, message: %v", result.Error, message)
 	}
 	return result.RowsAffected, nil
-}
-
-// UpdateBlockStatus updates the block status for the given layer and block number range.
-func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64) error {
-	db := m.db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
-
-	switch layer {
-	case types.Layer1:
-		db = db.Where("l1_block_status = ?", types.BlockStatusTypeInvalid)
-		db = db.Where("l1_block_number >= ? AND l1_block_number <= ?", startBlockNumber, endBlockNumber)
-		db = db.Update("l1_block_status", types.BlockStatusTypeValid)
-	case types.Layer2:
-		db = db.Where("l2_block_status = ?", types.BlockStatusTypeInvalid)
-		db = db.Where("l2_block_number >= ? AND l2_block_number <= ?", startBlockNumber, endBlockNumber)
-		db = db.Update("l2_block_status", types.BlockStatusTypeValid)
-	}
-
-	if db.Error != nil {
-		log.Warn("MessageMatch.UpdateBlockStatus failed", "start block number", startBlockNumber, "end block number", endBlockNumber, "error", db.Error)
-		return fmt.Errorf("MessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
-	}
-	return nil
 }
 
 // UpdateCrossChainStatus updates the cross chain status for the message matches with the provided ids.

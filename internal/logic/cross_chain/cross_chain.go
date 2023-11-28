@@ -365,7 +365,11 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 		ethBalance = new(big.Int).Add(lastBlockETHBalance, blockETHBalance)
 
 		// update the db
-		mm := orm.MessageMatch{ID: v.ID}
+		mm := orm.MessageMatch{
+			ID:          v.ID,
+			MessageHash: v.MessageHash,
+		}
+
 		if layer == types.Layer1 {
 			mm.L1MessengerETHBalance = decimal.NewFromBigInt(ethBalance, 0)
 			mm.L1ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)

@@ -58,6 +58,11 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 	var effectRows int64
 	err := t.db.Transaction(func(tx *gorm.DB) error {
 		for _, message := range messengerMessageMatches {
+			if layer == types.Layer1 {
+				message.L1BlockStatus = int(types.BlockStatusTypeValid)
+			} else {
+				message.L2BlockStatus = int(types.BlockStatusTypeValid)
+			}
 			if message.TokenType == int(types.TokenTypeETH) {
 				effectRow, err := t.messageMatchOrm.InsertOrUpdateETHEventInfo(ctx, message, tx)
 				if err != nil {

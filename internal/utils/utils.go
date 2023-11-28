@@ -72,23 +72,23 @@ func GetLatestConfirmedBlockNumber(ctx context.Context, client *ethclient.Client
 	}
 }
 
-// GetL2WithdrawRootsInRange gets batch withdraw roots within a block range (inclusive) from the geth node.
-func GetL2WithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr common.Address, startBlockNumber, endBlockNumber uint64) (map[uint64]common.Hash, error) {
-	numbers := endBlockNumber - startBlockNumber + 1
+// GetL2WithdrawRootsForBlocks gets batch withdraw roots for a specific array of blocks from the geth node.
+func GetL2WithdrawRootsForBlocks(ctx context.Context, cli *rpc.Client, queueAddr common.Address, blockNumbers []uint64) (map[uint64]common.Hash, error) {
+	numbers := len(blockNumbers)
 	withdrawRoots := make([]common.Hash, numbers)
 	reqs := make([]rpc.BatchElem, numbers)
-	for i := startBlockNumber; i <= endBlockNumber; i++ {
-		n := big.NewInt(0).SetUint64(i)
-		reqs[i-startBlockNumber] = rpc.BatchElem{
+	for i, blockNumber := range blockNumbers {
+		n := big.NewInt(0).SetUint64(blockNumber)
+		reqs[i] = rpc.BatchElem{
 			Method: "eth_getStorageAt",
 			Args:   []interface{}{queueAddr, common.Hash{}, hexutil.EncodeBig(n)},
-			Result: &withdrawRoots[i-startBlockNumber],
+			Result: &withdrawRoots[i],
 		}
 	}
 	parallels := 8
 	eg := errgroup.Group{}
 	eg.SetLimit(parallels)
-	for i := 0; i < int(numbers); i += parallels {
+	for i := 0; i < numbers; i += parallels {
 		start := i
 		end := mathutil.Min(start+parallels, len(reqs))
 		eg.Go(func() error {
@@ -100,7 +100,7 @@ func GetL2WithdrawRootsInRange(ctx context.Context, cli *rpc.Client, queueAddr c
 	}
 	withdrawRootsMap := make(map[uint64]common.Hash)
 	for i, withdrawRoot := range withdrawRoots {
-		withdrawRootsMap[startBlockNumber+uint64(i)] = withdrawRoot
+		withdrawRootsMap[blockNumbers[i]] = withdrawRoot
 	}
 	return withdrawRootsMap, nil
 }
