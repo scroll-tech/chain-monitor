@@ -55,7 +55,8 @@ func InitDB(config *Config) (*gorm.DB, error) {
 	newLogger := logger.New(
 		slog.New(os.Stdout, "\r\n", slog.LstdFlags), // io writer
 		logger.Config{
-			LogLevel: logger.Info, // Log level
+			LogLevel: logger.Warn, // Log level
+			Colorful: true,
 		},
 	)
 

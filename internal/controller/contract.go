@@ -23,7 +23,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
-const maxBlockFetchSize uint64 = 199
+const maxBlockFetchSize uint64 = 499
 
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
