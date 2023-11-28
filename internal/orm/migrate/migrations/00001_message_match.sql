@@ -39,7 +39,7 @@ CREATE TABLE message_match
     l2_cross_chain_status_updated_at TIMESTAMP(0)    DEFAULT NULL,
     l1_eth_balance_status_updated_at TIMESTAMP(0)    DEFAULT NULL,
     l2_eth_balance_status_updated_at TIMESTAMP(0)    DEFAULT NULL,
-    message_proof_nonce_updated_at   TIMESTAMP(0)    DEFAULT NULL,
+    message_proof_updated_at         TIMESTAMP(0)    DEFAULT NULL,
     created_at                       TIMESTAMP(0)    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at                       TIMESTAMP(0)    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at                       TIMESTAMP(0)    DEFAULT NULL

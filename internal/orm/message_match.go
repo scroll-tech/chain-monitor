@@ -61,7 +61,7 @@ type MessageMatch struct {
 	L2CrossChainStatusUpdatedAt time.Time      `json:"l2_cross_chain_status_updated_at" gorm:"l2_cross_chain_status_updated_at"`
 	L1EthBalanceStatusUpdatedAt time.Time      `json:"l1_eth_balance_status_updated_at" gorm:"l1_eth_balance_status_updated_at"`
 	L2EthBalanceStatusUpdatedAt time.Time      `json:"l2_eth_balance_status_updated_at" gorm:"l2_eth_balance_status_updated_at"`
-	MessageProofNonceUpdatedAt  time.Time      `json:"message_proof_nonce_updated_at" gorm:"message_proof_nonce_updated_at"`
+	MessageProofUpdatedAt       time.Time      `json:"message_proof_updated_at" gorm:"message_proof_updated_at"`
 	CreatedAt                   time.Time      `json:"created_at" gorm:"column:created_at"`
 	UpdatedAt                   time.Time      `json:"updated_at" gorm:"column:updated_at"`
 	DeletedAt                   gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`

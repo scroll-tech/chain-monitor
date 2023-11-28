@@ -118,10 +118,10 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 		if numEvents > 0 {
 			// only update the last message of each block (which contains at least one SentMessage event).
 			messageMatches = append(messageMatches, orm.MessageMatch{
-				MessageHash:                eventHashes[numEvents-1].Hex(),
-				MessageProof:               proofs[numEvents-1],
-				WithdrawRootStatus:         int(types.WithdrawRootStatusTypeValid),
-				MessageProofNonceUpdatedAt: utils.NowUTC(),
+				MessageHash:           eventHashes[numEvents-1].Hex(),
+				MessageProof:          proofs[numEvents-1],
+				WithdrawRootStatus:    int(types.WithdrawRootStatusTypeValid),
+				MessageProofUpdatedAt: utils.NowUTC(),
 			})
 		}
 	}
