@@ -63,7 +63,7 @@ func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1Mes
 
 // CheckCrossChainGatewayMessage is a method for checking cross-chain messages.
 func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, layerType types.LayerType) {
-	messages, err := c.messageOrm.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs(ctx, 1000)
+	messages, err := c.messageOrm.GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx, layerType, 1000)
 	if err != nil {
 		log.Error("CheckCrossChainGatewayMessage.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs failed", "error", err)
 		return
@@ -365,11 +365,7 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 		ethBalance = new(big.Int).Add(lastBlockETHBalance, blockETHBalance)
 
 		// update the db
-		mm := orm.MessageMatch{
-			ID:          v.ID,
-			CheckStatus: int(types.CheckStatusChecked),
-		}
-
+		mm := orm.MessageMatch{ID: v.ID}
 		if layer == types.Layer1 {
 			mm.L1MessengerETHBalance = decimal.NewFromBigInt(ethBalance, 0)
 			mm.L1ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)

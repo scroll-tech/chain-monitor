@@ -15,6 +15,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/chain-monitor/internal/utils"
 	"github.com/scroll-tech/chain-monitor/internal/utils/msgproof"
 )
 
@@ -107,9 +108,10 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 		if numEvents > 0 {
 			// only update the last message of each block (which contains at least one SentMessage event).
 			messageMatches = append(messageMatches, orm.MessageMatch{
-				MessageHash:  eventHashes[numEvents-1].Hex(),
-				MessageProof: proofs[numEvents-1],
-				MessageNonce: withdrawTrie.NextMessageNonce, // +1 to distinguish from the zero value
+				MessageHash:                eventHashes[numEvents-1].Hex(),
+				MessageProof:               proofs[numEvents-1],
+				MessageNonce:               withdrawTrie.NextMessageNonce, // +1 to distinguish from the zero value
+				MessageProofNonceUpdatedAt: utils.NowUTC(),
 			})
 		}
 	}
@@ -137,6 +139,10 @@ func (c *Checker) MessengerCheck(_ context.Context, layer types.LayerType, messe
 		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)
 		if !ok {
 			return nil, fmt.Errorf("eventData is not of type *events.MessengerEventUnmarshaler")
+		}
+		if messengerEventUnmarshaler.MessageHash.Hex() == "0x57c35d18cb7a4d8230432ab0a24ded50f59ae7d1993a81cbf3933e84cf24e2ae" {
+			aa := 0
+			aa++
 		}
 		switch messengerEventUnmarshaler.Type {
 		case types.L1SentMessage:

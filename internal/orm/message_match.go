@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
 // MessageMatch contains the tx of l1 & l2
@@ -43,7 +44,6 @@ type MessageMatch struct {
 	L2ETHBalanceStatus    int             `json:"l2_eth_balance_status" gorm:"l2_eth_balance_status"`
 
 	// status
-	CheckStatus        int    `json:"check_status" gorm:"check_status"`
 	L1BlockStatus      int    `json:"l1_block_status" gorm:"l1_block_status"`
 	L2BlockStatus      int    `json:"l2_block_status" gorm:"l2_block_status"`
 	L1CrossChainStatus int    `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`
@@ -51,9 +51,16 @@ type MessageMatch struct {
 	MessageProof       []byte `json:"message_proof" gorm:"message_proof"` // only not null in the last message of each block.
 	MessageNonce       uint64 `json:"message_nonce" gorm:"message_nonce"` // only not null in the last message of each block.
 
-	CreatedAt time.Time      `json:"created_at" gorm:"column:created_at"`
-	UpdatedAt time.Time      `json:"updated_at" gorm:"column:updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
+	L1BlockStatusUpdatedAt      time.Time      `json:"l1_block_status_updated_at" gorm:"l1_block_status_updated_at"`
+	L2BlockStatusUpdatedAt      time.Time      `json:"l2_block_status_updated_at" gorm:"l2_block_status_updated_at"`
+	L1CrossChainStatusUpdatedAt time.Time      `json:"l1_cross_chain_status_updated_at" gorm:"l1_cross_chain_status_updated_at"`
+	L2CrossChainStatusUpdatedAt time.Time      `json:"l2_cross_chain_status_updated_at" gorm:"l2_cross_chain_status_updated_at"`
+	L1EthBalanceStatusUpdatedAt time.Time      `json:"l1_eth_balance_status_updated_at" gorm:"l1_eth_balance_status_updated_at"`
+	L2EthBalanceStatusUpdatedAt time.Time      `json:"l2_eth_balance_status_updated_at" gorm:"l2_eth_balance_status_updated_at"`
+	MessageProofNonceUpdatedAt  time.Time      `json:"message_proof_nonce_updated_at" gorm:"message_proof_nonce_updated_at"`
+	CreatedAt                   time.Time      `json:"created_at" gorm:"column:created_at"`
+	UpdatedAt                   time.Time      `json:"updated_at" gorm:"column:updated_at"`
+	DeletedAt                   gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
 }
 
 // NewMessageMatch creates a new MessageMatch database instance.
@@ -66,19 +73,24 @@ func (*MessageMatch) TableName() string {
 	return "message_match"
 }
 
-// GetUncheckedAndDoubleLayerValidGatewayMessageMatchs retrieves the earliest unchecked gateway message match records
+// GetUncheckedAndDoubleLayerValidGatewayMessageMatches retrieves the earliest unchecked gateway message match records
 // that are valid in both Layer1 and Layer2.
-func (m *MessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatchs(ctx context.Context, limit int) ([]MessageMatch, error) {
+func (m *MessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx context.Context, layer types.LayerType, limit int) ([]MessageMatch, error) {
 	var messages []MessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
 	db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
-	db = db.Where("check_status = ?", types.CheckStatusUnchecked)
+	switch layer {
+	case types.Layer1:
+		db = db.Where("l1_cross_chain_status = ?", types.CrossChainStatusTypeInvalid)
+	case types.Layer2:
+		db = db.Where("l2_cross_chain_status = ?", types.CrossChainStatusTypeInvalid)
+	}
 	db = db.Order("id asc")
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
-		log.Warn("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs failed err:%w", err)
+		log.Warn("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatches failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatches failed err:%w", err)
 	}
 	return messages, nil
 }
@@ -202,7 +214,7 @@ func (m *MessageMatch) InsertOrUpdateMsgProofNonce(ctx context.Context, messages
 }
 
 // InsertOrUpdateGatewayEventInfo insert or update eth event info
-func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer types.LayerType, messages MessageMatch, dbTX ...*gorm.DB) (int64, error) {
+func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer types.LayerType, message MessageMatch, dbTX ...*gorm.DB) (int64, error) {
 	db := m.db
 	if len(dbTX) > 0 && dbTX[0] != nil {
 		db = dbTX[0]
@@ -213,9 +225,11 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer
 
 	var assignmentColumn clause.Set
 	if layer == types.Layer1 {
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_token_ids", "l1_amounts"})
+		message.L1BlockStatusUpdatedAt = utils.NowUTC()
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_token_ids", "l1_amounts", "l1_block_status_updated_at"})
 	} else if layer == types.Layer2 {
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_token_ids", "l2_amounts"})
+		message.L2BlockStatusUpdatedAt = utils.NowUTC()
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_token_ids", "l2_amounts", "l2_block_status_updated_at"})
 	}
 
 	db = db.Clauses(clause.OnConflict{
@@ -223,9 +237,9 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer
 		DoUpdates: assignmentColumn,
 	})
 
-	result := db.Create(&messages)
+	result := db.Create(&message)
 	if result.Error != nil {
-		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateGatewayEventInfo error: %w, messages: %v", result.Error, messages)
+		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateGatewayEventInfo error: %w, messages: %v", result.Error, message)
 	}
 	return result.RowsAffected, nil
 }
@@ -241,19 +255,23 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, message M
 	db = db.Model(&MessageMatch{})
 	var columns []string
 	if message.L1EventType != 0 && message.L1EventType == int(types.L1SentMessage) {
-		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_amounts", "l2_amounts")
+		message.L1BlockStatusUpdatedAt = utils.NowUTC()
+		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_amounts", "l2_amounts", "l1_block_status_updated_at")
 	}
 
 	if message.L1EventType != 0 && message.L1EventType == int(types.L1RelayedMessage) {
-		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids")
+		message.L1BlockStatusUpdatedAt = utils.NowUTC()
+		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_block_status_updated_at")
 	}
 
 	if message.L2EventType != 0 && message.L2EventType == int(types.L2SentMessage) {
-		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l1_amounts", "l2_amounts")
+		message.L2BlockStatusUpdatedAt = utils.NowUTC()
+		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l1_amounts", "l2_amounts", "l2_block_status_updated_at")
 	}
 
 	if message.L2EventType != 0 && message.L2EventType == int(types.L2RelayedMessage) {
-		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids")
+		message.L2BlockStatusUpdatedAt = utils.NowUTC()
+		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l2_block_status_updated_at")
 	}
 
 	db = db.Clauses(clause.OnConflict{
@@ -297,15 +315,21 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 	db = db.Model(&MessageMatch{})
 	db = db.Where("id in (?)", id)
 
-	var err error
+	var updateFields map[string]interface{}
 	switch layerType {
 	case types.Layer1:
-		err = db.Updates(map[string]interface{}{"l1_cross_chain_status": status, "check_status": types.CheckStatusChecked}).Error
+		updateFields = map[string]interface{}{
+			"l1_cross_chain_status":            status,
+			"l1_cross_chain_status_updated_at": utils.NowUTC(),
+		}
 	case types.Layer2:
-		err = db.Updates(map[string]interface{}{"l2_cross_chain_status": status, "check_status": types.CheckStatusChecked}).Error
+		updateFields = map[string]interface{}{
+			"l2_cross_chain_status":            status,
+			"l2_cross_chain_status_updated_at": utils.NowUTC(),
+		}
 	}
 
-	if err != nil {
+	if err := db.Updates(updateFields).Error; err != nil {
 		log.Warn("MessageMatch.UpdateCrossChainStatus failed", "error", err)
 		return fmt.Errorf("MessageMatch.UpdateCrossChainStatus failed err:%w", err)
 	}
@@ -318,12 +342,24 @@ func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layerType types.Lay
 	db = db.Model(&MessageMatch{})
 	db = db.Where("id = ?", messageMatch.ID)
 
-	var err error
+	var updateFields map[string]interface{}
 	switch layerType {
 	case types.Layer1:
-		err = db.Updates(map[string]interface{}{"l1_messenger_eth_balance": messageMatch.L1MessengerETHBalance, "l1_eth_balance_status": messageMatch.L1MessengerETHBalance}).Error
+		updateFields = map[string]interface{}{
+			"l1_messenger_eth_balance":         messageMatch.L1MessengerETHBalance,
+			"l1_eth_balance_status":            messageMatch.L1MessengerETHBalance,
+			"l1_eth_balance_status_updated_at": utils.NowUTC(),
+		}
 	case types.Layer2:
-		err = db.Updates(map[string]interface{}{"l2_messenger_eth_balance": messageMatch.L2MessengerETHBalance, "l2_eth_balance_status": messageMatch.L2MessengerETHBalance}).Error
+		updateFields = map[string]interface{}{
+			"l2_messenger_eth_balance":         messageMatch.L1MessengerETHBalance,
+			"l2_eth_balance_status":            messageMatch.L1MessengerETHBalance,
+			"l2_eth_balance_status_updated_at": utils.NowUTC(),
+		}
 	}
-	return err
+	if err := db.Updates(updateFields).Error; err != nil {
+		log.Warn("MessageMatch.UpdateETHBalance failed", "error", err)
+		return fmt.Errorf("MessageMatch.UpdateETHBalance failed err:%w", err)
+	}
+	return nil
 }
