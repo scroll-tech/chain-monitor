@@ -31,6 +31,7 @@ type reentrancyWatchType struct {
 	layer         types.LayerType
 	startBlockNum uint64
 	endBlockNum   uint64
+	times         int
 }
 
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
@@ -435,11 +436,14 @@ func (c *ContractController) replaceGatewayEventInfo(layer types.LayerType, gate
 	}
 }
 
+func (c *ContractController) reentrancyKey(layer types.LayerType, startBlockNumber, endBlockNumber uint64) string {
+	return fmt.Sprintf("key-%d-%d-%d", layer, startBlockNumber, endBlockNumber)
+}
+
 func (c *ContractController) reentrancyFailedEvent(layer types.LayerType, startBlockNumber, endBlockNumber uint64) {
 	log.Error("reentrancy failed event", layer, "startBlockNumber", startBlockNumber, "endBlockNumber", endBlockNumber)
 
-	key := fmt.Sprintf("key-%d-%d-%d", layer, startBlockNumber, endBlockNumber)
-	if _, exist := c.reentrancyWatchCache.Get(key); exist {
+	if _, exist := c.reentrancyWatchCache.Get(c.reentrancyKey(layer, startBlockNumber, endBlockNumber)); exist {
 		log.Error("reentrancyFailedEvent exist", "layer", layer, "startBlockNumber", startBlockNumber, "endBlockNumber", endBlockNumber)
 		return
 	}
@@ -448,11 +452,11 @@ func (c *ContractController) reentrancyFailedEvent(layer types.LayerType, startB
 		startBlockNum: startBlockNumber,
 		endBlockNum:   endBlockNumber,
 	}
-	c.reentrancyWatchCache.Set(key, v, cache.DefaultExpiration)
+	c.reentrancyWatchCache.Set(c.reentrancyKey(layer, startBlockNumber, endBlockNumber), &v, cache.DefaultExpiration)
 }
 
 func (c *ContractController) reentrancyWatch(reentrancyWatchData *reentrancyWatchType) {
-	log.Info("reentrancy watch", reentrancyWatchData.layer, "startBlockNumber", reentrancyWatchData.startBlockNum, "endBlockNumber", reentrancyWatchData.endBlockNum)
+	log.Info("reentrancy watch", "layer", reentrancyWatchData.layer, "startBlockNumber", reentrancyWatchData.startBlockNum, "endBlockNumber", reentrancyWatchData.endBlockNum)
 	var err error
 	switch reentrancyWatchData.layer {
 	case types.Layer1:
@@ -460,11 +464,12 @@ func (c *ContractController) reentrancyWatch(reentrancyWatchData *reentrancyWatc
 	case types.Layer2:
 		err = c.l2Watch(c.ctx, reentrancyWatchData.startBlockNum, reentrancyWatchData.endBlockNum)
 	}
+
 	if err != nil {
-		log.Error("reentrancyWatch failed", "layer", reentrancyWatchData.layer, "startBlockNumber", reentrancyWatchData.startBlockNum, "endBlockNumber", reentrancyWatchData.endBlockNum)
+		log.Error("reentrancy watch failed", "layer", reentrancyWatchData.layer, "startBlockNumber", reentrancyWatchData.startBlockNum, "endBlockNumber", reentrancyWatchData.endBlockNum)
 		return
 	}
-	key := fmt.Sprintf("key-%d-%d-%d", reentrancyWatchData.layer, reentrancyWatchData.startBlockNum, reentrancyWatchData.endBlockNum)
+	key := c.reentrancyKey(reentrancyWatchData.layer, reentrancyWatchData.startBlockNum, reentrancyWatchData.endBlockNum)
 	c.reentrancyWatchCache.Delete(key)
 }
 
@@ -473,7 +478,6 @@ func (c *ContractController) reentrancyWatchStart() {
 
 	for {
 		c.reentrancyWatchRunningTotal.Inc()
-
 		select {
 		case <-c.ctx.Done():
 			if c.ctx.Err() != nil {
@@ -493,7 +497,15 @@ func (c *ContractController) reentrancyWatchStart() {
 		}
 
 		for _, reentrancyWatchData := range c.reentrancyWatchCache.Items() {
-			c.reentrancyWatch(reentrancyWatchData.Object.(*reentrancyWatchType))
+			reentrancyWatch := reentrancyWatchData.Object.(*reentrancyWatchType)
+			key := c.reentrancyKey(reentrancyWatch.layer, reentrancyWatch.startBlockNum, reentrancyWatch.endBlockNum)
+			if reentrancyWatch.times <= 10 {
+				reentrancyWatch.times++
+				c.reentrancyWatchCache.Set(key, reentrancyWatch, cache.DefaultExpiration)
+				c.reentrancyWatch(reentrancyWatch)
+			} else {
+				c.reentrancyWatchCache.Delete(key)
+			}
 			break
 		}
 	}
