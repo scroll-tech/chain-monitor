@@ -126,8 +126,10 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 	switch layer {
 	case types.Layer1:
 		db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
+		db = db.Order("l1_block_number desc")
 	case types.Layer2:
 		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
+		db = db.Order("l2_block_number desc")
 	}
 	err := db.Last(&message).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -182,8 +184,8 @@ func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context,
 	return &message, nil
 }
 
-// GetLargestMessageNonceL2MessageMatch fetches the message match record with the maximum MessageNonce.
-func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context) (*MessageMatch, error) {
+// GetLatestValidL2SentMessageMatch fetches the valid l2 sent message with the largest message nonce.
+func (m *MessageMatch) GetLatestValidL2SentMessageMatch(ctx context.Context) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("withdraw_root_status = ?", types.WithdrawRootStatusTypeValid)
@@ -194,8 +196,8 @@ func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context)
 		return nil, nil
 	}
 	if err != nil {
-		log.Warn("GetLargestMessageNonceL2MessageMatch failed", "error", err)
-		return nil, fmt.Errorf("GetLargestMessageNonceL2MessageMatch failed, err:%w", err)
+		log.Warn("GetLatestValidL2SentMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("GetLatestValidL2SentMessageMatch failed, err:%w", err)
 	}
 	return &message, nil
 }

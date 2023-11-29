@@ -134,6 +134,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", err)
 		return
 	}
+	log.Info("Block process height in db", "block number", blockNumberInDB)
 	start := blockNumberInDB + 1
 
 	for {
@@ -215,8 +216,10 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 
 		// Update last valid message's withdraw trie proof and block status after check.
 		err = c.db.Transaction(func(tx *gorm.DB) error {
-			if err = c.messageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
-				return fmt.Errorf("insert or update msg proof and status failed, err: %w", err)
+			if layer == types.Layer2 {
+				if err = c.messageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
+					return fmt.Errorf("insert or update msg proof and status failed, err: %w, message: %+v", err, lastMessage)
+				}
 			}
 
 			if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, originalStart, end, tx); err != nil {

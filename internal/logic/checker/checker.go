@@ -70,7 +70,7 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 	}
 	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
-	msg, err := c.messageMatchOrm.GetLargestMessageNonceL2MessageMatch(ctx)
+	msg, err := c.messageMatchOrm.GetLatestValidL2SentMessageMatch(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get largest message nonce l2 message match failed, err: %w", err)
 	}
@@ -125,6 +125,8 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 				MessageProof:          proofs[numEvents-1],
 				WithdrawRootStatus:    int(types.WithdrawRootStatusTypeValid),
 				MessageProofUpdatedAt: utils.NowUTC(),
+				NextMessageNonce:      withdrawTrie.NextMessageNonce,
+				L2BlockNumber:         blockNum,
 			}
 		}
 	}
