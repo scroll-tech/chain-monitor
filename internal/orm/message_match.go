@@ -354,8 +354,7 @@ func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerT
 		}
 	}
 
-	err := db.Updates(updateFields).Error
-	if err != nil {
+	if err := db.Updates(updateFields).Error; err != nil {
 		return fmt.Errorf("MessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
 	}
 	return nil
