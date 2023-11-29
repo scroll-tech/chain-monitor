@@ -161,7 +161,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		}
 
 		var eg errgroup.Group
-		originalStart := start
+		tmpStart := start
 		var end uint64
 		for i := 0; i < concurrency; i++ {
 			if start > confirmationNumber {
@@ -176,14 +176,14 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			}
 
 			// 3. get the max fetch number
-			end = start + maxBlockFetchSize
+			end = tmpStart + maxBlockFetchSize
 			if start+maxBlockFetchSize > confirmationNumber {
 				end = confirmationNumber
 			}
 
-			currentStart := start
+			currentStart := tmpStart
 			currentEnd := end
-			start = end + 1
+			tmpStart = end + 1
 
 			c.contractControllerBlockNumber.WithLabelValues(layer.String()).Set(float64(currentEnd))
 
@@ -206,10 +206,10 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		var lastMessage *orm.MessageMatch
 		if layer == types.Layer2 {
 			var checkErr error
-			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, originalStart, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
+			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, start, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
 			if checkErr != nil {
 				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
-				log.Error("check withdraw roots failed", "layer", types.Layer2, "start", originalStart, "end", end, "error", checkErr)
+				log.Error("check withdraw roots failed", "layer", types.Layer2, "start", start, "end", end, "error", checkErr)
 				continue
 			}
 		}
@@ -222,14 +222,18 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 				}
 			}
 
-			if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, originalStart, end, tx); err != nil {
+			if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, end, tx); err != nil {
 				return fmt.Errorf("update block status failed, err: %w", err)
 			}
 			return nil
 		})
 		if err != nil {
-			log.Error("update db status after check failed", "layer", layer, "from", originalStart, "end", end, "err", err)
+			log.Error("update db status after check failed", "layer", layer, "from", start, "end", end, "err", err)
+			continue
 		}
+
+		// Update start after all handlings are successful.
+		start = end + 1
 	}
 }
 
