@@ -33,6 +33,14 @@ func Migrate(db *gorm.DB) error {
 	return goose.Up(tx, MigrationsDir, goose.WithAllowMissing())
 }
 
+// ResetDB clean and migrate db.
+func ResetDB(db *gorm.DB) error {
+	if err := Rollback(db, 0); err != nil {
+		return err
+	}
+	return Migrate(db)
+}
+
 // Rollback to the given version
 func Rollback(db *gorm.DB, version int64) error {
 	tx, err := db.DB()

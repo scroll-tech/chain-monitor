@@ -58,7 +58,7 @@ func action(ctx *cli.Context) error {
 			return migrate.Migrate(db)
 		}
 		if ctx.Bool(utils.DBResetFlag.Name) {
-			return migrate.Rollback(db, 0)
+			return migrate.ResetDB(db)
 		}
 		if ctx.IsSet(utils.DBRollBackFlag.Name) {
 			return migrate.Rollback(db, ctx.Int64(utils.DBRollBackFlag.Name))
