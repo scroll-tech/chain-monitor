@@ -335,32 +335,30 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 // UpdateBlockStatus updates the block status for the given layer and block number range.
 // This operation is performed within a database transaction.
 func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64) error {
-	return m.db.Transaction(func(tx *gorm.DB) error {
-		db := tx.WithContext(ctx)
-		db = db.Model(&MessageMatch{})
+	db := m.db.WithContext(ctx)
+	db = db.Model(&MessageMatch{})
 
-		var updateFields map[string]interface{}
-		switch layer {
-		case types.Layer1:
-			db = db.Where("l1_block_number >= ? AND l1_block_number <= ?", startBlockNumber, endBlockNumber)
-			updateFields = map[string]interface{}{
-				"l1_block_status":            types.BlockStatusTypeValid,
-				"l1_block_status_updated_at": utils.NowUTC(),
-			}
-		case types.Layer2:
-			db = db.Where("l2_block_number >= ? AND l2_block_number <= ?", startBlockNumber, endBlockNumber)
-			updateFields = map[string]interface{}{
-				"l2_block_status":            types.BlockStatusTypeValid,
-				"l2_block_status_updated_at": utils.NowUTC(),
-			}
+	var updateFields map[string]interface{}
+	switch layer {
+	case types.Layer1:
+		db = db.Where("l1_block_number >= ? AND l1_block_number <= ?", startBlockNumber, endBlockNumber)
+		updateFields = map[string]interface{}{
+			"l1_block_status":            types.BlockStatusTypeValid,
+			"l1_block_status_updated_at": utils.NowUTC(),
 		}
+	case types.Layer2:
+		db = db.Where("l2_block_number >= ? AND l2_block_number <= ?", startBlockNumber, endBlockNumber)
+		updateFields = map[string]interface{}{
+			"l2_block_status":            types.BlockStatusTypeValid,
+			"l2_block_status_updated_at": utils.NowUTC(),
+		}
+	}
 
-		err := db.Updates(updateFields).Error
-		if err != nil {
-			return fmt.Errorf("MessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
-		}
-		return nil
-	})
+	err := db.Updates(updateFields).Error
+	if err != nil {
+		return fmt.Errorf("MessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
+	}
+	return nil
 }
 
 // UpdateETHBalance update the eth balance and eth status
