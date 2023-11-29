@@ -21,6 +21,11 @@ var (
 		&MetricsEnabled,
 		&MetricsAddr,
 		&MetricsPort,
+
+		&DBFlag,
+		&DBMigrateFlag,
+		&DBRollBackFlag,
+		&DBResetFlag,
 	}
 	// ConfigFileFlag load json type config file.
 	ConfigFileFlag = cli.StringFlag{
@@ -92,5 +97,30 @@ var (
 		Usage:    "Metrics reporting server listening port.",
 		Category: "METRICS",
 		Value:    6060,
+	}
+
+	// DBFlag enable db operation.
+	DBFlag = cli.BoolFlag{
+		Name:  "db",
+		Usage: "Enable db operation.",
+		Value: false,
+	}
+	// DBMigrateFlag migrate db.
+	DBMigrateFlag = cli.BoolFlag{
+		Name:  "db.migrate",
+		Usage: "Migrate the database to the latest version.",
+		Value: false,
+	}
+	// DBRollBackFlag rollback db.
+	DBRollBackFlag = cli.Int64Flag{
+		Name:  "db.rollback",
+		Usage: "Roll back the database to a previous <version>. Rolls back a single migration if no version specified.",
+		Value: 0,
+	}
+	// DBResetFlag reset db.
+	DBResetFlag = cli.BoolFlag{
+		Name:  "db.reset",
+		Usage: "Clean and reset database.",
+		Value: false,
 	}
 )

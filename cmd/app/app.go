@@ -13,6 +13,7 @@ import (
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/controller"
+	"github.com/scroll-tech/chain-monitor/internal/orm/migrate"
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 	"github.com/scroll-tech/chain-monitor/internal/utils/database"
 	"github.com/scroll-tech/chain-monitor/internal/utils/observability"
@@ -36,6 +37,7 @@ func init() {
 
 func action(ctx *cli.Context) error {
 	subCtx, cancel := context.WithCancel(ctx.Context)
+	defer cancel()
 
 	// Load config file.
 	cfgFile := ctx.String(utils.ConfigFileFlag.Name)
@@ -48,6 +50,19 @@ func action(ctx *cli.Context) error {
 	db, err := database.InitDB(cfg.DBConfig)
 	if err != nil {
 		log.Crit("failed to connect to db", "err", err)
+	}
+
+	// db operation.
+	if ctx.Bool(utils.DBFlag.Name) {
+		if ctx.Bool(utils.DBMigrateFlag.Name) {
+			return migrate.Migrate(db)
+		}
+		if ctx.Bool(utils.DBResetFlag.Name) {
+			return migrate.Rollback(db, 0)
+		}
+		if ctx.IsSet(utils.DBRollBackFlag.Name) {
+			return migrate.Rollback(db, ctx.Int64(utils.DBRollBackFlag.Name))
+		}
 	}
 
 	l1Client, err := rpc.Dial(cfg.L1Config.L1URL)
@@ -75,7 +90,6 @@ func action(ctx *cli.Context) error {
 		contractCtl.Stop()
 		crossChainCtl.Stop()
 		slackAlert.Stop()
-		cancel()
 		if err = database.CloseDB(db); err != nil {
 			log.Error("failed to close database", "err", err)
 		}

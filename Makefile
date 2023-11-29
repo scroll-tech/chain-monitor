@@ -1,4 +1,5 @@
-.PHONY: abi update docker update format lint chain-monitor
+.PHONY: abi update docker update fmt lint build test
+.DEFAULT_GOAL := build
 
 IMAGE_NAME=chain-monitor
 IMAGE_VERSION=latest
@@ -16,7 +17,7 @@ fmt:
 abi:
 	bash ./build_abi.sh $(CPATH)
 
-chain-monitor:
+build:
 	go build -o build/bin/chain-monitor ./cmd/main.go
 
 test:

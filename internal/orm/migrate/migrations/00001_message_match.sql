@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose MessageMatchBegin
 CREATE TABLE message_match
 (
     id                               BIGSERIAL       PRIMARY KEY,
@@ -45,9 +47,15 @@ CREATE TABLE message_match
     deleted_at                       TIMESTAMP(0)    DEFAULT NULL
 );
 
-CREATE UNIQUE INDEX idx_message_match_message_hash ON message_match (message_hash);
-CREATE INDEX if not exists idx_l1_l2_block_status_deleted_id_desc ON message_match (l1_block_status, l2_block_status, deleted_at, id DESC);
-CREATE INDEX if not exists idx_message_l1_block_number ON message_match (l1_block_number);
-CREATE INDEX if not exists idx_message_l2_block_number ON message_match (l2_block_number);
-CREATE INDEX idx_message_match_next_message_nonce ON message_match (next_message_nonce);
-CREATE INDEX idx_message_match_withdraw_root_status ON message_match (withdraw_root_status);
+CREATE UNIQUE INDEX new2idx_message_match_message_hash ON message_match (message_hash);
+CREATE INDEX if not exists new2idx_l1_l2_block_status_deleted_id_desc ON message_match (l1_block_status, l2_block_status, deleted_at, id DESC);
+CREATE INDEX if not exists new2idx_message_l1_block_number ON message_match (l1_block_number);
+CREATE INDEX if not exists new2idx_message_l2_block_number ON message_match (l2_block_number);
+CREATE INDEX new2idxidx_message_match_next_message_nonce ON message_match (next_message_nonce);
+CREATE INDEX new2idxidx_message_match_withdraw_root_status ON message_match (withdraw_root_status);
+-- +goose MessageMatchEnd
+
+-- +goose Down
+-- +goose MessageMatchBegin
+drop table if exists message_match;
+-- +goose MessageMatchEnd
