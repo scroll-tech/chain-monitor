@@ -1,7 +1,7 @@
 {
   "l1_config": {
     "l1_url": "http://10.5.12.230:8545/l1",
-    "confirm": "0x4",
+    "confirm": "0x20",
     "start_number": 4041180,
     "l1_contracts": {
       "l1_gateways": {
@@ -22,7 +22,7 @@
   },
   "l2_config": {
     "l2_url": "http://10.5.11.195:8545",
-    "confirm": "0x6",
+    "confirm": "0x80",
     "l2_contracts": {
       "l2_gateways": {
         "eth_gateway": "0x91e8ADDFe1358aCa5314c644312d38237fC1101C",

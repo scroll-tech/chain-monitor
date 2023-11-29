@@ -250,11 +250,9 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer
 
 	var assignmentColumn clause.Set
 	if layer == types.Layer1 {
-		message.L1BlockStatusUpdatedAt = utils.NowUTC()
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_token_ids", "l1_amounts", "l1_block_status_updated_at"})
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_tx_hash", "l1_event_type", "l1_token_ids", "l1_amounts"})
 	} else if layer == types.Layer2 {
-		message.L2BlockStatusUpdatedAt = utils.NowUTC()
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_token_ids", "l2_amounts", "l2_block_status_updated_at", "next_message_nonce"})
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts", "next_message_nonce"})
 	}
 
 	db = db.Clauses(clause.OnConflict{
@@ -280,23 +278,19 @@ func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, message M
 	db = db.Model(&MessageMatch{})
 	var columns []string
 	if message.L1EventType != 0 && message.L1EventType == int(types.L1SentMessage) {
-		message.L1BlockStatusUpdatedAt = utils.NowUTC()
-		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_amounts", "l2_amounts", "l1_block_status_updated_at")
+		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_amounts", "l2_amounts")
 	}
 
 	if message.L1EventType != 0 && message.L1EventType == int(types.L1RelayedMessage) {
-		message.L1BlockStatusUpdatedAt = utils.NowUTC()
-		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_block_status_updated_at")
+		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids")
 	}
 
 	if message.L2EventType != 0 && message.L2EventType == int(types.L2SentMessage) {
-		message.L2BlockStatusUpdatedAt = utils.NowUTC()
-		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l1_amounts", "l2_amounts", "l2_block_status_updated_at", "next_message_nonce")
+		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l1_amounts", "l2_amounts", "next_message_nonce")
 	}
 
 	if message.L2EventType != 0 && message.L2EventType == int(types.L2RelayedMessage) {
-		message.L2BlockStatusUpdatedAt = utils.NowUTC()
-		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l2_block_status_updated_at")
+		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids")
 	}
 
 	db = db.Clauses(clause.OnConflict{
@@ -334,6 +328,34 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 	if err := db.Updates(updateFields).Error; err != nil {
 		log.Warn("MessageMatch.UpdateCrossChainStatus failed", "error", err)
 		return fmt.Errorf("MessageMatch.UpdateCrossChainStatus failed err:%w", err)
+	}
+	return nil
+}
+
+// UpdateBlockStatus updates the block status for the given layer and block number range.
+// This operation is performed within a database transaction.
+func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64) error {
+	db := m.db.WithContext(ctx)
+	db = db.Model(&MessageMatch{})
+
+	var updateFields map[string]interface{}
+	switch layer {
+	case types.Layer1:
+		db = db.Where("l1_block_number >= ? AND l1_block_number <= ?", startBlockNumber, endBlockNumber)
+		updateFields = map[string]interface{}{
+			"l1_block_status":            types.BlockStatusTypeValid,
+			"l1_block_status_updated_at": utils.NowUTC(),
+		}
+	case types.Layer2:
+		db = db.Where("l2_block_number >= ? AND l2_block_number <= ?", startBlockNumber, endBlockNumber)
+		updateFields = map[string]interface{}{
+			"l2_block_status":            types.BlockStatusTypeValid,
+			"l2_block_status_updated_at": utils.NowUTC(),
+		}
+	}
+
+	if err := db.Updates(updateFields).Error; err != nil {
+		return fmt.Errorf("MessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
 	}
 	return nil
 }
