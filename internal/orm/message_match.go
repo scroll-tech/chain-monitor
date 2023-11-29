@@ -126,8 +126,10 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 	switch layer {
 	case types.Layer1:
 		db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
+		db = db.Order("l1_block_number desc")
 	case types.Layer2:
 		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
+		db = db.Order("l2_block_number desc")
 	}
 	err := db.Last(&message).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -182,8 +184,8 @@ func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context,
 	return &message, nil
 }
 
-// GetLargestMessageNonceL2MessageMatch fetches the message match record with the maximum MessageNonce.
-func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context) (*MessageMatch, error) {
+// GetLatestValidL2SentMessageMatch fetches the valid l2 sent message with the largest message nonce.
+func (m *MessageMatch) GetLatestValidL2SentMessageMatch(ctx context.Context) (*MessageMatch, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("withdraw_root_status = ?", types.WithdrawRootStatusTypeValid)
@@ -194,8 +196,8 @@ func (m *MessageMatch) GetLargestMessageNonceL2MessageMatch(ctx context.Context)
 		return nil, nil
 	}
 	if err != nil {
-		log.Warn("GetLargestMessageNonceL2MessageMatch failed", "error", err)
-		return nil, fmt.Errorf("GetLargestMessageNonceL2MessageMatch failed, err:%w", err)
+		log.Warn("GetLatestValidL2SentMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("GetLatestValidL2SentMessageMatch failed, err:%w", err)
 	}
 	return &message, nil
 }
@@ -218,24 +220,6 @@ func (m *MessageMatch) GetL2SentMessagesInBlockRange(ctx context.Context, startB
 		return nil, fmt.Errorf("GetL2SentMessagesInBlockRange failed, err:%w", err)
 	}
 	return messages, nil
-}
-
-// InsertOrUpdateMsgProofAndStatus insert or update the withdrawal tree root's message proof and withdraw root status
-func (m *MessageMatch) InsertOrUpdateMsgProofAndStatus(ctx context.Context, messages []MessageMatch) (int64, error) {
-	if len(messages) == 0 {
-		return 0, nil
-	}
-	db := m.db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
-	db = db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "message_hash"}},
-		DoUpdates: clause.AssignmentColumns([]string{"message_proof", "withdraw_root_status"}),
-	})
-	result := db.Create(&messages)
-	if result.Error != nil {
-		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateMsgProofAndStatus error: %w, messages: %v", result.Error, messages)
-	}
-	return result.RowsAffected, nil
 }
 
 // InsertOrUpdateGatewayEventInfo insert or update eth event info
@@ -332,10 +316,38 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 	return nil
 }
 
+// UpdateMsgProofAndStatus insert or update the withdrawal tree root's message proof and withdraw root status
+func (m *MessageMatch) UpdateMsgProofAndStatus(ctx context.Context, message *MessageMatch, dbTX ...*gorm.DB) error {
+	if message == nil {
+		return nil
+	}
+	db := m.db
+	if len(dbTX) > 0 && dbTX[0] != nil {
+		db = dbTX[0]
+	}
+	db = db.WithContext(ctx)
+	db = db.Model(&MessageMatch{})
+	db = db.Where("message_hash = ?", message.MessageHash)
+
+	updateFields := map[string]interface{}{
+		"message_proof":        message.MessageProof,
+		"withdraw_root_status": message.WithdrawRootStatus,
+	}
+
+	if err := db.Updates(updateFields).Error; err != nil {
+		return fmt.Errorf("MessageMatch.UpdateMsgProofAndStatus failed err:%w", err)
+	}
+	return nil
+}
+
 // UpdateBlockStatus updates the block status for the given layer and block number range.
-// This operation is performed within a database transaction.
-func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64) error {
-	db := m.db.WithContext(ctx)
+func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64, dbTX ...*gorm.DB) error {
+	db := m.db
+	if len(dbTX) > 0 && dbTX[0] != nil {
+		db = dbTX[0]
+	}
+
+	db = db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
 
 	var updateFields map[string]interface{}
