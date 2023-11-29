@@ -325,7 +325,7 @@ func (m *MessageMatch) UpdateMsgProofAndStatus(ctx context.Context, message *Mes
 	}
 	db = db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
-	db = db.Where("message_hash <= ?", message.MessageHash)
+	db = db.Where("message_hash = ?", message.MessageHash)
 
 	updateFields := map[string]interface{}{
 		"message_proof":        message.MessageProof,

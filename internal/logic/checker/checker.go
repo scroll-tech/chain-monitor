@@ -63,23 +63,19 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCat
 }
 
 // CheckL2WithdrawRoots checks the L2 withdraw roots.
-func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) (*orm.MessageMatch, error) {
+func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) (*orm.MessageMatch, error) {
+	log.Info("checking l2 withdraw roots", "start", startBlockNumber, "end", endBlockNumber)
+	if startBlockNumber > endBlockNumber {
+		return nil, nil
+	}
 	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
 	msg, err := c.messageMatchOrm.GetLargestMessageNonceL2MessageMatch(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get largest message nonce l2 message match failed, err: %w", err)
 	}
-	var startBlockNumber uint64
 	if msg != nil {
 		withdrawTrie.Initialize(msg.NextMessageNonce-1, common.HexToHash(msg.MessageHash), msg.MessageProof)
-		startBlockNumber = msg.L2BlockNumber + 1
-	} else {
-		startBlockNumber = 1
-	}
-	log.Info("checking l2 withdraw roots", "start", startBlockNumber, "end", endBlockNumber)
-	if startBlockNumber > endBlockNumber {
-		return nil, nil
 	}
 
 	l2SentMessages, err := c.messageMatchOrm.GetL2SentMessagesInBlockRange(ctx, startBlockNumber, endBlockNumber)

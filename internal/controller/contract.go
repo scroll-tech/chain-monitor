@@ -205,7 +205,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		var lastMessage *orm.MessageMatch
 		if layer == types.Layer2 {
 			var checkErr error
-			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
+			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, originalStart, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
 			if checkErr != nil {
 				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 				log.Error("check withdraw roots failed", "layer", types.Layer2, "end", end, "error", checkErr)
