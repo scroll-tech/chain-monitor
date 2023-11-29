@@ -197,29 +197,29 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			})
 		}
 
-		if err := eg.Wait(); err != nil {
+		if err = eg.Wait(); err != nil {
 			log.Error("error in watcher goroutine", "layer", layer, "err", err)
 			continue
 		}
 
 		var lastMessage *orm.MessageMatch
-		if layer == types.Layer2 && originalStart <= end {
+		if layer == types.Layer2 {
 			var checkErr error
-			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, originalStart, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
+			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
 			if checkErr != nil {
 				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
-				log.Error("check withdraw roots failed", "layer", types.Layer2, "error", checkErr)
+				log.Error("check withdraw roots failed", "layer", types.Layer2, "end", end, "error", checkErr)
 				continue
 			}
 		}
 
 		// Update last valid message's withdraw trie proof and block status after check.
 		err = c.db.Transaction(func(tx *gorm.DB) error {
-			if err := c.messageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
+			if err = c.messageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
 				return fmt.Errorf("insert or update msg proof and status failed, err: %w", err)
 			}
 
-			if err := c.messageMatchOrm.UpdateBlockStatus(ctx, layer, originalStart, end, tx); err != nil {
+			if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, originalStart, end, tx); err != nil {
 				return fmt.Errorf("update block status failed, err: %w", err)
 			}
 			return nil
