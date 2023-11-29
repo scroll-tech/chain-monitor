@@ -35,5 +35,5 @@ make update
 * Make chain-monitor
 
 ```
-make chain-monitor
+make 
 ```

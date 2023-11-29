@@ -109,7 +109,7 @@ func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, la
 	case types.Layer2:
 		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeInvalid)
 	}
-	db = db.Where("token_type = ", types.TokenTypeETH)
+	db = db.Where("token_type = ?", types.TokenTypeETH)
 	db = db.Order("id asc")
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
