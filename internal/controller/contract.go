@@ -208,7 +208,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, originalStart, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
 			if checkErr != nil {
 				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
-				log.Error("check withdraw roots failed", "layer", types.Layer2, "end", end, "error", checkErr)
+				log.Error("check withdraw roots failed", "layer", types.Layer2, "start", originalStart, "end", end, "error", checkErr)
 				continue
 			}
 		}
