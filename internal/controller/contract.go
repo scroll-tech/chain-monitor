@@ -491,7 +491,7 @@ func (c *ContractController) reentrancyWatchStart() {
 		}
 
 		count := c.reentrancyWatchCache.ItemCount()
-		c.reentrancyWatchCacheSize.Inc()
+		c.reentrancyWatchCacheSize.Set(float64(count))
 		if count <= 0 {
 			continue
 		}
