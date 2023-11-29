@@ -1,7 +1,7 @@
 {
   "l1_config": {
     "l1_url": "http://10.5.12.230:8545/l1",
-    "confirm": "0x4",
+    "confirm": "0x20",
     "start_number": 4041180,
     "l1_contracts": {
       "l1_gateways": {
