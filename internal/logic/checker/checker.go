@@ -62,19 +62,14 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCat
 	return nil, nil
 }
 
-// UpdateBlockStatus updates the block status in the database.
-func (c *Checker) UpdateBlockStatus(ctx context.Context, layer types.LayerType, start, end uint64) error {
-	return c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, end)
-}
-
 // CheckL2WithdrawRoots checks the L2 withdraw roots.
-func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) error {
+func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) (*orm.MessageMatch, error) {
 	log.Info("checking l2 withdraw roots", "start", startBlockNumber, "end", endBlockNumber)
 	// recover latest withdraw trie.
 	withdrawTrie := msgproof.NewWithdrawTrie()
 	msg, err := c.messageMatchOrm.GetLargestMessageNonceL2MessageMatch(ctx)
 	if err != nil {
-		return fmt.Errorf("get largest message nonce l2 message match failed, err: %w", err)
+		return nil, fmt.Errorf("get largest message nonce l2 message match failed, err: %w", err)
 	}
 	if msg != nil {
 		withdrawTrie.Initialize(msg.NextMessageNonce-1, common.HexToHash(msg.MessageHash), msg.MessageProof)
@@ -82,10 +77,10 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 
 	l2SentMessages, err := c.messageMatchOrm.GetL2SentMessagesInBlockRange(ctx, startBlockNumber, endBlockNumber)
 	if err != nil {
-		return fmt.Errorf("get l2 sent messages in block range failed, err: %w", err)
+		return nil, fmt.Errorf("get l2 sent messages in block range failed, err: %w", err)
 	}
 	if len(l2SentMessages) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	sentMessageEventHashesMap := make(map[uint64][]common.Hash)
@@ -101,10 +96,10 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 
 	withdrawRoots, err := utils.GetL2WithdrawRootsForBlocks(ctx, client, messageQueueAddr, blockNums)
 	if err != nil {
-		return fmt.Errorf("get l2 withdraw roots failed, message queue addr: %v, blocks: %v, err: %w", messageQueueAddr, blockNums, err)
+		return nil, fmt.Errorf("get l2 withdraw roots failed, message queue addr: %v, blocks: %v, err: %w", messageQueueAddr, blockNums, err)
 	}
 
-	var messageMatches []orm.MessageMatch
+	var lastMessage *orm.MessageMatch
 	for _, blockNum := range blockNums {
 		eventHashes := sentMessageEventHashesMap[blockNum]
 		proofs := withdrawTrie.AppendMessages(eventHashes)
@@ -116,30 +111,21 @@ func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, en
 				ExpectedWithdrawRoot: withdrawRoots[blockNum],
 			}
 			slack.Notify(slack.MrkDwnWithdrawRootMessage(info))
-			return fmt.Errorf("withdraw root mismatch in %v, got: %v, expected %v", blockNum, lastWithdrawRoot, withdrawRoots[blockNum])
+			return nil, fmt.Errorf("withdraw root mismatch in %v, got: %v, expected %v", blockNum, lastWithdrawRoot, withdrawRoots[blockNum])
 		}
 		// current block has SentMessage events.
 		numEvents := len(eventHashes)
 		if numEvents > 0 {
-			// only update the last message of each block (which contains at least one SentMessage event).
-			messageMatches = append(messageMatches, orm.MessageMatch{
+			// only update the last message of this check.
+			lastMessage = &orm.MessageMatch{
 				MessageHash:           eventHashes[numEvents-1].Hex(),
 				MessageProof:          proofs[numEvents-1],
 				WithdrawRootStatus:    int(types.WithdrawRootStatusTypeValid),
 				MessageProofUpdatedAt: utils.NowUTC(),
-			})
+			}
 		}
 	}
-
-	effectRows, err := c.messageMatchOrm.InsertOrUpdateMsgProofAndStatus(ctx, messageMatches)
-	if err != nil {
-		return fmt.Errorf("message proof orm insert failed, err: %w", err)
-	}
-
-	if int(effectRows) != len(messageMatches) {
-		return fmt.Errorf("message proof orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(messageMatches))
-	}
-	return nil
+	return lastMessage, nil
 }
 
 // MessengerCheck checks the messenger events.

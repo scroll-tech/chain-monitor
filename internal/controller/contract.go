@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -46,6 +47,9 @@ type ContractController struct {
 	contractControllerGatewayCheckFailureTotal               *prometheus.CounterVec
 	contractControllerUpdateOrInsertMessageMatchFailureTotal *prometheus.CounterVec
 	contractControllerCheckWithdrawRootFailureTotal          *prometheus.CounterVec
+
+	db              *gorm.DB
+	messageMatchOrm *orm.MessageMatch
 }
 
 // NewContractController creates a new ContractController object.
@@ -59,6 +63,8 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 		checker:           checker.NewChecker(db),
 		messageMatchLogic: messagematch.NewMessageMatchLogic(conf, db),
 		stopTimeoutChan:   make(chan struct{}),
+		db:                db,
+		messageMatchOrm:   orm.NewMessageMatch(db),
 	}
 
 	if err := c.contractsLogic.Register(c.conf); err != nil {
@@ -196,18 +202,30 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			continue
 		}
 
+		var lastMessage *orm.MessageMatch
 		if layer == types.Layer2 && originalStart <= end {
-			if checkErr := c.checker.CheckL2WithdrawRoots(ctx, originalStart, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue); checkErr != nil {
+			var checkErr error
+			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, originalStart, end, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
+			if checkErr != nil {
 				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 				log.Error("check withdraw roots failed", "layer", types.Layer2, "error", checkErr)
 				continue
 			}
 		}
 
-		// Update confirmation blocks at last.
-		if err := c.checker.UpdateBlockStatus(ctx, layer, originalStart, end); err != nil {
-			log.Error("update block status failed", "err", err)
-			continue
+		// Update last valid message's withdraw trie proof and block status after check.
+		err = c.db.Transaction(func(tx *gorm.DB) error {
+			if err := c.messageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
+				return fmt.Errorf("insert or update msg proof and status failed, err: %w", err)
+			}
+
+			if err := c.messageMatchOrm.UpdateBlockStatus(ctx, layer, originalStart, end, tx); err != nil {
+				return fmt.Errorf("update block status failed, err: %w", err)
+			}
+			return nil
+		})
+		if err != nil {
+			log.Error("update db status after check failed", "layer", layer, "from", originalStart, "end", end, "err", err)
 		}
 	}
 }
