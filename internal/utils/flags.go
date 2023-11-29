@@ -115,7 +115,7 @@ var (
 	DBRollBackFlag = cli.Int64Flag{
 		Name:  "db.rollback",
 		Usage: "Roll back the database to a previous <version>.",
-		Value: 999999999999999, // Default value set to a very large number indicating no rollback.
+		Value: 1000000, // Default value set to a very large number indicating no rollback.
 	}
 	// DBResetFlag reset db.
 	DBResetFlag = cli.BoolFlag{
