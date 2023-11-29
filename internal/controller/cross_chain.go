@@ -17,8 +17,9 @@ import (
 
 // CrossChainController is a struct that contains a reference to the Logic object.
 type CrossChainController struct {
-	crossChainLogic *crosschain.LogicCrossChain
-	stopTimeoutChan chan struct{}
+	crossChainLogic      *crosschain.LogicCrossChain
+	stopL1CrossChainChan chan struct{}
+	stopL2CrossChainChan chan struct{}
 
 	crossChainControllerRunningTotal *prometheus.CounterVec
 }
@@ -28,8 +29,9 @@ func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client
 	l1MessengerAddr := cfg.L1Config.L1Contracts.ScrollMessenger
 	l2MessengerAddr := cfg.L2Config.L2Contracts.ScrollMessenger
 	return &CrossChainController{
-		stopTimeoutChan: make(chan struct{}),
-		crossChainLogic: crosschain.NewCrossChainLogic(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr),
+		stopL1CrossChainChan: make(chan struct{}),
+		stopL2CrossChainChan: make(chan struct{}),
+		crossChainLogic:      crosschain.NewCrossChainLogic(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr),
 		crossChainControllerRunningTotal: promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
 			Name: "cross_chain_check_controller_running_total",
 			Help: "The total number of cross chain controller running.",
@@ -46,7 +48,8 @@ func (c *CrossChainController) Watch(ctx context.Context) {
 
 // Stop all the cross chain controller
 func (c *CrossChainController) Stop() {
-	c.stopTimeoutChan <- struct{}{}
+	c.stopL1CrossChainChan <- struct{}{}
+	c.stopL2CrossChainChan <- struct{}{}
 }
 
 func (c *CrossChainController) watcherStart(ctx context.Context, layer types.LayerType) {
@@ -56,12 +59,14 @@ func (c *CrossChainController) watcherStart(ctx context.Context, layer types.Lay
 		select {
 		case <-ctx.Done():
 			if ctx.Err() != nil {
-				log.Error("CrossChainController proposer canceled with error", "layer", layer.String(), "error", ctx.Err())
+				log.Error("CrossChainController watch canceled with error", "layer", layer.String(), "error", ctx.Err())
 			}
 			return
-		case <-c.stopTimeoutChan:
-			log.Info("CrossChainController proposer the run loop exit", "layer", layer.String())
+		case <-c.stopL1CrossChainChan:
+			log.Info("CrossChainController l1 the run loop exit", "layer", layer.String())
 			return
+		case <-c.stopL2CrossChainChan:
+			log.Info("CrossChainController l2 the run loop exit", "layer", layer.String())
 		default:
 		}
 
@@ -71,6 +76,6 @@ func (c *CrossChainController) watcherStart(ctx context.Context, layer types.Lay
 		c.crossChainLogic.CheckETHBalance(ctx, layer)
 
 		// To prevent frequent database access, obtaining empty values.
-		time.Sleep(60 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
