@@ -1,6 +1,6 @@
 {
   "l1_config": {
-    "l1_url": "l1 node rpc url",
+    "l1_url": "<l1 node rpc url>",
     "confirm": "0x20",
     "start_number": 4041180,
     "l1_contracts": {
@@ -21,7 +21,7 @@
     }
   },
   "l2_config": {
-    "l2_url": "l2 node rpc url",
+    "l2_url": "<l2 node rpc url>",
     "confirm": "0x80",
     "l2_contracts": {
       "l2_gateways": {
@@ -40,7 +40,7 @@
     }
   },
   "slack_webhook_config": {
-    "webhook_url": "slack notify channel",
+    "webhook_url": "<slack notify channel>",
     "worker_count": 5,
     "worker_buffer_size": 1000
   },
