@@ -276,6 +276,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		log.Error("insert message events failed", "layer", types.Layer1, "error", err)
 		return err
 	}
+	return nil
 }
 
 func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) error {
@@ -344,6 +345,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		log.Error("insert message events failed", "layer", types.Layer2, "error", err)
 		return err
 	}
+	return nil
 }
 
 func (c *ContractController) replaceGatewayEventInfo(layer types.LayerType, gatewayMessages, messengerMessages []orm.MessageMatch) {
