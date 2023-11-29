@@ -48,14 +48,14 @@ CREATE TABLE message_match
 );
 
 CREATE UNIQUE INDEX if not exists idx_message_match_message_hash ON message_match (message_hash);
-CREATE INDEX if not exists idx_l1_l2_l1cc_deleted_id ON message_match (l1_block_status, l2_block_status, l1_cross_chain_status, id);
-CREATE INDEX if not exists idx_l1_l2_l2cc_deleted_id ON message_match (l1_block_status, l2_block_status, l2_cross_chain_status,  id);
-CREATE INDEX if not exists idx_l1eth_tokentype_deleted_id ON message_match (l1_eth_balance_status, token_type,  id);
-CREATE INDEX if not exists idx_l2eth_tokentype_deleted_id ON message_match (l2_eth_balance_status, token_type, id);
-CREATE INDEX if not exists idx_l1block_deleted_l1blocknum_id ON message_match (l1_block_status, l1_block_number desc, id DESC);
-CREATE INDEX if not exists idx_l2block_deleted_l2blocknum_id ON message_match (l2_block_status, l2_block_number desc, id DESC);
-CREATE INDEX if not exists idx_withdrawroot_nextnonce_deleted_nonce_id ON message_match (withdraw_root_status, next_message_nonce DESC, id);
-CREATE INDEX if not exists idx_withdrawroot_l2blocknonce_deleted_nonce ON message_match (withdraw_root_status, l2_block_number, next_message_nonce);
+CREATE INDEX if not exists idx_l1_l2_l1cc_id ON message_match (l1_block_status, l2_block_status, l1_cross_chain_status, id);
+CREATE INDEX if not exists idx_l1_l2_l2cc_id ON message_match (l1_block_status, l2_block_status, l2_cross_chain_status,  id);
+CREATE INDEX if not exists idx_l1eth_tokentype_id ON message_match (l1_eth_balance_status, token_type,  id);
+CREATE INDEX if not exists idx_l2eth_tokentype_id ON message_match (l2_eth_balance_status, token_type, id);
+CREATE INDEX if not exists idx_l1block_l1blocknum_id ON message_match (l1_block_status, l1_block_number desc, id DESC);
+CREATE INDEX if not exists idx_l2block_l2blocknum_id ON message_match (l2_block_status, l2_block_number desc, id DESC);
+CREATE INDEX if not exists idx_withdrawroot_nextnonce_id ON message_match (withdraw_root_status, next_message_nonce DESC, id);
+CREATE INDEX if not exists idx_withdrawroot_l2blocknumber_nextnonce ON message_match (withdraw_root_status, l2_block_number, next_message_nonce);
 -- +goose MessageMatchEnd
 
 -- +goose Down
