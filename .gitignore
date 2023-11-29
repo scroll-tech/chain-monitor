@@ -3,6 +3,7 @@ build/bin
 
 coverage.txt
 *.integration.txt
+conf/config.local.json
 
 # Visual Studio Code
 .vscode
