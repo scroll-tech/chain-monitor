@@ -47,12 +47,15 @@ CREATE TABLE message_match
     deleted_at                       TIMESTAMP(0)    DEFAULT NULL
 );
 
-CREATE UNIQUE INDEX new2idx_message_match_message_hash ON message_match (message_hash);
-CREATE INDEX if not exists new2idx_l1_l2_block_status_deleted_id_desc ON message_match (l1_block_status, l2_block_status, deleted_at, id DESC);
-CREATE INDEX if not exists new2idx_message_l1_block_number ON message_match (l1_block_number);
-CREATE INDEX if not exists new2idx_message_l2_block_number ON message_match (l2_block_number);
-CREATE INDEX new2idxidx_message_match_next_message_nonce ON message_match (next_message_nonce);
-CREATE INDEX new2idxidx_message_match_withdraw_root_status ON message_match (withdraw_root_status);
+CREATE UNIQUE INDEX if not exists idx_message_match_message_hash ON message_match (message_hash);
+CREATE INDEX if not exists idx_l1_l2_l1cc_deleted_id ON message_match (l1_block_status, l2_block_status, l1_cross_chain_status, id);
+CREATE INDEX if not exists idx_l1_l2_l2cc_deleted_id ON message_match (l1_block_status, l2_block_status, l2_cross_chain_status,  id);
+CREATE INDEX if not exists idx_l1eth_tokentype_deleted_id ON message_match (l1_eth_balance_status, token_type,  id);
+CREATE INDEX if not exists idx_l2eth_tokentype_deleted_id ON message_match (l2_eth_balance_status, token_type, id);
+CREATE INDEX if not exists idx_l1block_deleted_l1blocknum_id ON message_match (l1_block_status, l1_block_number desc, id DESC);
+CREATE INDEX if not exists idx_l2block_deleted_l2blocknum_id ON message_match (l2_block_status, l2_block_number desc, id DESC);
+CREATE INDEX if not exists idx_withdrawroot_nextnonce_deleted_nonce_id ON message_match (withdraw_root_status, next_message_nonce DESC, id);
+CREATE INDEX if not exists idx_withdrawroot_l2blocknonce_deleted_nonce ON message_match (withdraw_root_status, l2_block_number, next_message_nonce);
 -- +goose MessageMatchEnd
 
 -- +goose Down
