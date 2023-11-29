@@ -203,6 +203,11 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 				continue
 			}
 		}
+
+		if err := c.checker.UpdateBlockStatus(ctx, layer, originalStart, end); err != nil {
+			log.Error("update block status failed", "err", err)
+			continue
+		}
 	}
 }
 

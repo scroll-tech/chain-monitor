@@ -62,6 +62,11 @@ func (c *Checker) GatewayCheck(ctx context.Context, eventCategory types.EventCat
 	return nil, nil
 }
 
+// UpdateBlockStatus updates the block status in the database.
+func (c *Checker) UpdateBlockStatus(ctx context.Context, layer types.LayerType, start, end uint64) error {
+	return c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, end)
+}
+
 // CheckL2WithdrawRoots checks the L2 withdraw roots.
 func (c *Checker) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) error {
 	log.Info("checking l2 withdraw roots", "start", startBlockNumber, "end", endBlockNumber)
