@@ -114,7 +114,7 @@ var (
 	// DBRollBackFlag rollback db.
 	DBRollBackFlag = cli.Int64Flag{
 		Name:  "db.rollback",
-		Usage: "Roll back the database to a previous <version>. Rolls back a single migration if no version specified.",
+		Usage: "Roll back the database to a previous <version>.",
 		Value: 0,
 	}
 	// DBResetFlag reset db.
