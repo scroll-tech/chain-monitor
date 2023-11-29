@@ -18,7 +18,7 @@ const MigrationsDir string = "migrations"
 func init() {
 	goose.SetBaseFS(embedMigrations)
 	goose.SetSequential(true)
-	goose.SetTableName("chain_monitor_migrations")
+	goose.SetTableName("chain_monitor_v2_migrations")
 
 	verbose, _ := strconv.ParseBool(os.Getenv("LOG_SQL_MIGRATIONS"))
 	goose.SetVerbose(verbose)

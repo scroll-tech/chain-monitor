@@ -9,6 +9,7 @@ require (
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.19
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pressly/goose/v3 v3.15.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/scroll-tech/go-ethereum v1.10.14-0.20231122064408-9f143b47b25b

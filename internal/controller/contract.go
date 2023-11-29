@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/patrickmn/go-cache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
@@ -26,8 +27,15 @@ import (
 
 const maxBlockFetchSize uint64 = 49
 
+type reentrancyWatchType struct {
+	layer         types.LayerType
+	startBlockNum uint64
+	endBlockNum   uint64
+}
+
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
+	ctx               context.Context
 	l1Client          *rpc.Client
 	l2Client          *rpc.Client
 	conf              *config.Config
@@ -36,9 +44,16 @@ type ContractController struct {
 	checker           *checker.Checker
 	messageMatchLogic *messagematch.LogicMessageMatch
 
-	stopTimeoutChan     chan struct{}
+	stopL1ContractChan  chan struct{}
+	stopL2ContractChan  chan struct{}
 	l1EventCategoryList []types.EventCategory
 	l2EventCategoryList []types.EventCategory
+
+	// sometimes l1Watch and l2Watch maybe filter logs failed for the network jitter.
+	// this will leave out some events. So ReentrancyWatch is a mechanism to watch and filter the failed event logs again.
+	// base case: if the cache have reentrancy data when program exit, this case can't guarantee.
+	reentrancyWatchCache    *cache.Cache
+	stopReentrancyWatchChan chan struct{}
 
 	contractControllerRunningTotal                           *prometheus.CounterVec
 	contractControllerBlockNumber                            *prometheus.GaugeVec
@@ -47,6 +62,8 @@ type ContractController struct {
 	contractControllerGatewayCheckFailureTotal               *prometheus.CounterVec
 	contractControllerUpdateOrInsertMessageMatchFailureTotal *prometheus.CounterVec
 	contractControllerCheckWithdrawRootFailureTotal          *prometheus.CounterVec
+	reentrancyWatchRunningTotal                              prometheus.Counter
+	reentrancyWatchCacheSize                                 prometheus.Gauge
 
 	db              *gorm.DB
 	messageMatchOrm *orm.MessageMatch
@@ -55,16 +72,19 @@ type ContractController struct {
 // NewContractController creates a new ContractController object.
 func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client *rpc.Client) *ContractController {
 	c := &ContractController{
-		l1Client:          l1Client,
-		l2Client:          l2Client,
-		conf:              conf,
-		eventGatherLogic:  events.NewEventGather(),
-		contractsLogic:    contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
-		checker:           checker.NewChecker(db),
-		messageMatchLogic: messagematch.NewMessageMatchLogic(conf, db),
-		stopTimeoutChan:   make(chan struct{}),
-		db:                db,
-		messageMatchOrm:   orm.NewMessageMatch(db),
+		l1Client:                l1Client,
+		l2Client:                l2Client,
+		conf:                    conf,
+		eventGatherLogic:        events.NewEventGather(),
+		contractsLogic:          contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
+		checker:                 checker.NewChecker(db),
+		messageMatchLogic:       messagematch.NewMessageMatchLogic(conf, db),
+		stopL1ContractChan:      make(chan struct{}),
+		stopL2ContractChan:      make(chan struct{}),
+		stopReentrancyWatchChan: make(chan struct{}),
+		db:                      db,
+		messageMatchOrm:         orm.NewMessageMatch(db),
+		reentrancyWatchCache:    cache.New(10*time.Minute, 60*time.Minute),
 	}
 
 	if err := c.contractsLogic.Register(c.conf); err != nil {
@@ -110,19 +130,32 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 		Name: "contract_controller_check_l2_withdraw_root_failure_total",
 		Help: "The total number of controller check l2 withdraw root failure total.",
 	}, []string{"layer"})
+	c.reentrancyWatchRunningTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "contract_controller_reentrancy_watch_running_total",
+		Help: "The total number of reentrancy watch running.",
+	})
+	c.reentrancyWatchCacheSize = promauto.With(prometheus.DefaultRegisterer).NewGauge(prometheus.GaugeOpts{
+		Name: "contract_controller_reentrancy_watch_cache_size",
+		Help: "The size of reentrancy watch cache.",
+	})
 
 	return c
 }
 
 // Watch is an exported function that starts watching the Layer 1 and Layer 2 events, which include gateways events, transfer events, and messenger events.
 func (c *ContractController) Watch(ctx context.Context) {
+	c.ctx = ctx
+
+	go c.reentrancyWatchStart()
 	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm, 5)
 	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm, 5)
 }
 
 // Stop the contract controller
 func (c *ContractController) Stop() {
-	c.stopTimeoutChan <- struct{}{}
+	c.stopL1ContractChan <- struct{}{}
+	c.stopL2ContractChan <- struct{}{}
+	c.stopReentrancyWatchChan <- struct{}{}
 }
 
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber, concurrency int) {
@@ -141,11 +174,14 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		select {
 		case <-ctx.Done():
 			if ctx.Err() != nil {
-				log.Error("CrossChainController proposer canceled with error", "error", ctx.Err())
+				log.Error("ContractController canceled with error", "error", ctx.Err())
 			}
 			return
-		case <-c.stopTimeoutChan:
-			log.Info("CrossChainController proposer the run loop exit")
+		case <-c.stopL1ContractChan:
+			log.Info("ContractController l1 watch the run loop exit")
+			return
+		case <-c.stopL2ContractChan:
+			log.Info("ContractController l2 watch the run loop exit")
 			return
 		default:
 		}
@@ -188,18 +224,21 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			c.contractControllerBlockNumber.WithLabelValues(layer.String()).Set(float64(currentEnd))
 
 			eg.Go(func() error {
+				var watchErr error
 				switch layer {
 				case types.Layer1:
-					return c.l1Watch(ctx, currentStart, currentEnd)
+					watchErr = c.l1Watch(ctx, currentStart, currentEnd)
 				case types.Layer2:
-					return c.l2Watch(ctx, currentStart, currentEnd)
+					watchErr = c.l2Watch(ctx, currentStart, currentEnd)
+				}
+				if watchErr != nil {
+					c.reentrancyFailedEvent(layer, currentStart, currentEnd)
 				}
 				return nil
 			})
 		}
 
 		if err = eg.Wait(); err != nil {
-			log.Error("error in watcher goroutine", "layer", layer, "err", err)
 			continue
 		}
 
@@ -392,6 +431,70 @@ func (c *ContractController) replaceGatewayEventInfo(layer types.LayerType, gate
 			messengerMessages[i].L2EventType = gatewayMessageMatch.L2EventType
 			messengerMessages[i].L2TokenIds = gatewayMessageMatch.L2TokenIds
 			messengerMessages[i].L2Amounts = gatewayMessageMatch.L2Amounts
+		}
+	}
+}
+
+func (c *ContractController) reentrancyFailedEvent(layer types.LayerType, startBlockNumber, endBlockNumber uint64) {
+	log.Error("reentrancy failed event", layer, "startBlockNumber", startBlockNumber, "endBlockNumber", endBlockNumber)
+
+	key := fmt.Sprintf("key-%d-%d-%d", layer, startBlockNumber, endBlockNumber)
+	if _, exist := c.reentrancyWatchCache.Get(key); exist {
+		log.Error("reentrancyFailedEvent exist", "layer", layer, "startBlockNumber", startBlockNumber, "endBlockNumber", endBlockNumber)
+		return
+	}
+	v := reentrancyWatchType{
+		layer:         layer,
+		startBlockNum: startBlockNumber,
+		endBlockNum:   endBlockNumber,
+	}
+	c.reentrancyWatchCache.Set(key, v, cache.DefaultExpiration)
+}
+
+func (c *ContractController) reentrancyWatch(reentrancyWatchData *reentrancyWatchType) {
+	log.Info("reentrancy watch", reentrancyWatchData.layer, "startBlockNumber", reentrancyWatchData.startBlockNum, "endBlockNumber", reentrancyWatchData.endBlockNum)
+	var err error
+	switch reentrancyWatchData.layer {
+	case types.Layer1:
+		err = c.l1Watch(c.ctx, reentrancyWatchData.startBlockNum, reentrancyWatchData.endBlockNum)
+	case types.Layer2:
+		err = c.l2Watch(c.ctx, reentrancyWatchData.startBlockNum, reentrancyWatchData.endBlockNum)
+	}
+	if err != nil {
+		log.Error("reentrancyWatch failed", "layer", reentrancyWatchData.layer, "startBlockNumber", reentrancyWatchData.startBlockNum, "endBlockNumber", reentrancyWatchData.endBlockNum)
+		return
+	}
+	key := fmt.Sprintf("key-%d-%d-%d", reentrancyWatchData.layer, reentrancyWatchData.startBlockNum, reentrancyWatchData.endBlockNum)
+	c.reentrancyWatchCache.Delete(key)
+}
+
+func (c *ContractController) reentrancyWatchStart() {
+	log.Info("reentrancy watch start")
+
+	for {
+		c.reentrancyWatchRunningTotal.Inc()
+
+		select {
+		case <-c.ctx.Done():
+			if c.ctx.Err() != nil {
+				log.Error("reentrancy watch canceled with error", "error", c.ctx.Err())
+			}
+			return
+		case <-c.stopReentrancyWatchChan:
+			log.Info("reentrancy watch the run loop exit")
+			return
+		default:
+		}
+
+		count := c.reentrancyWatchCache.ItemCount()
+		c.reentrancyWatchCacheSize.Inc()
+		if count <= 0 {
+			continue
+		}
+
+		for _, reentrancyWatchData := range c.reentrancyWatchCache.Items() {
+			c.reentrancyWatch(reentrancyWatchData.Object.(*reentrancyWatchType))
+			break
 		}
 	}
 }
