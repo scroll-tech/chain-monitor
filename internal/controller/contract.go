@@ -218,7 +218,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			continue
 		}
 
-		if loopEnd > start {
+		if loopEnd >= start {
 			var lastMessage *orm.MessageMatch
 			if layer == types.Layer2 {
 				var checkErr error
