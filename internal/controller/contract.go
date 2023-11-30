@@ -119,7 +119,7 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 // Watch is an exported function that starts watching the Layer 1 and Layer 2 events, which include gateways events, transfer events, and messenger events.
 func (c *ContractController) Watch(ctx context.Context) {
 	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm, 2)
-	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm, 3)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm, 2)
 }
 
 // Stop the contract controller
@@ -165,9 +165,19 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			continue
 		}
 
+		// three cases.
+		// for example : concurrency = 3
+		// case 1: confirmationNumber 500    start: 71
+		//		g0:[71 - 120] g1:[121-170] g2:[171-220]
+		// case 2: confirmationNumber 160    start: 71
+		// 		g0:[71 - 120] g1:[121-160] g3: break
+		// case 3: confirmationNumber 70，start: 71
+		//		g0: break
+		// case 4: confirmationNumber 1 start: 1
+		//		g0 break
 		var eg errgroup.Group
 		loopStart := start
-		var loopEnd uint64
+		loopEnd := loopStart - 1
 		for i := 0; i < concurrency; i++ {
 			if loopStart > confirmationNumber {
 				log.Info("Watcher loop start block number > ConfirmationNumber",
@@ -208,33 +218,35 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			continue
 		}
 
-		var lastMessage *orm.MessageMatch
-		if layer == types.Layer2 {
-			var checkErr error
-			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, start, loopEnd, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
-			if checkErr != nil {
-				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
-				log.Error("check withdraw roots failed", "layer", types.Layer2, "start", start, "end", loopEnd, "error", checkErr)
-				continue
-			}
-		}
-
-		// Update last valid message's withdraw trie proof and block status after check.
-		err = c.db.Transaction(func(tx *gorm.DB) error {
+		if loopEnd >= start {
+			var lastMessage *orm.MessageMatch
 			if layer == types.Layer2 {
-				if err = c.messageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
-					return fmt.Errorf("insert or update msg proof and status failed, err: %w, message: %+v", err, lastMessage)
+				var checkErr error
+				lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, start, loopEnd, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
+				if checkErr != nil {
+					c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
+					log.Error("check withdraw roots failed", "layer", types.Layer2, "start", start, "end", loopEnd, "error", checkErr)
+					continue
 				}
 			}
 
-			if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, loopEnd, tx); err != nil {
-				return fmt.Errorf("update block status failed, err: %w", err)
+			// Update last valid message's withdraw trie proof and block status after check.
+			err = c.db.Transaction(func(tx *gorm.DB) error {
+				if layer == types.Layer2 {
+					if err = c.messageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
+						return fmt.Errorf("insert or update msg proof and status failed, err: %w, message: %+v", err, lastMessage)
+					}
+				}
+
+				if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, loopEnd, tx); err != nil {
+					return fmt.Errorf("update block status failed, err: %w", err)
+				}
+				return nil
+			})
+			if err != nil {
+				log.Error("update db status after check failed", "layer", layer, "from", start, "end", loopEnd, "err", err)
+				continue
 			}
-			return nil
-		})
-		if err != nil {
-			log.Error("update db status after check failed", "layer", layer, "from", start, "end", loopEnd, "err", err)
-			continue
 		}
 
 		// Update start after all handlings are successful.
