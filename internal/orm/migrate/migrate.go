@@ -18,7 +18,7 @@ const MigrationsDir string = "migrations"
 func init() {
 	goose.SetBaseFS(embedMigrations)
 	goose.SetSequential(true)
-	goose.SetTableName("chain_monitor_migrations")
+	goose.SetTableName("chain_monitor_v2_migrations")
 
 	verbose, _ := strconv.ParseBool(os.Getenv("LOG_SQL_MIGRATIONS"))
 	goose.SetVerbose(verbose)
@@ -33,7 +33,15 @@ func Migrate(db *gorm.DB) error {
 	return goose.Up(tx, MigrationsDir, goose.WithAllowMissing())
 }
 
-// Rollback rollback to the given version
+// ResetDB clean and migrate db.
+func ResetDB(db *gorm.DB) error {
+	if err := Rollback(db, 0); err != nil {
+		return err
+	}
+	return Migrate(db)
+}
+
+// Rollback to the given version
 func Rollback(db *gorm.DB, version int64) error {
 	tx, err := db.DB()
 	if err != nil {

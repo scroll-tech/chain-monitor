@@ -36,7 +36,8 @@ type ContractController struct {
 	checker           *checker.Checker
 	messageMatchLogic *messagematch.LogicMessageMatch
 
-	stopTimeoutChan     chan struct{}
+	stopL1ContractChan  chan struct{}
+	stopL2ContractChan  chan struct{}
 	l1EventCategoryList []types.EventCategory
 	l2EventCategoryList []types.EventCategory
 
@@ -55,16 +56,17 @@ type ContractController struct {
 // NewContractController creates a new ContractController object.
 func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client *rpc.Client) *ContractController {
 	c := &ContractController{
-		l1Client:          l1Client,
-		l2Client:          l2Client,
-		conf:              conf,
-		eventGatherLogic:  events.NewEventGather(),
-		contractsLogic:    contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
-		checker:           checker.NewChecker(db),
-		messageMatchLogic: messagematch.NewMessageMatchLogic(conf, db),
-		stopTimeoutChan:   make(chan struct{}),
-		db:                db,
-		messageMatchOrm:   orm.NewMessageMatch(db),
+		l1Client:           l1Client,
+		l2Client:           l2Client,
+		conf:               conf,
+		eventGatherLogic:   events.NewEventGather(),
+		contractsLogic:     contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
+		checker:            checker.NewChecker(db),
+		messageMatchLogic:  messagematch.NewMessageMatchLogic(conf, db),
+		stopL1ContractChan: make(chan struct{}),
+		stopL2ContractChan: make(chan struct{}),
+		db:                 db,
+		messageMatchOrm:    orm.NewMessageMatch(db),
 	}
 
 	if err := c.contractsLogic.Register(c.conf); err != nil {
@@ -122,7 +124,8 @@ func (c *ContractController) Watch(ctx context.Context) {
 
 // Stop the contract controller
 func (c *ContractController) Stop() {
-	c.stopTimeoutChan <- struct{}{}
+	c.stopL1ContractChan <- struct{}{}
+	c.stopL2ContractChan <- struct{}{}
 }
 
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber, concurrency int) {
@@ -141,12 +144,14 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		select {
 		case <-ctx.Done():
 			if ctx.Err() != nil {
-				log.Error("CrossChainController proposer canceled with error", "error", ctx.Err())
+				log.Error("ContractController canceled with error", "error", ctx.Err())
 			}
 			return
-		case <-c.stopTimeoutChan:
-			log.Info("CrossChainController proposer the run loop exit")
+		case <-c.stopL1ContractChan:
+			log.Info("ContractController l1 watch the run loop exit")
 			return
+		case <-c.stopL2ContractChan:
+			log.Info("ContractController l2 watch the run loop exit")
 		default:
 		}
 
