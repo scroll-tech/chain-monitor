@@ -149,13 +149,15 @@ func (c *Checker) MessengerCheck(_ context.Context, layer types.LayerType, messe
 		switch messengerEventUnmarshaler.Type {
 		case types.L1SentMessage:
 			tmpMessageMatch = orm.MessageMatch{
-				MessageHash:   messengerEventUnmarshaler.MessageHash.Hex(),
-				TokenType:     int(types.TokenTypeETH), // default ETH.
-				L1EventType:   int(messengerEventUnmarshaler.Type),
-				L1BlockNumber: messengerEventUnmarshaler.Number,
-				L1TxHash:      messengerEventUnmarshaler.TxHash.Hex(),
-				L1Amounts:     decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
-				L2Amounts:     decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				MessageHash:     messengerEventUnmarshaler.MessageHash.Hex(),
+				TokenType:       int(types.TokenTypeETH), // default ETH.
+				L1EventType:     int(messengerEventUnmarshaler.Type),
+				L1BlockNumber:   messengerEventUnmarshaler.Number,
+				L1TxHash:        messengerEventUnmarshaler.TxHash.Hex(),
+				L1Amounts:       decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				L2Amounts:       decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				ETHAmount:       decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				ETHAmountStatus: int(types.ETHAmountStatusTypeSet),
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)
 		case types.L1RelayedMessage:
@@ -176,6 +178,8 @@ func (c *Checker) MessengerCheck(_ context.Context, layer types.LayerType, messe
 				L2TxHash:         messengerEventUnmarshaler.TxHash.Hex(),
 				L1Amounts:        decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
 				L2Amounts:        decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				ETHAmount:        decimal.NewFromBigInt(messengerEventUnmarshaler.Value, 0).String(),
+				ETHAmountStatus:  int(types.ETHAmountStatusTypeSet),
 				NextMessageNonce: messengerEventUnmarshaler.MessageNonce.Uint64() + 1,
 			}
 			messageMatches = append(messageMatches, tmpMessageMatch)

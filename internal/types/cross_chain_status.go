@@ -6,10 +6,8 @@ package types
 type CrossChainStatusType int
 
 const (
-	// CrossChainStatusTypeUnknown represents an unknown or undefined cross-chain status.
-	CrossChainStatusTypeUnknown CrossChainStatusType = iota
 	// CrossChainStatusTypeInvalid represents an invalid cross-chain transaction.
-	CrossChainStatusTypeInvalid
+	CrossChainStatusTypeInvalid CrossChainStatusType = iota
 	// CrossChainStatusTypeValid represents a valid cross-chain transaction.
 	CrossChainStatusTypeValid
 )

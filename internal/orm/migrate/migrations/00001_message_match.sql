@@ -25,6 +25,8 @@ CREATE TABLE message_match
     l2_messenger_eth_balance         DECIMAL(78, 0)  NOT NULL,
     l1_eth_balance_status            INTEGER         NOT NULL,
     l2_eth_balance_status            INTEGER         NOT NULL,
+    eth_amount                       VARCHAR         NOT NULL,
+    eth_amount_status                INTEGER         NOT NULL,
 
     -- status
     l1_block_status                  INTEGER         NOT NULL,

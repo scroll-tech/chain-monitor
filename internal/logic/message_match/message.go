@@ -58,24 +58,16 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 	var effectRows int64
 	err := t.db.Transaction(func(tx *gorm.DB) error {
 		for _, message := range messengerMessageMatches {
-			if message.TokenType == int(types.TokenTypeETH) {
-				effectRow, err := t.messageMatchOrm.InsertOrUpdateETHEventInfo(ctx, message, tx)
-				if err != nil {
-					return fmt.Errorf("messenger event orm insert failed, err: %w", err)
-				}
-				effectRows += effectRow
-			} else {
-				effectRow, err := t.messageMatchOrm.InsertOrUpdateGatewayEventInfo(ctx, layer, message, tx)
-				if err != nil {
-					return fmt.Errorf("gateway event orm insert failed, err: %w, layer:%s", err, layer.String())
-				}
-				effectRows += effectRow
+			effectRow, err := t.messageMatchOrm.InsertOrUpdateEventInfo(ctx, layer, message, tx)
+			if err != nil {
+				return fmt.Errorf("event orm insert failed, err: %w, layer:%s", err, layer.String())
 			}
+			effectRows += effectRow
 		}
 		return nil
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("insert or update event info failed, err:%w", err)
 	}
 
 	if int(effectRows) != len(messengerMessageMatches) {

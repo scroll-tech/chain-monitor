@@ -8,14 +8,13 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[CrossChainStatusTypeUnknown-0]
-	_ = x[CrossChainStatusTypeInvalid-1]
-	_ = x[CrossChainStatusTypeValid-2]
+	_ = x[CrossChainStatusTypeInvalid-0]
+	_ = x[CrossChainStatusTypeValid-1]
 }
 
-const _CrossChainStatusType_name = "CrossChainStatusTypeUnknownCrossChainStatusTypeInvalidCrossChainStatusTypeValid"
+const _CrossChainStatusType_name = "CrossChainStatusTypeInvalidCrossChainStatusTypeValid"
 
-var _CrossChainStatusType_index = [...]uint8{0, 27, 54, 79}
+var _CrossChainStatusType_index = [...]uint8{0, 27, 52}
 
 func (i CrossChainStatusType) String() string {
 	if i < 0 || i >= CrossChainStatusType(len(_CrossChainStatusType_index)-1) {

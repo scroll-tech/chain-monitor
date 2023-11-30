@@ -76,6 +76,8 @@ func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, lay
 		return
 	}
 
+	log.Info("checking cross chain gateway messages", "number of messages", len(messages))
+
 	var messageMatchIds []int64
 	for _, message := range messages {
 		c.crossChainGatewayCheckID.WithLabelValues(layerType.String()).Set(float64(message.ID))
@@ -95,24 +97,27 @@ func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, lay
 
 // CheckETHBalance checks the ETH balance for the given Ethereum layer (either Layer1 or Layer2).
 func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.LayerType) {
-	latestMsg, err := c.messageOrm.GetLatestDoubleLayerValidMessageMatch(ctx)
+	log.Info("CheckETHBalance started", "layer type", layerType)
+
+	latestBlockNumber, err := c.getLatestBlockNumber(ctx, layerType)
 	if err != nil {
-		log.Error("c.messageOrm GetLatestDoubleValidMessageMatch failed", "error", err)
+		log.Error("get latest block number from geth node failed", "layer", layerType, "error", err)
 		return
 	}
 
-	if latestMsg == nil {
-		return
-	}
-
-	latestValidMessage, err := c.messageOrm.GetLatestValidETHBalanceMessageMatch(ctx, layerType)
+	startBalance, err := c.messageOrm.GetETHCheckStartBlockNumberAndBalance(ctx, layerType)
 	if err != nil {
-		log.Error("c.messageOrm GetLatestValidETHBalanceMessageMatch failed", "layer type", layerType, "error", err)
+		log.Error("c.messageOrm GetETHCheckStartBlockNumberAndBalance failed", "layer type", layerType, "error", err)
 		return
 	}
 
-	if latestValidMessage == nil {
-		return
+	if layerType == types.Layer2 && startBalance.Cmp(new(big.Int)) == 0 {
+		var err error
+		startBalance, err = c.l2Client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(0))
+		if err != nil {
+			log.Error("get messenger balance failed", "layer types", layerType, "err", err)
+			return
+		}
 	}
 
 	// NOTE: Suppose the `messages` get 1000 messageMatch, it contains the l1_block_number is [0-1000].
@@ -127,7 +132,14 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 			return
 		}
 
+		if len(messages) == 0 {
+			return
+		}
+
 		for _, message := range messages {
+			if message.ETHAmountStatus == int(types.ETHAmountStatusTypeUnset) {
+				break
+			}
 			switch layerType {
 			case types.Layer1:
 				maxBlockNumber := messages[len(messages)-1].L1BlockNumber
@@ -147,45 +159,39 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 		batchSize += 1000
 	}
 
-	c.checkETH(ctx, layerType, latestMsg, latestValidMessage, ignoredLastMessageMatch)
+	c.checkETH(ctx, layerType, latestBlockNumber, startBalance, ignoredLastMessageMatch)
+	log.Info("CheckETHBalance completed", "layer type", layerType)
 }
 
-func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, latestMsg, latestValidMessage *orm.MessageMatch, messages []orm.MessageMatch) {
-	var startBlockNumber, endBlockNumber, latestBlockNumber uint64
+func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, latestBlockNumber uint64, startBalance *big.Int, messages []orm.MessageMatch) {
+	var startBlockNumber, endBlockNumber uint64
 	var messengerAddr common.Address
 	var client *ethclient.Client
 	if layer == types.Layer1 {
 		startBlockNumber = messages[0].L1BlockNumber
 		endBlockNumber = messages[len(messages)-1].L1BlockNumber
-		latestBlockNumber = latestMsg.L1BlockNumber
 		messengerAddr = c.l1MessengerAddr
 		client = c.l1Client
 	} else {
 		startBlockNumber = messages[0].L2BlockNumber
 		endBlockNumber = messages[len(messages)-1].L2BlockNumber
-		latestBlockNumber = latestMsg.L2BlockNumber
 		messengerAddr = c.l2MessengerAddr
 		client = c.l2Client
 	}
 
+	log.Info("checking eth balance", "start", startBlockNumber, "end", endBlockNumber, "latest", latestBlockNumber)
+
 	// because balanceAt can't get the too early block balance, so only can compute the locally l1 messenger balance and
 	// update the l1_messenger_eth_balance/l2_messenger_eth_balance
-	if endBlockNumber+ethBalanceGap < latestBlockNumber {
-		c.computeBlockBalance(ctx, layer, messages, latestValidMessage)
+	if layer == types.Layer1 && endBlockNumber+ethBalanceGap < latestBlockNumber {
+		c.computeBlockBalance(ctx, layer, messages, startBalance)
 		return
 	}
 
 	endBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(endBlockNumber))
 	if err != nil {
-		log.Error("get messenger balance failed", "layer types", layer, "addr", messengerAddr, "err", err)
+		log.Error("get messenger balance failed", "layer types", layer, "addr", messengerAddr, "end", endBlockNumber, "err", err)
 		return
-	}
-
-	var startBalance *big.Int
-	if layer == types.Layer1 {
-		startBalance = latestValidMessage.L1MessengerETHBalance.BigInt()
-	} else {
-		startBalance = latestValidMessage.L2MessengerETHBalance.BigInt()
 	}
 
 	ok, expectedEndBalance, actualBalance, err := c.checkBalance(layer, startBalance, endBalance, messages)
@@ -200,7 +206,7 @@ func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, l
 	}
 
 	// get all the eth status valid, and update the eth balance status and eth balance
-	c.computeBlockBalance(ctx, layer, messages, latestValidMessage)
+	c.computeBlockBalance(ctx, layer, messages, startBalance)
 }
 
 func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client *ethclient.Client, messengerAddr common.Address, layer types.LayerType, messages []orm.MessageMatch) {
@@ -216,6 +222,7 @@ func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client 
 
 		tmpBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
 		if err != nil {
+			log.Error("get balance failed", "err", err)
 			continue
 		}
 
@@ -247,7 +254,7 @@ func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client 
 
 		ok, expectedEndBalance, actualBalance, err := c.checkBalance(layer, startBalance, endBalance, messages[startIndex:i+1])
 		if !ok || err != nil {
-			log.Error("balance check failed", "block", blockNumber)
+			log.Error("balance check failed", "block", blockNumber, "expectedEndBalance", expectedEndBalance.String(), "actualBalance", actualBalance.String())
 			slack.MrkDwnETHGatewayMessage(&messages[i], expectedEndBalance, actualBalance)
 			continue
 		}
@@ -261,24 +268,29 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 
 		var amount *big.Int
 		var ok bool
+		amount, ok = new(big.Int).SetString(message.ETHAmount, 10)
+		if !ok {
+			return false, nil, nil, fmt.Errorf("invalid ETHAmount value: %v, layer: %v", message.ETHAmount, layer)
+		}
+
 		if layer == types.Layer1 {
-			amount, ok = new(big.Int).SetString(message.L1Amounts, 10)
-			if !ok {
-				return false, nil, nil, fmt.Errorf("invalid L1Amount value: %v", message.L1Amounts)
+			if types.EventType(message.L1EventType) == types.L1SentMessage || types.EventType(message.L1EventType) == types.L1DepositERC20 {
+				balanceDiff = new(big.Int).Add(balanceDiff, amount)
 			}
-		} else {
-			amount, ok = new(big.Int).SetString(message.L2Amounts, 10)
-			if !ok {
-				return false, nil, nil, fmt.Errorf("invalid L2Amounts value: %v", message.L2Amounts)
+
+			if types.EventType(message.L1EventType) == types.L1RelayedMessage || types.EventType(message.L1EventType) == types.L1FinalizeWithdrawERC20 {
+				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
 			}
 		}
 
-		if types.EventType(message.L1EventType) == types.L1SentMessage || types.EventType(message.L2EventType) == types.L2SentMessage {
-			balanceDiff = new(big.Int).Add(balanceDiff, amount)
-		}
+		if layer == types.Layer2 {
+			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
+				balanceDiff = new(big.Int).Add(balanceDiff, amount)
+			}
 
-		if types.EventType(message.L1EventType) == types.L1RelayedMessage || types.EventType(message.L2EventType) == types.L2RelayedMessage {
-			balanceDiff = new(big.Int).Sub(balanceDiff, amount)
+			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
+				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
+			}
 		}
 	}
 
@@ -287,19 +299,11 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 		return true, expectedEndBalance, endBalance, nil
 	}
 
+	log.Info("balance check failed", "expectedEndBalance", expectedEndBalance.String(), "actualBalance", endBalance.String())
 	return false, expectedEndBalance, endBalance, nil
 }
 
-func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.LayerType, messages []orm.MessageMatch, latestValidMessage *orm.MessageMatch) {
-	var messengerETHBalance *big.Int
-	if latestValidMessage != nil {
-		if layer == types.Layer1 {
-			messengerETHBalance = latestValidMessage.L1MessengerETHBalance.BigInt()
-		} else {
-			messengerETHBalance = latestValidMessage.L2MessengerETHBalance.BigInt()
-		}
-	}
-
+func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.LayerType, messages []orm.MessageMatch, messengerETHBalance *big.Int) {
 	blockNumberAmountMap := make(map[uint64]*big.Int)
 	for _, message := range messages {
 		if layer == types.Layer1 {
@@ -307,17 +311,17 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int)
 			}
 
-			amount, ok := new(big.Int).SetString(message.L1Amounts, 10)
+			amount, ok := new(big.Int).SetString(message.ETHAmount, 10)
 			if !ok {
-				log.Error("invalid L1Amount value", "l1 amounts", message.L1Amounts)
+				log.Error("invalid L1 ETH Amount value", "amount", message.ETHAmount)
 				return
 			}
 
-			if types.EventType(message.L1EventType) == types.L1SentMessage {
+			if types.EventType(message.L1EventType) == types.L1SentMessage || types.EventType(message.L1EventType) == types.L1DepositERC20 {
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int).Add(blockNumberAmountMap[message.L1BlockNumber], amount)
 			}
 
-			if types.EventType(message.L1EventType) == types.L1RelayedMessage {
+			if types.EventType(message.L1EventType) == types.L1RelayedMessage || types.EventType(message.L1EventType) == types.L1FinalizeWithdrawERC20 {
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int).Sub(blockNumberAmountMap[message.L1BlockNumber], amount)
 			}
 		}
@@ -327,53 +331,43 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 				blockNumberAmountMap[message.L2BlockNumber] = new(big.Int)
 			}
 
-			amount, ok := new(big.Int).SetString(message.L2Amounts, 10)
+			amount, ok := new(big.Int).SetString(message.ETHAmount, 10)
 			if !ok {
-				log.Error("invalid L2Amount value", "l2 amounts", message.L2Amounts)
+				log.Error("invalid L2 ETH Amount value", "amount", message.ETHAmount)
 				return
 			}
 
-			if types.EventType(message.L2EventType) == types.L2SentMessage {
+			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
 				blockNumberAmountMap[message.L2BlockNumber] = new(big.Int).Add(blockNumberAmountMap[message.L2BlockNumber], amount)
 			}
 
-			if types.EventType(message.L2EventType) == types.L2RelayedMessage {
+			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
 				blockNumberAmountMap[message.L2BlockNumber] = new(big.Int).Sub(blockNumberAmountMap[message.L2BlockNumber], amount)
 			}
 		}
 	}
 
 	var updateETHMessageMatches []orm.MessageMatch
-	for k, v := range messages {
-		var ethBalance *big.Int
-		var blockETHBalance *big.Int
-		var lastBlockETHBalance *big.Int
-
-		if layer == types.Layer1 {
-			blockETHBalance = blockNumberAmountMap[v.L1BlockNumber]
-			if k != 0 {
-				lastBlockETHBalance = messages[k-1].L1MessengerETHBalance.BigInt()
-			} else {
-				lastBlockETHBalance = messengerETHBalance
-			}
-		} else {
-			blockETHBalance = blockNumberAmountMap[v.L2BlockNumber]
-			if k != 0 {
-				lastBlockETHBalance = messages[k-1].L2MessengerETHBalance.BigInt()
-			} else {
-				lastBlockETHBalance = messengerETHBalance
-			}
+	lastBlockBalance := new(big.Int).Set(messengerETHBalance)
+	lastBlockNumber := uint64(0)
+	for _, v := range messages {
+		blockNumber := v.L1BlockNumber
+		if layer == types.Layer2 {
+			blockNumber = v.L2BlockNumber
 		}
 
-		ethBalance = new(big.Int).Add(lastBlockETHBalance, blockETHBalance)
+		if blockNumber != lastBlockNumber {
+			lastBlockBalance.Add(lastBlockBalance, blockNumberAmountMap[blockNumber])
+			lastBlockNumber = blockNumber
+		}
 
 		// update the db
 		mm := orm.MessageMatch{ID: v.ID}
 		if layer == types.Layer1 {
-			mm.L1MessengerETHBalance = decimal.NewFromBigInt(ethBalance, 0)
+			mm.L1MessengerETHBalance = decimal.NewFromBigInt(lastBlockBalance, 0)
 			mm.L1ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)
 		} else {
-			mm.L2MessengerETHBalance = decimal.NewFromBigInt(ethBalance, 0)
+			mm.L2MessengerETHBalance = decimal.NewFromBigInt(lastBlockBalance, 0)
 			mm.L2ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)
 		}
 		updateETHMessageMatches = append(updateETHMessageMatches, mm)
@@ -390,5 +384,29 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 	})
 	if err != nil {
 		log.Error("computeOverageBlockBalance.UpdateETHBalance failed", "layer", layer, "error", err)
+	}
+}
+
+func (c *LogicCrossChain) getLatestBlockNumber(ctx context.Context, layerType types.LayerType) (uint64, error) {
+	switch layerType {
+	case types.Layer1:
+		latestHeader, err := c.l1Client.HeaderByNumber(ctx, nil)
+		if err != nil {
+			log.Error("Failed to get latest header from Layer1 client", "error", err)
+			return 0, err
+		}
+		return latestHeader.Number.Uint64(), nil
+
+	case types.Layer2:
+		latestHeader, err := c.l2Client.HeaderByNumber(ctx, nil)
+		if err != nil {
+			log.Error("Failed to get latest header from Layer2 client", "error", err)
+			return 0, err
+		}
+		return latestHeader.Number.Uint64(), nil
+
+	default:
+		log.Error("Invalid layerType", "layerType", layerType)
+		return 0, fmt.Errorf("invalid layerType: %v", layerType)
 	}
 }

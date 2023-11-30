@@ -137,7 +137,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", err)
 		return
 	}
-	log.Info("Block process height in db", "block number", blockNumberInDB)
+	log.Info("Block process height in db", "layer", layer, "block number", blockNumberInDB)
 	start := blockNumberInDB + 1
 
 	for {
