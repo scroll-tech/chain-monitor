@@ -364,11 +364,13 @@ func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layer types.LayerTy
 	case types.Layer1:
 		updateFields = map[string]interface{}{
 			"l1_messenger_eth_balance":         messageMatch.L1MessengerETHBalance,
+			"l1_eth_balance_status":            types.ETHBalanceStatusTypeValid,
 			"l1_eth_balance_status_updated_at": utils.NowUTC(),
 		}
 	case types.Layer2:
 		updateFields = map[string]interface{}{
 			"l2_messenger_eth_balance":         messageMatch.L2MessengerETHBalance,
+			"l2_eth_balance_status":            types.ETHBalanceStatusTypeValid,
 			"l2_eth_balance_status_updated_at": utils.NowUTC(),
 		}
 	}
