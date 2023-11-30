@@ -211,10 +211,10 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		var lastMessage *orm.MessageMatch
 		if layer == types.Layer2 {
 			var checkErr error
-			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, loopStart, loopEnd, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
+			lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, start, loopEnd, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
 			if checkErr != nil {
 				c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
-				log.Error("check withdraw roots failed", "layer", types.Layer2, "start", loopStart, "end", loopEnd, "error", checkErr)
+				log.Error("check withdraw roots failed", "layer", types.Layer2, "start", start, "end", loopEnd, "error", checkErr)
 				continue
 			}
 		}
@@ -227,13 +227,13 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 				}
 			}
 
-			if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, loopStart, loopEnd, tx); err != nil {
+			if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, loopEnd, tx); err != nil {
 				return fmt.Errorf("update block status failed, err: %w", err)
 			}
 			return nil
 		})
 		if err != nil {
-			log.Error("update db status after check failed", "layer", layer, "from", loopStart, "end", loopEnd, "err", err)
+			log.Error("update db status after check failed", "layer", layer, "from", start, "end", loopEnd, "err", err)
 			continue
 		}
 
