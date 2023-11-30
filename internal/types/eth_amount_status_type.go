@@ -6,8 +6,8 @@ package types
 type ETHAmountStatus int
 
 const (
-	// BlockStatusTypeInvalid represents the eth amount is unset.
+	// ETHAmountStatusTypeUnset represents the eth amount is unset.
 	ETHAmountStatusTypeUnset ETHAmountStatus = iota
-	// BlockStatusTypeValid represents the eth amount is set.
+	// ETHAmountStatusTypeSet represents the eth amount is set.
 	ETHAmountStatusTypeSet
 )
