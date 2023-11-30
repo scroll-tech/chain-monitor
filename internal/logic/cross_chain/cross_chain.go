@@ -286,12 +286,10 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 		if layer == types.Layer2 {
 			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
 				balanceDiff = new(big.Int).Add(balanceDiff, amount)
-				log.Info("add balance", "amount", amount)
 			}
 
 			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
 				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
-				log.Info("sub balance", "amount", amount)
 			}
 		}
 	}
