@@ -78,7 +78,7 @@ func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, lay
 
 	var messageMatchIds []int64
 	for _, message := range messages {
-		c.crossChainGatewayCheckID.WithLabelValues(layerType.String()).Inc()
+		c.crossChainGatewayCheckID.WithLabelValues(layerType.String()).Set(float64(message.ID))
 		checkResult := c.checker.CrossChainCheck(ctx, layerType, message)
 		if checkResult == types.MismatchTypeValid {
 			messageMatchIds = append(messageMatchIds, message.ID)
@@ -257,7 +257,7 @@ func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client 
 func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []orm.MessageMatch) (bool, *big.Int, *big.Int, error) {
 	balanceDiff := big.NewInt(0)
 	for _, message := range messages {
-		c.crossChainETHCheckID.WithLabelValues(layer.String()).Inc()
+		c.crossChainETHCheckID.WithLabelValues(layer.String()).Set(float64(message.ID))
 
 		var amount *big.Int
 		var ok bool
