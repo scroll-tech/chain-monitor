@@ -254,7 +254,7 @@ func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client 
 
 		ok, expectedEndBalance, actualBalance, err := c.checkBalance(layer, startBalance, endBalance, messages[startIndex:i+1])
 		if !ok || err != nil {
-			log.Error("balance check failed", "block", blockNumber, "expectedEndBalance", expectedEndBalance.String(), "actualBalance", actualBalance.String())
+			log.Info("balance check failed", "block", blockNumber, "expectedEndBalance", expectedEndBalance.String(), "actualBalance", actualBalance.String())
 			slack.MrkDwnETHGatewayMessage(&messages[i], expectedEndBalance, actualBalance)
 			continue
 		}
@@ -268,16 +268,9 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 
 		var amount *big.Int
 		var ok bool
-		if layer == types.Layer1 {
-			amount, ok = new(big.Int).SetString(message.L1Amounts, 10)
-			if !ok {
-				return false, nil, nil, fmt.Errorf("invalid L1Amount value: %v", message.L1Amounts)
-			}
-		} else {
-			amount, ok = new(big.Int).SetString(message.L2Amounts, 10)
-			if !ok {
-				return false, nil, nil, fmt.Errorf("invalid L2Amounts value: %v", message.L2Amounts)
-			}
+		amount, ok = new(big.Int).SetString(message.ETHAmount, 10)
+		if !ok {
+			return false, nil, nil, fmt.Errorf("invalid ETHAmount value: %v, layer: %v", message.ETHAmount, layer)
 		}
 
 		if layer == types.Layer1 {
@@ -293,10 +286,12 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 		if layer == types.Layer2 {
 			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
 				balanceDiff = new(big.Int).Add(balanceDiff, amount)
+				log.Info("add balance", "amount", amount)
 			}
 
 			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
 				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
+				log.Info("sub balance", "amount", amount)
 			}
 		}
 	}
@@ -306,6 +301,7 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 		return true, expectedEndBalance, endBalance, nil
 	}
 
+	log.Info("balance check failed", "expectedEndBalance", expectedEndBalance.String(), "actualBalance", endBalance.String())
 	return false, expectedEndBalance, endBalance, nil
 }
 
@@ -317,9 +313,9 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int)
 			}
 
-			amount, ok := new(big.Int).SetString(message.L1Amounts, 10)
+			amount, ok := new(big.Int).SetString(message.ETHAmount, 10)
 			if !ok {
-				log.Error("invalid L1Amount value", "l1 amounts", message.L1Amounts)
+				log.Error("invalid L1 ETH Amount value", "amount", message.ETHAmount)
 				return
 			}
 
@@ -337,9 +333,9 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 				blockNumberAmountMap[message.L2BlockNumber] = new(big.Int)
 			}
 
-			amount, ok := new(big.Int).SetString(message.L2Amounts, 10)
+			amount, ok := new(big.Int).SetString(message.ETHAmount, 10)
 			if !ok {
-				log.Error("invalid L2Amount value", "l2 amounts", message.L2Amounts)
+				log.Error("invalid L2 ETH Amount value", "amount", message.ETHAmount)
 				return
 			}
 
