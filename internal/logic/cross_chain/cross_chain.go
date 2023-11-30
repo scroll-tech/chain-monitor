@@ -254,7 +254,7 @@ func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client 
 
 		ok, expectedEndBalance, actualBalance, err := c.checkBalance(layer, startBalance, endBalance, messages[startIndex:i+1])
 		if !ok || err != nil {
-			log.Info("balance check failed", "block", blockNumber, "expectedEndBalance", expectedEndBalance.String(), "actualBalance", actualBalance.String())
+			log.Error("balance check failed", "block", blockNumber, "expectedEndBalance", expectedEndBalance.String(), "actualBalance", actualBalance.String())
 			slack.MrkDwnETHGatewayMessage(&messages[i], expectedEndBalance, actualBalance)
 			continue
 		}
