@@ -119,7 +119,7 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 // Watch is an exported function that starts watching the Layer 1 and Layer 2 events, which include gateways events, transfer events, and messenger events.
 func (c *ContractController) Watch(ctx context.Context) {
 	go c.watcherStart(ctx, ethclient.NewClient(c.l1Client), types.Layer1, c.conf.L1Config.Confirm, 2)
-	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm, 3)
+	go c.watcherStart(ctx, ethclient.NewClient(c.l2Client), types.Layer2, c.conf.L2Config.Confirm, 2)
 }
 
 // Stop the contract controller
