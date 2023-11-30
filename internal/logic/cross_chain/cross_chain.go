@@ -283,24 +283,20 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 		if layer == types.Layer1 {
 			if types.EventType(message.L1EventType) == types.L1SentMessage || types.EventType(message.L1EventType) == types.L1DepositERC20 {
 				balanceDiff = new(big.Int).Add(balanceDiff, amount)
-				log.Info("add amount", "balanceDiff", balanceDiff.String(), "amount", amount.String())
 			}
 
 			if types.EventType(message.L1EventType) == types.L1RelayedMessage || types.EventType(message.L1EventType) == types.L1FinalizeWithdrawERC20 {
 				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
-				log.Info("sub amount", "balanceDiff", balanceDiff.String(), "amount", amount.String())
 			}
 		}
 
 		if layer == types.Layer2 {
 			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
 				balanceDiff = new(big.Int).Add(balanceDiff, amount)
-				log.Info("add amount", "balanceDiff", balanceDiff.String(), "amount", amount.String())
 			}
 
 			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
 				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
-				log.Info("sub amount", "balanceDiff", balanceDiff.String(), "amount", amount.String())
 			}
 		}
 	}
@@ -310,7 +306,6 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 		return true, expectedEndBalance, endBalance, nil
 	}
 
-	log.Info("balance mismatch", "expectedEndBalance", expectedEndBalance.String(), "endBalance", endBalance.String())
 	return false, expectedEndBalance, endBalance, nil
 }
 
