@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/scroll-tech/go-ethereum/log"
@@ -42,6 +43,8 @@ type MessageMatch struct {
 	L1ETHBalanceStatus    int             `json:"l1_eth_balance_status" gorm:"l1_eth_balance_status"`
 	L2MessengerETHBalance decimal.Decimal `json:"l2_messenger_eth_balance" gorm:"l2_messenger_eth_balance"`
 	L2ETHBalanceStatus    int             `json:"l2_eth_balance_status" gorm:"l2_eth_balance_status"`
+	ETHAmount             string          `json:"eth_amount" gorm:"eth_amount"`
+	ETHAmountStatus       int             `json:"eth_amount_status" gorm:"eth_amount_status"`
 
 	// status
 	L1BlockStatus      int `json:"l1_block_status" gorm:"l1_block_status"`
@@ -90,7 +93,6 @@ func (m *MessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx 
 	case types.Layer2:
 		db = db.Where("l2_cross_chain_status = ?", types.CrossChainStatusTypeInvalid)
 	}
-	db = db.Order("id asc")
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
 		log.Warn("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatches failed", "error", err)
@@ -106,11 +108,14 @@ func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, la
 	switch layer {
 	case types.Layer1:
 		db = db.Where("l1_eth_balance_status = ?", types.ETHBalanceStatusTypeInvalid)
+		db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
+		db = db.Order("l1_block_number asc")
 	case types.Layer2:
 		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeInvalid)
+		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
+		db = db.Order("l2_block_number asc")
 	}
-	db = db.Where("token_type = ?", types.TokenTypeETH)
-	db = db.Order("id asc")
+	db = db.Where("token_type = ? or token_type = ?", types.TokenTypeETH, types.TokenTypeERC20)
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
 		log.Warn("MessageMatch.GetUncheckedLatestETHMessageMatch failed", "error", err)
@@ -131,7 +136,7 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
 		db = db.Order("l2_block_number desc")
 	}
-	err := db.Last(&message).Error
+	err := db.First(&message).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
 		return nil, fmt.Errorf("MessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
@@ -143,45 +148,37 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 	return &message, nil
 }
 
-// GetLatestDoubleLayerValidMessageMatch fetches the latest valid message match record where both layers are valid.
-func (m *MessageMatch) GetLatestDoubleLayerValidMessageMatch(ctx context.Context) (*MessageMatch, error) {
-	var message MessageMatch
-	db := m.db.WithContext(ctx)
-
-	// Look for records where both layers are valid
-	db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
-	db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
-
-	err := db.Last(&message).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warn("MessageMatch.GetLatestDoubleLayerValidMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetLatestDoubleLayerValidMessageMatch failed err:%w", err)
-	}
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	return &message, nil
-}
-
-// GetLatestValidETHBalanceMessageMatch fetches the latest valid Ethereum balance match record for the specified layer.
-func (m *MessageMatch) GetLatestValidETHBalanceMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
+// GetETHCheckStartBlockNumberAndBalance fetches the latest valid Ethereum balance match record for the specified layer
+// and returns the block number and messenger balance for the specified layer.
+func (m *MessageMatch) GetETHCheckStartBlockNumberAndBalance(ctx context.Context, layer types.LayerType) (*big.Int, error) {
 	var message MessageMatch
 	db := m.db.WithContext(ctx)
 	switch layer {
 	case types.Layer1:
 		db = db.Where("l1_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
+		db = db.Order("l1_block_number desc")
 	case types.Layer2:
 		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeValid)
+		db = db.Order("l2_block_number desc")
 	}
-	err := db.Last(&message).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
+	err := db.First(&message).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return big.NewInt(0), nil
+		}
+		log.Warn("MessageMatch.GetETHCheckStartBlockNumberAndBalance failed", "error", err)
+		return big.NewInt(0), fmt.Errorf("MessageMatch.GetETHCheckStartBlockNumberAndBalance failed err:%w", err)
 	}
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
+
+	// Return the block number and messenger balance for the specified layer
+	switch layer {
+	case types.Layer1:
+		return message.L1MessengerETHBalance.BigInt(), nil
+	case types.Layer2:
+		return message.L2MessengerETHBalance.BigInt(), nil
+	default:
+		return big.NewInt(0), fmt.Errorf("invalid layer: %v", layer)
 	}
-	return &message, nil
 }
 
 // GetLatestValidL2SentMessageMatch fetches the valid l2 sent message with the largest message nonce.
@@ -222,8 +219,8 @@ func (m *MessageMatch) GetL2SentMessagesInBlockRange(ctx context.Context, startB
 	return messages, nil
 }
 
-// InsertOrUpdateGatewayEventInfo insert or update eth event info
-func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer types.LayerType, message MessageMatch, dbTX ...*gorm.DB) (int64, error) {
+// InsertOrUpdateEventInfo insert or update event info
+func (m *MessageMatch) InsertOrUpdateEventInfo(ctx context.Context, layer types.LayerType, message MessageMatch, dbTX ...*gorm.DB) (int64, error) {
 	db := m.db
 	if len(dbTX) > 0 && dbTX[0] != nil {
 		db = dbTX[0]
@@ -231,12 +228,29 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer
 
 	db = db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
-
 	var assignmentColumn clause.Set
 	if layer == types.Layer1 {
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_tx_hash", "l1_event_type", "l1_token_ids", "l1_amounts"})
-	} else if layer == types.Layer2 {
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts", "next_message_nonce"})
+		if message.L1EventType == int(types.L1SentMessage) { // sent
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_amounts", "l2_amounts", "eth_amount", "eth_amount_status"})
+		} else if message.L1EventType == int(types.L1RelayedMessage) { // relayed
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids"})
+		} else if message.L1EventType == int(types.L1DepositERC20) || message.L1EventType == int(types.L1DepositERC721) || message.L1EventType == int(types.L1DepositERC1155) { // sent
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_tx_hash", "l1_event_type", "l1_token_ids", "l1_amounts", "eth_amount", "eth_amount_status"})
+		} else { // relayed
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_tx_hash", "l1_event_type", "l1_token_ids", "l1_amounts"})
+		}
+	}
+
+	if layer == types.Layer2 {
+		if message.L2EventType == int(types.L2SentMessage) { // sent
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_block_number", "l2_tx_hash", "l1_amounts", "l2_amounts", "eth_amount", "eth_amount_status"})
+		} else if message.L2EventType == int(types.L2RelayedMessage) { // relayed
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_block_number", "l2_tx_hash"})
+		} else if message.L2EventType == int(types.L2WithdrawERC20) || message.L2EventType == int(types.L2WithdrawERC721) || message.L2EventType == int(types.L2WithdrawERC1155) { // sent
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts", "eth_amount", "eth_amount_status"})
+		} else { // relayed
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts"})
+		}
 	}
 
 	db = db.Clauses(clause.OnConflict{
@@ -251,52 +265,14 @@ func (m *MessageMatch) InsertOrUpdateGatewayEventInfo(ctx context.Context, layer
 	return result.RowsAffected, nil
 }
 
-// InsertOrUpdateETHEventInfo insert or update the eth event info
-func (m *MessageMatch) InsertOrUpdateETHEventInfo(ctx context.Context, message MessageMatch, dbTX ...*gorm.DB) (int64, error) {
-	db := m.db
-	if len(dbTX) > 0 && dbTX[0] != nil {
-		db = dbTX[0]
-	}
-
-	db = db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
-	var columns []string
-	if message.L1EventType != 0 && message.L1EventType == int(types.L1SentMessage) {
-		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids", "l1_amounts", "l2_amounts")
-	}
-
-	if message.L1EventType != 0 && message.L1EventType == int(types.L1RelayedMessage) {
-		columns = append(columns, "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids")
-	}
-
-	if message.L2EventType != 0 && message.L2EventType == int(types.L2SentMessage) {
-		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids", "l1_amounts", "l2_amounts", "next_message_nonce")
-	}
-
-	if message.L2EventType != 0 && message.L2EventType == int(types.L2RelayedMessage) {
-		columns = append(columns, "l2_event_type", "l2_block_number", "l2_tx_hash", "l2_token_ids")
-	}
-
-	db = db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "message_hash"}},
-		DoUpdates: clause.AssignmentColumns(columns),
-	})
-
-	result := db.Create(&message)
-	if result.Error != nil {
-		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateETHEventInfo error: %w, message: %v", result.Error, message)
-	}
-	return result.RowsAffected, nil
-}
-
 // UpdateCrossChainStatus updates the cross chain status for the message matches with the provided ids.
-func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, layerType types.LayerType, status types.CrossChainStatusType) error {
+func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, layer types.LayerType, status types.CrossChainStatusType) error {
 	db := m.db.WithContext(ctx)
 	db = db.Model(&MessageMatch{})
 	db = db.Where("id in (?)", id)
 
 	var updateFields map[string]interface{}
-	switch layerType {
+	switch layer {
 	case types.Layer1:
 		updateFields = map[string]interface{}{
 			"l1_cross_chain_status":            status,
@@ -373,7 +349,7 @@ func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerT
 }
 
 // UpdateETHBalance update the eth balance and eth status
-func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layerType types.LayerType, messageMatch MessageMatch, dbTX ...*gorm.DB) error {
+func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layer types.LayerType, messageMatch MessageMatch, dbTX ...*gorm.DB) error {
 	db := m.db
 	if len(dbTX) > 0 && dbTX[0] != nil {
 		db = dbTX[0]
@@ -384,17 +360,15 @@ func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layerType types.Lay
 	db = db.Where("id = ?", messageMatch.ID)
 
 	var updateFields map[string]interface{}
-	switch layerType {
+	switch layer {
 	case types.Layer1:
 		updateFields = map[string]interface{}{
 			"l1_messenger_eth_balance":         messageMatch.L1MessengerETHBalance,
-			"l1_eth_balance_status":            messageMatch.L1MessengerETHBalance,
 			"l1_eth_balance_status_updated_at": utils.NowUTC(),
 		}
 	case types.Layer2:
 		updateFields = map[string]interface{}{
-			"l2_messenger_eth_balance":         messageMatch.L1MessengerETHBalance,
-			"l2_eth_balance_status":            messageMatch.L1MessengerETHBalance,
+			"l2_messenger_eth_balance":         messageMatch.L2MessengerETHBalance,
 			"l2_eth_balance_status_updated_at": utils.NowUTC(),
 		}
 	}
