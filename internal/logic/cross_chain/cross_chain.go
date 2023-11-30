@@ -132,27 +132,36 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 			return
 		}
 
-		if len(messages) == 0 {
+		// Find the index of the first message with ETHAmountStatus unset.
+		unsetIndex := len(messages)
+		for i, message := range messages {
+			if message.ETHAmountStatus == int(types.ETHAmountStatusTypeUnset) {
+				unsetIndex = i
+				break
+			}
+		}
+
+		// If unsetIndex is 0, there are no messages to process.
+		if unsetIndex == 0 {
 			return
 		}
 
-		for _, message := range messages {
-			if message.ETHAmountStatus == int(types.ETHAmountStatusTypeUnset) {
-				break
-			}
+		// Process the messages up to the unset index.
+		for _, message := range messages[:unsetIndex] {
 			switch layerType {
 			case types.Layer1:
-				maxBlockNumber := messages[len(messages)-1].L1BlockNumber
+				maxBlockNumber := messages[unsetIndex-1].L1BlockNumber
 				if message.L1BlockNumber < maxBlockNumber {
 					ignoredLastMessageMatch = append(ignoredLastMessageMatch, message)
 				}
 			case types.Layer2:
-				maxBlockNumber := messages[len(messages)-1].L2BlockNumber
+				maxBlockNumber := messages[unsetIndex-1].L2BlockNumber
 				if message.L2BlockNumber < maxBlockNumber {
 					ignoredLastMessageMatch = append(ignoredLastMessageMatch, message)
 				}
 			}
 		}
+
 		if len(ignoredLastMessageMatch) > 0 {
 			break
 		}
