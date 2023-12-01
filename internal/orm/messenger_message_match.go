@@ -22,7 +22,6 @@ type MessengerMessageMatch struct {
 
 	ID          int64  `json:"id" gorm:"column:id"`
 	MessageHash string `json:"message_hash" gorm:"message_hash"`
-	TokenType   int    `json:"token_type" gorm:"token_type"`
 
 	// l2 messenger info
 	L1EventType           int             `json:"l1_event_type" gorm:"l1_event_type"`

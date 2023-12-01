@@ -279,7 +279,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		return nil
 	}
 
-	var l1GatewayMessageMatches []orm.MessageMatch
+	var l1GatewayMessageMatches []orm.GatewayMessageMatch
 	for _, eventCategory := range c.l1EventCategoryList {
 		wrapIterList, err := c.contractsLogic.Iterator(ctx, &opts, types.Layer1, eventCategory)
 		if err != nil {
@@ -390,8 +390,8 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 	return nil
 }
 
-func (c *ContractController) replaceGatewayEventInfo(layer types.LayerType, gatewayMessages, messengerMessages []orm.MessageMatch) {
-	messageHashGatewayMessageMatchMap := make(map[string]orm.MessageMatch)
+func (c *ContractController) updateMessengerMessageMatchInfo(layer types.LayerType, gatewayMessages []orm.GatewayMessageMatch, messengerMessages []orm.MessengerMessageMatch) {
+	messageHashGatewayMessageMatchMap := make(map[string]orm.GatewayMessageMatch)
 	for _, gatewayMessage := range gatewayMessages {
 		messageHashGatewayMessageMatchMap[gatewayMessage.MessageHash] = gatewayMessage
 	}
