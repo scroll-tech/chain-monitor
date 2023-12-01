@@ -125,12 +125,16 @@ func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerTyp
 
 	var truncatedMessageMatches []*orm.MessengerMessageMatch
 	for _, message := range messageMatches {
+		if truncateBlockNumber == 0 { // not need to truncate.
+			truncatedMessageMatches = append(truncatedMessageMatches, message)
+			continue
+		}
 		if layerType == types.Layer1 {
-			if truncateBlockNumber == 0 || message.L1BlockNumber < truncateBlockNumber {
+			if message.L1BlockNumber < truncateBlockNumber {
 				truncatedMessageMatches = append(truncatedMessageMatches, message)
 			}
 		} else {
-			if truncateBlockNumber == 0 || message.L2BlockNumber < truncateBlockNumber {
+			if message.L2BlockNumber < truncateBlockNumber {
 				truncatedMessageMatches = append(truncatedMessageMatches, message)
 			}
 		}
