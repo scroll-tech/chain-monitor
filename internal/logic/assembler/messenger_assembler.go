@@ -26,7 +26,6 @@ func (c *MessageMatchAssembler) messengerMessageMatchAssembler(messengerEvents [
 		case types.L1SentMessage:
 			tmpMessageMatch = orm.MessengerMessageMatch{
 				MessageHash:     messengerEventUnmarshaler.MessageHash.Hex(),
-				TokenType:       int(types.TokenTypeETH), // default ETH.
 				L1EventType:     int(messengerEventUnmarshaler.Type),
 				L1BlockNumber:   messengerEventUnmarshaler.Number,
 				L1TxHash:        messengerEventUnmarshaler.TxHash.Hex(),
@@ -37,7 +36,6 @@ func (c *MessageMatchAssembler) messengerMessageMatchAssembler(messengerEvents [
 		case types.L1RelayedMessage:
 			tmpMessageMatch = orm.MessengerMessageMatch{
 				MessageHash:   messengerEventUnmarshaler.MessageHash.Hex(),
-				TokenType:     int(types.TokenTypeETH), // default ETH.
 				L1EventType:   int(messengerEventUnmarshaler.Type),
 				L1BlockNumber: messengerEventUnmarshaler.Number,
 				L1TxHash:      messengerEventUnmarshaler.TxHash.Hex(),
@@ -46,7 +44,6 @@ func (c *MessageMatchAssembler) messengerMessageMatchAssembler(messengerEvents [
 		case types.L2SentMessage:
 			tmpMessageMatch = orm.MessengerMessageMatch{
 				MessageHash:      messengerEventUnmarshaler.MessageHash.Hex(),
-				TokenType:        int(types.TokenTypeETH), // default ETH.
 				L2EventType:      int(messengerEventUnmarshaler.Type),
 				L2BlockNumber:    messengerEventUnmarshaler.Number,
 				L2TxHash:         messengerEventUnmarshaler.TxHash.Hex(),
@@ -58,7 +55,6 @@ func (c *MessageMatchAssembler) messengerMessageMatchAssembler(messengerEvents [
 		case types.L2RelayedMessage:
 			tmpMessageMatch = orm.MessengerMessageMatch{
 				MessageHash:   messengerEventUnmarshaler.MessageHash.Hex(),
-				TokenType:     int(types.TokenTypeETH), // default ETH.
 				L2EventType:   int(messengerEventUnmarshaler.Type),
 				L2BlockNumber: messengerEventUnmarshaler.Number,
 				L2TxHash:      messengerEventUnmarshaler.TxHash.Hex(),

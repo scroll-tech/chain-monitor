@@ -24,7 +24,6 @@ const ethBalanceGap = 50
 // LogicMessengerCrossChain check messenger balance match
 type LogicMessengerCrossChain struct {
 	db                  *gorm.DB
-	gatewayMessageOrm   *orm.GatewayMessageMatch
 	messengerMessageOrm *orm.MessengerMessageMatch
 	l1Client            *ethclient.Client
 	l2Client            *ethclient.Client
@@ -39,7 +38,6 @@ type LogicMessengerCrossChain struct {
 func NewLogicMessengerCrossChain(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address) *LogicMessengerCrossChain {
 	return &LogicMessengerCrossChain{
 		db:                  db,
-		gatewayMessageOrm:   orm.NewGatewayMessageMatch(db),
 		messengerMessageOrm: orm.NewMessengerMessageMatch(db),
 		l1Client:            l1Client,
 		l2Client:            l2Client,
@@ -227,21 +225,21 @@ func (c *LogicMessengerCrossChain) checkBalance(layer types.LayerType, startBala
 		}
 
 		if layer == types.Layer1 {
-			if types.EventType(message.L1EventType) == types.L1SentMessage || types.EventType(message.L1EventType) == types.L1DepositERC20 {
+			if types.EventType(message.L1EventType) == types.L1SentMessage {
 				balanceDiff = new(big.Int).Add(balanceDiff, amount)
 			}
 
-			if types.EventType(message.L1EventType) == types.L1RelayedMessage || types.EventType(message.L1EventType) == types.L1FinalizeWithdrawERC20 {
+			if types.EventType(message.L1EventType) == types.L1RelayedMessage {
 				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
 			}
 		}
 
 		if layer == types.Layer2 {
-			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
+			if types.EventType(message.L2EventType) == types.L2SentMessage {
 				balanceDiff = new(big.Int).Add(balanceDiff, amount)
 			}
 
-			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
+			if types.EventType(message.L2EventType) == types.L2RelayedMessage {
 				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
 			}
 		}
@@ -272,11 +270,11 @@ func (c *LogicMessengerCrossChain) computeBlockBalance(ctx context.Context, laye
 				return
 			}
 
-			if types.EventType(message.L1EventType) == types.L1SentMessage || types.EventType(message.L1EventType) == types.L1DepositERC20 {
+			if types.EventType(message.L1EventType) == types.L1SentMessage {
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int).Add(blockNumberAmountMap[message.L1BlockNumber], amount)
 			}
 
-			if types.EventType(message.L1EventType) == types.L1RelayedMessage || types.EventType(message.L1EventType) == types.L1FinalizeWithdrawERC20 {
+			if types.EventType(message.L1EventType) == types.L1RelayedMessage {
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int).Sub(blockNumberAmountMap[message.L1BlockNumber], amount)
 			}
 		}
@@ -292,11 +290,11 @@ func (c *LogicMessengerCrossChain) computeBlockBalance(ctx context.Context, laye
 				return
 			}
 
-			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
+			if types.EventType(message.L2EventType) == types.L2SentMessage {
 				blockNumberAmountMap[message.L2BlockNumber] = new(big.Int).Add(blockNumberAmountMap[message.L2BlockNumber], amount)
 			}
 
-			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
+			if types.EventType(message.L2EventType) == types.L2RelayedMessage {
 				blockNumberAmountMap[message.L2BlockNumber] = new(big.Int).Sub(blockNumberAmountMap[message.L2BlockNumber], amount)
 			}
 		}

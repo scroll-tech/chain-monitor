@@ -120,7 +120,6 @@ func MrkDwnETHGatewayMessage(message *orm.MessengerMessageMatch, expectedEndBala
 	buffer.WriteString("\n:bangbang: ")
 	buffer.WriteString("*Cross chain ETH balance check failed*\n")
 	buffer.WriteString(fmt.Sprintf("• database id: %d\n", message.ID))
-	buffer.WriteString(fmt.Sprintf("• token type: %s\n", types.TokenType(message.TokenType).String()))
 	buffer.WriteString(fmt.Sprintf("• l1 event type: %s\n", types.EventType(message.L1EventType).String()))
 	buffer.WriteString(fmt.Sprintf("• l2 event type: %s\n", types.EventType(message.L2EventType).String()))
 	buffer.WriteString(fmt.Sprintf("• l1 block number: %d\n", message.L1BlockNumber))

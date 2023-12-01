@@ -35,9 +35,6 @@ func NewGatewayCrossEventMatcher() *GatewayCrossEventMatcher {
 	c.eventMatchMap[types.L2FinalizeBatchDepositERC1155] = types.L1BatchDepositERC1155
 	c.eventMatchMap[types.L1FinalizeBatchWithdrawERC1155] = types.L2BatchWithdrawERC1155
 
-	c.eventMatchMap[types.L2RelayedMessage] = types.L1SentMessage
-	c.eventMatchMap[types.L1RelayedMessage] = types.L2SentMessage
-
 	return c
 }
 

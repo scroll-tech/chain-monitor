@@ -4,8 +4,6 @@ CREATE TABLE messenger_message_match
 (
     id                               BIGSERIAL       PRIMARY KEY,
     message_hash                     VARCHAR         NOT NULL,
-    token_type                       INTEGER         NOT NULL,
-
 
     -- l1 messenger info
     l1_event_type                    INTEGER         NOT NULL,

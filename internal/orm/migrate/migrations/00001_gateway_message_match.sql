@@ -37,7 +37,7 @@ CREATE TABLE gateway_message_match
 
 CREATE UNIQUE INDEX if not exists idx_gmm_message_hash ON gateway_message_match (message_hash);
 CREATE INDEX if not exists idx_gmm_l1_l2_l1cc_id ON gateway_message_match (l1_block_status, l2_block_status, l1_cross_chain_status, id);
-CREATE INDEX if not exists idx_gmm_l1_l2_l2cc_id ON gateway_message_match (l1_block_status, l2_block_status, l2_cross_chain_status,  id);
+CREATE INDEX if not exists idx_gmm_l1_l2_l2cc_id ON gateway_message_match (l1_block_status, l2_block_status, l2_cross_chain_status, id);
 CREATE INDEX if not exists idx_gmm_l1block_l1blocknum_id ON gateway_message_match (l1_block_status, l1_block_number desc, id DESC);
 CREATE INDEX if not exists idx_gmm_l2block_l2blocknum_id ON gateway_message_match (l2_block_status, l2_block_number desc, id DESC);
 -- +goose GatewayMessageMatchEnd

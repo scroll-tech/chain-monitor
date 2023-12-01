@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scroll-tech/chain-monitor/internal/logic/assembler"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
@@ -17,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
+	"github.com/scroll-tech/chain-monitor/internal/logic/assembler"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	messagematch "github.com/scroll-tech/chain-monitor/internal/logic/message_match"
@@ -319,7 +318,6 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		}
 	}
 
-	c.updateMessengerMessageMatchInfo(types.Layer1, l1GatewayMessageMatches, messengerMessageMatches)
 	if err := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer1, l1GatewayMessageMatches, messengerMessageMatches); err != nil {
 		c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
 		log.Error("insert message events failed", "layer", types.Layer1, "error", err)
@@ -388,34 +386,10 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		}
 	}
 
-	c.updateMessengerMessageMatchInfo(types.Layer2, l2GatewayMessageMatches, messengerMessageMatches)
 	if err = c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, l2GatewayMessageMatches, messengerMessageMatches); err != nil {
 		c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 		log.Error("insert message events failed", "layer", types.Layer2, "error", err)
 		return err
 	}
 	return nil
-}
-
-func (c *ContractController) updateMessengerMessageMatchInfo(layer types.LayerType, gatewayMessages []orm.GatewayMessageMatch, messengerMessages []orm.MessengerMessageMatch) {
-	messageHashGatewayMessageMatchMap := make(map[string]orm.GatewayMessageMatch)
-	for _, gatewayMessage := range gatewayMessages {
-		messageHashGatewayMessageMatchMap[gatewayMessage.MessageHash] = gatewayMessage
-	}
-
-	for i := 0; i < len(messengerMessages); i++ {
-		m := messengerMessages[i]
-		gatewayMessageMatch, ok := messageHashGatewayMessageMatchMap[m.MessageHash]
-		if !ok {
-			continue
-		}
-
-		messengerMessages[i].TokenType = gatewayMessageMatch.TokenType
-		switch layer {
-		case types.Layer1:
-			messengerMessages[i].L1EventType = gatewayMessageMatch.L1EventType
-		case types.Layer2:
-			messengerMessages[i].L2EventType = gatewayMessageMatch.L2EventType
-		}
-	}
 }
