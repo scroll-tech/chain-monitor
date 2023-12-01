@@ -89,7 +89,7 @@ func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
 }
 
 // MrkDwnGatewayCrossChainMessage make the markdown message of cross chain alert message
-func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.MismatchType) string {
+func MrkDwnGatewayCrossChainMessage(message orm.GatewayMessageMatch, checkResult types.MismatchType) string {
 	crossChainGatewayEventNotMatchTotal.Inc()
 
 	var buffer bytes.Buffer
@@ -113,7 +113,7 @@ func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.
 }
 
 // MrkDwnETHGatewayMessage make the markdown message of cross chain eth alert message
-func MrkDwnETHGatewayMessage(message *orm.MessageMatch, expectedEndBalance, actualEndBalance *big.Int) string {
+func MrkDwnETHGatewayMessage(message *orm.MessengerMessageMatch, expectedEndBalance, actualEndBalance *big.Int) string {
 	crossChainETHEventNotMatchTotal.Inc()
 
 	var buffer bytes.Buffer

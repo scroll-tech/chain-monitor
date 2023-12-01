@@ -1,4 +1,4 @@
-package checker
+package crosschain
 
 import (
 	"math/big"
@@ -9,14 +9,14 @@ import (
 	"github.com/scroll-tech/go-ethereum/log"
 )
 
-// CrossEventMatcher is a utility struct used for verifying the consistency of events across different blockchain layers (L1 and L2).
-type CrossEventMatcher struct {
+// GatewayCrossEventMatcher is a utility struct used for verifying the consistency of gateway events across different blockchain layers (L1 and L2).
+type GatewayCrossEventMatcher struct {
 	eventMatchMap map[types.EventType]types.EventType
 }
 
-// NewCrossEventMatcher initializes a new instance of CrossEventMatcher.
-func NewCrossEventMatcher() *CrossEventMatcher {
-	c := &CrossEventMatcher{
+// NewGatewayCrossEventMatcher initializes a new instance of GatewayCrossEventMatcher.
+func NewGatewayCrossEventMatcher() *GatewayCrossEventMatcher {
+	c := &GatewayCrossEventMatcher{
 		eventMatchMap: make(map[types.EventType]types.EventType),
 	}
 
@@ -41,8 +41,19 @@ func NewCrossEventMatcher() *CrossEventMatcher {
 	return c
 }
 
+// GatewayCrossChainCheck checks the cross chain events.
+func (c *GatewayCrossEventMatcher) GatewayCrossChainCheck(layer types.LayerType, messageMatch orm.GatewayMessageMatch) types.MismatchType {
+	switch layer {
+	case types.Layer1:
+		return c.checkL1EventAndAmountMatchL2(messageMatch)
+	case types.Layer2:
+		return c.checkL2EventAndAmountMatchL1(messageMatch)
+	}
+	return types.MismatchTypeValid
+}
+
 // checkL1EventAndAmountMatchL2 checks that every L1FinalizeWithdraw/L1RelayedMessage has a corresponding L2 event.
-func (c *CrossEventMatcher) checkL1EventAndAmountMatchL2(messageMatch orm.MessageMatch) types.MismatchType {
+func (c *GatewayCrossEventMatcher) checkL1EventAndAmountMatchL2(messageMatch orm.GatewayMessageMatch) types.MismatchType {
 	if !c.checkL1EventMatchL2(messageMatch) {
 		return types.MismatchTypeL1EventNotMatch
 	}
@@ -54,7 +65,7 @@ func (c *CrossEventMatcher) checkL1EventAndAmountMatchL2(messageMatch orm.Messag
 	return types.MismatchTypeValid
 }
 
-func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) bool {
+func (c *GatewayCrossEventMatcher) checkL1EventMatchL2(messageMatch orm.GatewayMessageMatch) bool {
 	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
 	if !isPresent {
 		// If the L1 event type is not in the checklist, skip the check
@@ -81,7 +92,7 @@ func (c *CrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessageMatch) b
 }
 
 // checkL2EventAndAmountMatchL1  checks that every L2FinalizeDeposit/L2RelayedMessage has a corresponding L1 event.
-func (c *CrossEventMatcher) checkL2EventAndAmountMatchL1(messageMatch orm.MessageMatch) types.MismatchType {
+func (c *GatewayCrossEventMatcher) checkL2EventAndAmountMatchL1(messageMatch orm.GatewayMessageMatch) types.MismatchType {
 	if !c.checkL2EventMatchL1(messageMatch) {
 		return types.MismatchTypeL2EventNotMatch
 	}
@@ -94,7 +105,7 @@ func (c *CrossEventMatcher) checkL2EventAndAmountMatchL1(messageMatch orm.Messag
 }
 
 // checkL2EventMatchL1 checks that every L2FinalizeDeposit/L2RelayedMessage has a corresponding L1 event.
-func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) bool {
+func (c *GatewayCrossEventMatcher) checkL2EventMatchL1(messageMatch orm.GatewayMessageMatch) bool {
 	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L2EventType)]
 	if !isPresent {
 		// If the L2 event type is not in the checklist, skip the check
@@ -122,7 +133,7 @@ func (c *CrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessageMatch) b
 }
 
 // crossChainAmountMatch checks if the amounts and token IDs match for cross-chain events.
-func (c *CrossEventMatcher) crossChainAmountMatch(messageMatch orm.MessageMatch) bool {
+func (c *GatewayCrossEventMatcher) crossChainAmountMatch(messageMatch orm.GatewayMessageMatch) bool {
 	var l1Amounts, l2Amounts []*big.Int
 	var l1TokenIds, l2TokenIds []*big.Int
 

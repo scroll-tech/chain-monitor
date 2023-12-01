@@ -1,4 +1,4 @@
-package checker
+package assembler
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-func (c *Checker) erc20EventUnmarshaler(gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) ([]orm.GatewayMessageMatch, error) {
+func (c *MessageMatchAssembler) erc20EventMessageMatchAssembler(gatewayEventsData, messengerEventsData, transferEventsData []events.EventUnmarshaler) ([]orm.GatewayMessageMatch, error) {
 	messageHashes := make(map[messageEventKey]common.Hash)
 	for _, eventData := range messengerEventsData {
 		messengerEventUnmarshaler, ok := eventData.(*events.MessengerEventUnmarshaler)

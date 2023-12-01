@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/scroll-tech/chain-monitor/internal/logic/assembler"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
@@ -15,7 +17,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
-	"github.com/scroll-tech/chain-monitor/internal/logic/checker"
 	"github.com/scroll-tech/chain-monitor/internal/logic/contracts"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	messagematch "github.com/scroll-tech/chain-monitor/internal/logic/message_match"
@@ -33,7 +34,7 @@ type ContractController struct {
 	conf              *config.Config
 	eventGatherLogic  *events.EventGather
 	contractsLogic    *contracts.Contracts
-	checker           *checker.Checker
+	checker           *assembler.MessageMatchAssembler
 	messageMatchLogic *messagematch.LogicMessageMatch
 
 	stopL1ContractChan  chan struct{}
@@ -49,24 +50,26 @@ type ContractController struct {
 	contractControllerUpdateOrInsertMessageMatchFailureTotal *prometheus.CounterVec
 	contractControllerCheckWithdrawRootFailureTotal          *prometheus.CounterVec
 
-	db              *gorm.DB
-	messageMatchOrm *orm.MessageMatch
+	db                       *gorm.DB
+	messengerMessageMatchOrm *orm.MessengerMessageMatch
+	gatewayMessageMatchOrm   *orm.GatewayMessageMatch
 }
 
 // NewContractController creates a new ContractController object.
 func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client *rpc.Client) *ContractController {
 	c := &ContractController{
-		l1Client:           l1Client,
-		l2Client:           l2Client,
-		conf:               conf,
-		eventGatherLogic:   events.NewEventGather(),
-		contractsLogic:     contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
-		checker:            checker.NewChecker(db),
-		messageMatchLogic:  messagematch.NewMessageMatchLogic(conf, db),
-		stopL1ContractChan: make(chan struct{}),
-		stopL2ContractChan: make(chan struct{}),
-		db:                 db,
-		messageMatchOrm:    orm.NewMessageMatch(db),
+		l1Client:                 l1Client,
+		l2Client:                 l2Client,
+		conf:                     conf,
+		eventGatherLogic:         events.NewEventGather(),
+		contractsLogic:           contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
+		checker:                  assembler.NewMessageMatchAssembler(db),
+		messageMatchLogic:        messagematch.NewMessageMatchLogic(conf, db),
+		stopL1ContractChan:       make(chan struct{}),
+		stopL2ContractChan:       make(chan struct{}),
+		db:                       db,
+		messengerMessageMatchOrm: orm.NewMessengerMessageMatch(db),
+		gatewayMessageMatchOrm:   orm.NewGatewayMessageMatch(db),
 	}
 
 	if err := c.contractsLogic.Register(c.conf); err != nil {
@@ -219,7 +222,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		}
 
 		if loopEnd >= start {
-			var lastMessage *orm.MessageMatch
+			var lastMessage *orm.MessengerMessageMatch
 			if layer == types.Layer2 {
 				var checkErr error
 				lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, start, loopEnd, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
@@ -233,12 +236,16 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			// Update last valid message's withdraw trie proof and block status after check.
 			err = c.db.Transaction(func(tx *gorm.DB) error {
 				if layer == types.Layer2 {
-					if err = c.messageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
+					if err = c.messengerMessageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
 						return fmt.Errorf("insert or update msg proof and status failed, err: %w, message: %+v", err, lastMessage)
 					}
 				}
 
-				if err = c.messageMatchOrm.UpdateBlockStatus(ctx, layer, start, loopEnd, tx); err != nil {
+				if err = c.messengerMessageMatchOrm.UpdateBlockStatus(ctx, layer, start, loopEnd, tx); err != nil {
+					return fmt.Errorf("update block status failed, err: %w", err)
+				}
+
+				if err = c.gatewayMessageMatchOrm.UpdateBlockStatus(ctx, layer, start, loopEnd, tx); err != nil {
 					return fmt.Errorf("update block status failed, err: %w", err)
 				}
 				return nil
@@ -336,7 +343,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return err
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
-	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, types.Layer2, messengerEvents)
+	messengerMessageMatches, err := c.checker.MessengerCheck(messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return err
@@ -372,7 +379,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		}
 
 		// match transfer event
-		retL2MessageMatches, checkErr := c.checker.GatewayCheck(ctx, eventCategory, gatewayEvents, messengerEvents, transferEvents)
+		retL2MessageMatches, checkErr := c.checker.GatewayCheck(eventCategory, gatewayEvents, messengerEvents, transferEvents)
 		l2GatewayMessageMatches = append(l2GatewayMessageMatches, retL2MessageMatches...)
 		if checkErr != nil {
 			c.contractControllerGatewayCheckFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
@@ -382,7 +389,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 	}
 
 	c.updateMessengerMessageMatchInfo(types.Layer2, l2GatewayMessageMatches, messengerMessageMatches)
-	if err = c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, messengerMessageMatches); err != nil {
+	if err = c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, l2GatewayMessageMatches, messengerMessageMatches); err != nil {
 		c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 		log.Error("insert message events failed", "layer", types.Layer2, "error", err)
 		return err

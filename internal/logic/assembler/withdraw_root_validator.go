@@ -1,4 +1,4 @@
-package checker
+package assembler
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/utils/msgproof"
 )
 
-func (c *Checker) checkL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) (*orm.MessengerMessageMatch, error) {
+func (c *MessageMatchAssembler) checkL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) (*orm.MessengerMessageMatch, error) {
 	log.Info("checking l2 withdraw roots", "start", startBlockNumber, "end", endBlockNumber)
 
 	if startBlockNumber > endBlockNumber {

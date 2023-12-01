@@ -1,4 +1,4 @@
-package checker
+package assembler
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
-func (c *Checker) messengerCheck(messengerEvents []events.EventUnmarshaler) ([]orm.MessengerMessageMatch, error) {
+func (c *MessageMatchAssembler) messengerMessageMatchAssembler(messengerEvents []events.EventUnmarshaler) ([]orm.MessengerMessageMatch, error) {
 	if len(messengerEvents) == 0 {
 		return nil, nil
 	}
