@@ -18,7 +18,8 @@
       "scroll_messenger": "0x50c7d3e7f7c656493D1D76aaa1a836CedfCBB16A",
       "message_queue": "0xF0B2293F5D834eAe920c6974D50957A1732de763",
       "scroll_chain": "0x2D567EcE699Eabe5afCd141eDB7A4f2D0D6ce8a0"
-    }
+    },
+    "start_messenger_balance": 10000000000000000000
   },
   "l2_config": {
     "l2_url": "<l2 node rpc url>",

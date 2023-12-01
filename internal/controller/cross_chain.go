@@ -34,7 +34,7 @@ func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client
 		stopL1CrossChainChan:     make(chan struct{}),
 		stopL2CrossChainChan:     make(chan struct{}),
 		gatewayCrossChainLogic:   crosschain.NewLogicGatewayCrossChain(db),
-		messengerCrossChainLogic: crosschain.NewLogicMessengerCrossChain(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr),
+		messengerCrossChainLogic: crosschain.NewLogicMessengerCrossChain(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr, cfg.L1Config.StartMessengerBalance),
 		crossChainControllerRunningTotal: promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
 			Name: "cross_chain_check_controller_running_total",
 			Help: "The total number of cross chain controller running.",

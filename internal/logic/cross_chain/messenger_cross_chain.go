@@ -31,19 +31,21 @@ type LogicMessengerCrossChain struct {
 	l2MessengerAddr     common.Address
 	checker             *MessengerCrossEventMatcher
 
-	crossChainETHCheckID *prometheus.GaugeVec
+	crossChainETHCheckID  *prometheus.GaugeVec
+	startMessengerBalance uint64
 }
 
 // NewLogicMessengerCrossChain is a constructor for Logic.
-func NewLogicMessengerCrossChain(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address) *LogicMessengerCrossChain {
+func NewLogicMessengerCrossChain(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address, startMessengerBalance uint64) *LogicMessengerCrossChain {
 	return &LogicMessengerCrossChain{
-		db:                  db,
-		messengerMessageOrm: orm.NewMessengerMessageMatch(db),
-		l1Client:            l1Client,
-		l2Client:            l2Client,
-		l1MessengerAddr:     l1MessengerAddr,
-		l2MessengerAddr:     l2MessengerAddr,
-		checker:             NewMessengerCrossEventMatcher(),
+		db:                    db,
+		messengerMessageOrm:   orm.NewMessengerMessageMatch(db),
+		l1Client:              l1Client,
+		l2Client:              l2Client,
+		l1MessengerAddr:       l1MessengerAddr,
+		l2MessengerAddr:       l2MessengerAddr,
+		checker:               NewMessengerCrossEventMatcher(),
+		startMessengerBalance: startMessengerBalance,
 
 		crossChainETHCheckID: promauto.With(prometheus.DefaultRegisterer).NewGaugeVec(prometheus.GaugeOpts{
 			Name: "cross_chain_checked_eth_database_id",
@@ -68,11 +70,18 @@ func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerTyp
 		return
 	}
 
-	if layerType == types.Layer2 && startBalance.Cmp(new(big.Int)) == 0 {
-		startBalance, err = c.l2Client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(0))
-		if err != nil {
-			log.Error("get messenger balance failed", "layer types", layerType, "err", err)
-			return
+	if startBalance == nil {
+		if layerType == types.Layer2 {
+			startBalance, err = c.l2Client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(0))
+			if err != nil {
+				log.Error("get messenger balance failed", "layer types", layerType, "err", err)
+				return
+			}
+		}
+
+		if layerType == types.Layer1 {
+			log.Info("L1 messenger start balance", "start", startBalance.String())
+			startBalance = new(big.Int).SetUint64(c.startMessengerBalance)
 		}
 	}
 

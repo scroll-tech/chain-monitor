@@ -161,10 +161,10 @@ func (m *MessengerMessageMatch) GetETHCheckStartBlockNumberAndBalance(ctx contex
 	err := db.First(&message).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return big.NewInt(0), nil
+			return nil, nil
 		}
 		log.Warn("MessengerMessageMatch.GetETHCheckStartBlockNumberAndBalance failed", "error", err)
-		return big.NewInt(0), fmt.Errorf("MessengerMessageMatch.GetETHCheckStartBlockNumberAndBalance failed err:%w", err)
+		return nil, fmt.Errorf("MessengerMessageMatch.GetETHCheckStartBlockNumberAndBalance failed err:%w", err)
 	}
 
 	// Return the block number and messenger balance for the specified layer
@@ -174,7 +174,7 @@ func (m *MessengerMessageMatch) GetETHCheckStartBlockNumberAndBalance(ctx contex
 	case types.Layer2:
 		return message.L2MessengerETHBalance.BigInt(), nil
 	default:
-		return big.NewInt(0), fmt.Errorf("invalid layer: %v", layer)
+		return nil, fmt.Errorf("invalid layer: %v", layer)
 	}
 }
 
