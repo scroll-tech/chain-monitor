@@ -112,7 +112,6 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 	}
 
 	if layerType == types.Layer2 && startBalance.Cmp(new(big.Int)) == 0 {
-		var err error
 		startBalance, err = c.l2Client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(0))
 		if err != nil {
 			log.Error("get messenger balance failed", "layer types", layerType, "err", err)
@@ -157,22 +156,17 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 		return
 	}
 
-	c.checkETH(ctx, layerType, latestBlockNumber, startBalance, messageMatches)
-	log.Info("CheckETHBalance completed", "layer type", layerType)
+	c.checkETH(ctx, layerType, startBlockNumber, endBlockNumber, latestBlockNumber, startBalance, messageMatches)
+	log.Info("CheckETHBalance completed", "layer type", layerType, "start", startBlockNumber, "end", endBlockNumber)
 }
 
-func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, latestBlockNumber uint64, startBalance *big.Int, messages []orm.MessageMatch) {
-	var startBlockNumber, endBlockNumber uint64
+func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber, latestBlockNumber uint64, startBalance *big.Int, messages []orm.MessageMatch) {
 	var messengerAddr common.Address
 	var client *ethclient.Client
 	if layer == types.Layer1 {
-		startBlockNumber = messages[0].L1BlockNumber
-		endBlockNumber = messages[len(messages)-1].L1BlockNumber
 		messengerAddr = c.l1MessengerAddr
 		client = c.l1Client
 	} else {
-		startBlockNumber = messages[0].L2BlockNumber
-		endBlockNumber = messages[len(messages)-1].L2BlockNumber
 		messengerAddr = c.l2MessengerAddr
 		client = c.l2Client
 	}
