@@ -88,7 +88,6 @@ func (m *MessengerMessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Co
 		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
 		db = db.Order("l2_block_number asc")
 	}
-	db = db.Where("token_type = ? or token_type = ?", types.TokenTypeETH, types.TokenTypeERC20)
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
 		log.Warn("MessengerMessageMatch.GetUncheckedLatestETHMessageMatch failed", "error", err)
@@ -115,7 +114,6 @@ func (m *MessengerMessageMatch) GetETHMessageMatchByBlockRange(ctx context.Conte
 		db = db.Where("l2_block_number <= ?", endBlockNumber)
 		db = db.Order("l2_block_number asc")
 	}
-	db = db.Where("token_type = ? or token_type = ?", types.TokenTypeETH, types.TokenTypeERC20)
 	if err := db.Find(&messages).Error; err != nil {
 		log.Warn("MessengerMessageMatch.GetETHMessageMatchByBlockRange failed", "error", err)
 		return nil, fmt.Errorf("MessengerMessageMatch.GetETHMessageMatchByBlockRange failed err:%w", err)
@@ -230,17 +228,17 @@ func (m *MessengerMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, lay
 	var assignmentColumn clause.Set
 	if layer == types.Layer1 {
 		if message.L1EventType == int(types.L1SentMessage) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_event_type", "l1_tx_hash", "eth_amount", "eth_amount_status"})
+			assignmentColumn = clause.AssignmentColumns([]string{"l1_block_number", "l1_event_type", "l1_tx_hash", "eth_amount", "eth_amount_status"})
 		} else if message.L1EventType == int(types.L1RelayedMessage) { // relayed
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_event_type", "l1_tx_hash"})
+			assignmentColumn = clause.AssignmentColumns([]string{"l1_block_number", "l1_event_type", "l1_tx_hash"})
 		}
 	}
 
 	if layer == types.Layer2 {
 		if message.L2EventType == int(types.L2SentMessage) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_event_type", "l2_tx_hash", "eth_amount", "eth_amount_status", "next_message_nonce"})
+			assignmentColumn = clause.AssignmentColumns([]string{"l2_block_number", "l2_event_type", "l2_tx_hash", "eth_amount", "eth_amount_status", "next_message_nonce"})
 		} else if message.L2EventType == int(types.L2RelayedMessage) { // relayed
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_event_type", "l2_tx_hash"})
+			assignmentColumn = clause.AssignmentColumns([]string{"l2_block_number", "l2_event_type", "l2_tx_hash"})
 		}
 	}
 
