@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -364,6 +365,12 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 		}
 		updateETHMessageMatches = append(updateETHMessageMatches, mm)
 	}
+
+	// Sort the updateETHMessageMatches slice by id to prevent "ERROR: deadlock detected (SQLSTATE 40P01)"
+	// when simultaneously updating rows of postgres in a transaction by L1 & L2 eth balance checkers.
+	sort.Slice(updateETHMessageMatches, func(i, j int) bool {
+		return updateETHMessageMatches[i].ID < updateETHMessageMatches[j].ID
+	})
 
 	err := c.db.Transaction(func(tx *gorm.DB) error {
 		for _, updateEthMessageMatch := range updateETHMessageMatches {
