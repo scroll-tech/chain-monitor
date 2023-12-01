@@ -4,6 +4,7 @@ build/bin
 coverage.txt
 *.integration.txt
 conf/config.local.json
+conf/config.sepolia.json
 
 # Visual Studio Code
 .vscode

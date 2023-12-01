@@ -17,7 +17,9 @@ import (
 
 // CrossChainController is a struct that contains a reference to the Logic object.
 type CrossChainController struct {
-	crossChainLogic      *crosschain.LogicCrossChain
+	gatewayCrossChainLogic   *crosschain.LogicGatewayCrossChain
+	messengerCrossChainLogic *crosschain.LogicMessengerCrossChain
+
 	stopL1CrossChainChan chan struct{}
 	stopL2CrossChainChan chan struct{}
 
@@ -29,9 +31,10 @@ func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client
 	l1MessengerAddr := cfg.L1Config.L1Contracts.ScrollMessenger
 	l2MessengerAddr := cfg.L2Config.L2Contracts.ScrollMessenger
 	return &CrossChainController{
-		stopL1CrossChainChan: make(chan struct{}),
-		stopL2CrossChainChan: make(chan struct{}),
-		crossChainLogic:      crosschain.NewCrossChainLogic(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr),
+		stopL1CrossChainChan:     make(chan struct{}),
+		stopL2CrossChainChan:     make(chan struct{}),
+		gatewayCrossChainLogic:   crosschain.NewLogicGatewayCrossChain(db),
+		messengerCrossChainLogic: crosschain.NewLogicMessengerCrossChain(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr, cfg.L1Config.StartMessengerBalance),
 		crossChainControllerRunningTotal: promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
 			Name: "cross_chain_check_controller_running_total",
 			Help: "The total number of cross chain controller running.",
@@ -72,8 +75,8 @@ func (c *CrossChainController) watcherStart(ctx context.Context, layer types.Lay
 
 		c.crossChainControllerRunningTotal.WithLabelValues(layer.String()).Inc()
 
-		c.crossChainLogic.CheckCrossChainGatewayMessage(ctx, layer)
-		c.crossChainLogic.CheckETHBalance(ctx, layer)
+		c.gatewayCrossChainLogic.CheckCrossChainGatewayMessage(ctx, layer)
+		c.messengerCrossChainLogic.CheckETHBalance(ctx, layer)
 
 		// To prevent frequent database access, obtaining empty values.
 		time.Sleep(10 * time.Second)

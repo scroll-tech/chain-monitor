@@ -89,7 +89,7 @@ func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
 }
 
 // MrkDwnGatewayCrossChainMessage make the markdown message of cross chain alert message
-func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.MismatchType) string {
+func MrkDwnGatewayCrossChainMessage(message orm.GatewayMessageMatch, checkResult types.MismatchType) string {
 	crossChainGatewayEventNotMatchTotal.Inc()
 
 	var buffer bytes.Buffer
@@ -113,14 +113,13 @@ func MrkDwnGatewayCrossChainMessage(message orm.MessageMatch, checkResult types.
 }
 
 // MrkDwnETHGatewayMessage make the markdown message of cross chain eth alert message
-func MrkDwnETHGatewayMessage(message *orm.MessageMatch, expectedEndBalance, actualEndBalance *big.Int) string {
+func MrkDwnETHGatewayMessage(message *orm.MessengerMessageMatch, expectedEndBalance, actualEndBalance *big.Int) string {
 	crossChainETHEventNotMatchTotal.Inc()
 
 	var buffer bytes.Buffer
 	buffer.WriteString("\n:bangbang: ")
 	buffer.WriteString("*Cross chain ETH balance check failed*\n")
 	buffer.WriteString(fmt.Sprintf("• database id: %d\n", message.ID))
-	buffer.WriteString(fmt.Sprintf("• token type: %s\n", types.TokenType(message.TokenType).String()))
 	buffer.WriteString(fmt.Sprintf("• l1 event type: %s\n", types.EventType(message.L1EventType).String()))
 	buffer.WriteString(fmt.Sprintf("• l2 event type: %s\n", types.EventType(message.L2EventType).String()))
 	buffer.WriteString(fmt.Sprintf("• l1 block number: %d\n", message.L1BlockNumber))

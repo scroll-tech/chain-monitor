@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -15,7 +14,6 @@ import (
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 
-	"github.com/scroll-tech/chain-monitor/internal/logic/checker"
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
@@ -23,39 +21,31 @@ import (
 
 const ethBalanceGap = 50
 
-// LogicCrossChain is a struct for checking the l1/l2 event match from the database.
-// FinalizeWithdraw value corresponds to the withdrawal value.
-// FinalizeDeposit value corresponds to the deposit value.
-// This is because not every deposit/withdrawal event in the system will have a finalize event,
-// as users have the ability to refund deposits independently.
-type LogicCrossChain struct {
-	db              *gorm.DB
-	messageOrm      *orm.MessageMatch
-	checker         *checker.Checker
-	l1Client        *ethclient.Client
-	l2Client        *ethclient.Client
-	l1MessengerAddr common.Address
-	l2MessengerAddr common.Address
+// LogicMessengerCrossChain check messenger balance match
+type LogicMessengerCrossChain struct {
+	db                  *gorm.DB
+	messengerMessageOrm *orm.MessengerMessageMatch
+	l1Client            *ethclient.Client
+	l2Client            *ethclient.Client
+	l1MessengerAddr     common.Address
+	l2MessengerAddr     common.Address
+	checker             *MessengerCrossEventMatcher
 
-	crossChainGatewayCheckID *prometheus.GaugeVec
-	crossChainETHCheckID     *prometheus.GaugeVec
+	crossChainETHCheckID  *prometheus.GaugeVec
+	startMessengerBalance uint64
 }
 
-// NewCrossChainLogic is a constructor for Logic.
-func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address) *LogicCrossChain {
-	return &LogicCrossChain{
-		db:              db,
-		messageOrm:      orm.NewMessageMatch(db),
-		checker:         checker.NewChecker(db),
-		l1Client:        l1Client,
-		l2Client:        l2Client,
-		l1MessengerAddr: l1MessengerAddr,
-		l2MessengerAddr: l2MessengerAddr,
-
-		crossChainGatewayCheckID: promauto.With(prometheus.DefaultRegisterer).NewGaugeVec(prometheus.GaugeOpts{
-			Name: "cross_chain_checked_gateway_event_database_id",
-			Help: "the database id of cross chain gateway checked",
-		}, []string{"layer"}),
+// NewLogicMessengerCrossChain is a constructor for Logic.
+func NewLogicMessengerCrossChain(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address, startMessengerBalance uint64) *LogicMessengerCrossChain {
+	return &LogicMessengerCrossChain{
+		db:                    db,
+		messengerMessageOrm:   orm.NewMessengerMessageMatch(db),
+		l1Client:              l1Client,
+		l2Client:              l2Client,
+		l1MessengerAddr:       l1MessengerAddr,
+		l2MessengerAddr:       l2MessengerAddr,
+		checker:               NewMessengerCrossEventMatcher(),
+		startMessengerBalance: startMessengerBalance,
 
 		crossChainETHCheckID: promauto.With(prometheus.DefaultRegisterer).NewGaugeVec(prometheus.GaugeOpts{
 			Name: "cross_chain_checked_eth_database_id",
@@ -64,40 +54,8 @@ func NewCrossChainLogic(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1Mes
 	}
 }
 
-// CheckCrossChainGatewayMessage is a method for checking cross-chain messages.
-func (c *LogicCrossChain) CheckCrossChainGatewayMessage(ctx context.Context, layerType types.LayerType) {
-	messages, err := c.messageOrm.GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx, layerType, 1000)
-	if err != nil {
-		log.Error("CheckCrossChainGatewayMessage.GetUncheckedAndDoubleLayerValidGatewayMessageMatchs failed", "error", err)
-		return
-	}
-
-	if len(messages) == 0 {
-		time.Sleep(time.Second)
-		return
-	}
-
-	log.Info("checking cross chain gateway messages", "number of messages", len(messages))
-
-	var messageMatchIds []int64
-	for _, message := range messages {
-		c.crossChainGatewayCheckID.WithLabelValues(layerType.String()).Set(float64(message.ID))
-		checkResult := c.checker.CrossChainCheck(ctx, layerType, message)
-		if checkResult == types.MismatchTypeValid {
-			messageMatchIds = append(messageMatchIds, message.ID)
-			continue
-		}
-		slack.Notify(slack.MrkDwnGatewayCrossChainMessage(message, checkResult))
-	}
-
-	if err := c.messageOrm.UpdateCrossChainStatus(ctx, messageMatchIds, layerType, types.CrossChainStatusTypeValid); err != nil {
-		log.Error("Logic.CheckCrossChainMessage UpdateCrossChainStatus failed", "error", err)
-		return
-	}
-}
-
 // CheckETHBalance checks the ETH balance for the given Ethereum layer (either Layer1 or Layer2).
-func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.LayerType) {
+func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerType types.LayerType) {
 	log.Info("CheckETHBalance started", "layer type", layerType)
 
 	latestBlockNumber, err := c.getLatestBlockNumber(ctx, layerType)
@@ -106,43 +64,38 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 		return
 	}
 
-	startBalance, err := c.messageOrm.GetETHCheckStartBlockNumberAndBalance(ctx, layerType)
+	startBalance, err := c.messengerMessageOrm.GetETHCheckStartBlockNumberAndBalance(ctx, layerType)
 	if err != nil {
 		log.Error("c.messageOrm GetETHCheckStartBlockNumberAndBalance failed", "layer type", layerType, "error", err)
 		return
 	}
 
-	if layerType == types.Layer2 && startBalance.Cmp(new(big.Int)) == 0 {
-		startBalance, err = c.l2Client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(0))
-		if err != nil {
-			log.Error("get messenger balance failed", "layer types", layerType, "err", err)
-			return
+	if startBalance == nil {
+		if layerType == types.Layer2 {
+			startBalance, err = c.l2Client.BalanceAt(ctx, c.l2MessengerAddr, new(big.Int).SetUint64(0))
+			if err != nil {
+				log.Error("get messenger balance failed", "layer types", layerType, "err", err)
+				return
+			}
+		}
+
+		if layerType == types.Layer1 {
+			log.Info("L1 messenger start balance", "start", startBalance.String())
+			startBalance = new(big.Int).SetUint64(c.startMessengerBalance)
 		}
 	}
 
-	// Get 1000 messages to determine the start block number and end block number.
 	messageLimit := 1000
-	messages, err := c.messageOrm.GetUncheckedLatestETHMessageMatch(ctx, layerType, messageLimit)
+	messages, err := c.messengerMessageOrm.GetUncheckedLatestETHMessageMatch(ctx, layerType, messageLimit)
 	if err != nil {
 		log.Error("CheckETHBalance.GetUncheckedLatestETHMessageMatch failed", "limit", messageLimit, "error", err)
 		return
 	}
 
-	// Find the index of the first message with ETHAmountStatus unset.
-	unsetIndex := len(messages)
-	for i, message := range messages {
-		if message.ETHAmountStatus == int(types.ETHAmountStatusTypeUnset) {
-			unsetIndex = i
-			break
-		}
-	}
-
-	// If unsetIndex is 0, there are no messages to process.
-	if unsetIndex == 0 {
+	if len(messages) == 0 {
 		return
 	}
 
-	messages = messages[:unsetIndex]
 	var startBlockNumber, endBlockNumber uint64
 	if layerType == types.Layer1 {
 		startBlockNumber = messages[0].L1BlockNumber
@@ -151,17 +104,56 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 		startBlockNumber = messages[0].L2BlockNumber
 		endBlockNumber = messages[len(messages)-1].L2BlockNumber
 	}
-	messageMatches, err := c.messageOrm.GetETHMessageMatchByBlockRange(ctx, layerType, startBlockNumber, endBlockNumber)
+
+	messageMatches, err := c.messengerMessageOrm.GetETHMessageMatchByBlockRange(ctx, layerType, startBlockNumber, endBlockNumber)
 	if err != nil {
 		log.Error("CheckETHBalance.GetETHMessageMatchByBlockRange failed", "start", startBlockNumber, "end", endBlockNumber, "error", err)
 		return
 	}
 
-	c.checkETH(ctx, layerType, startBlockNumber, endBlockNumber, latestBlockNumber, startBalance, messageMatches)
+	var truncateBlockNumber uint64
+	for _, messageMatch := range messageMatches {
+		if types.ETHAmountStatus(messageMatch.ETHAmountStatus) != types.ETHAmountStatusTypeSet {
+			if layerType == types.Layer1 {
+				truncateBlockNumber = messageMatch.L1BlockNumber
+			} else {
+				truncateBlockNumber = messageMatch.L2BlockNumber
+			}
+			break
+		}
+	}
+
+	var truncatedMessageMatches []*orm.MessengerMessageMatch
+	for _, message := range messageMatches {
+		if layerType == types.Layer1 {
+			if truncateBlockNumber != 0 && message.L1BlockNumber < truncateBlockNumber {
+				truncatedMessageMatches = append(truncatedMessageMatches, message)
+			}
+		} else {
+			if truncateBlockNumber != 0 && message.L2BlockNumber < truncateBlockNumber {
+				truncatedMessageMatches = append(truncatedMessageMatches, message)
+			}
+		}
+	}
+
+	if len(truncatedMessageMatches) == 0 {
+		return
+	}
+
+	switch layerType {
+	case types.Layer1:
+		startBlockNumber = truncatedMessageMatches[0].L1BlockNumber
+		endBlockNumber = truncatedMessageMatches[len(truncatedMessageMatches)-1].L1BlockNumber
+	case types.Layer2:
+		startBlockNumber = truncatedMessageMatches[0].L2BlockNumber
+		endBlockNumber = truncatedMessageMatches[len(truncatedMessageMatches)-1].L2BlockNumber
+	}
+
+	c.checkETH(ctx, layerType, startBlockNumber, endBlockNumber, latestBlockNumber, startBalance, truncatedMessageMatches)
 	log.Info("CheckETHBalance completed", "layer type", layerType, "start", startBlockNumber, "end", endBlockNumber)
 }
 
-func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber, latestBlockNumber uint64, startBalance *big.Int, messages []orm.MessageMatch) {
+func (c *LogicMessengerCrossChain) checkETH(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber, latestBlockNumber uint64, startBalance *big.Int, messages []*orm.MessengerMessageMatch) {
 	var messengerAddr common.Address
 	var client *ethclient.Client
 	if layer == types.Layer1 {
@@ -202,10 +194,12 @@ func (c *LogicCrossChain) checkETH(ctx context.Context, layer types.LayerType, s
 	c.computeBlockBalance(ctx, layer, messages, startBalance)
 }
 
-func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client *ethclient.Client, messengerAddr common.Address, layer types.LayerType, messages []orm.MessageMatch) {
+func (c *LogicMessengerCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client *ethclient.Client, messengerAddr common.Address, layer types.LayerType, messages []*orm.MessengerMessageMatch) {
 	var startBalance *big.Int
 	var startIndex int
 	for idx, message := range messages {
+		c.checker.MessengerCrossChainCheck(layer, message)
+
 		var blockNumber uint64
 		if layer == types.Layer1 {
 			blockNumber = message.L1BlockNumber
@@ -248,13 +242,13 @@ func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client 
 		ok, expectedEndBalance, actualBalance, err := c.checkBalance(layer, startBalance, endBalance, messages[startIndex:i+1])
 		if !ok || err != nil {
 			log.Error("balance check failed", "block", blockNumber, "expectedEndBalance", expectedEndBalance.String(), "actualBalance", actualBalance.String())
-			slack.MrkDwnETHGatewayMessage(&messages[i], expectedEndBalance, actualBalance)
+			slack.MrkDwnETHGatewayMessage(messages[i], expectedEndBalance, actualBalance)
 			continue
 		}
 	}
 }
 
-func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []orm.MessageMatch) (bool, *big.Int, *big.Int, error) {
+func (c *LogicMessengerCrossChain) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []*orm.MessengerMessageMatch) (bool, *big.Int, *big.Int, error) {
 	balanceDiff := big.NewInt(0)
 	for _, message := range messages {
 		c.crossChainETHCheckID.WithLabelValues(layer.String()).Set(float64(message.ID))
@@ -263,25 +257,25 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 		var ok bool
 		amount, ok = new(big.Int).SetString(message.ETHAmount, 10)
 		if !ok {
-			return false, nil, nil, fmt.Errorf("invalid ETHAmount value: %v, layer: %v", message.ETHAmount, layer)
+			return false, nil, nil, fmt.Errorf("database id:%d invalid ETHAmount value: %v, layer: %v", message.ID, message.ETHAmount, layer)
 		}
 
 		if layer == types.Layer1 {
-			if types.EventType(message.L1EventType) == types.L1SentMessage || types.EventType(message.L1EventType) == types.L1DepositERC20 {
+			if types.EventType(message.L1EventType) == types.L1SentMessage {
 				balanceDiff = new(big.Int).Add(balanceDiff, amount)
 			}
 
-			if types.EventType(message.L1EventType) == types.L1RelayedMessage || types.EventType(message.L1EventType) == types.L1FinalizeWithdrawERC20 {
+			if types.EventType(message.L1EventType) == types.L1RelayedMessage {
 				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
 			}
 		}
 
 		if layer == types.Layer2 {
-			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
+			if types.EventType(message.L2EventType) == types.L2SentMessage {
 				balanceDiff = new(big.Int).Add(balanceDiff, amount)
 			}
 
-			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
+			if types.EventType(message.L2EventType) == types.L2RelayedMessage {
 				balanceDiff = new(big.Int).Sub(balanceDiff, amount)
 			}
 		}
@@ -292,13 +286,15 @@ func (c *LogicCrossChain) checkBalance(layer types.LayerType, startBalance, endB
 		return true, expectedEndBalance, endBalance, nil
 	}
 
-	log.Info("balance check failed", "expectedEndBalance", expectedEndBalance.String(), "actualBalance", endBalance.String())
+	log.Error("balance check failed", "expectedEndBalance", expectedEndBalance.String(), "actualBalance", endBalance.String())
 	return false, expectedEndBalance, endBalance, nil
 }
 
-func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.LayerType, messages []orm.MessageMatch, messengerETHBalance *big.Int) {
+func (c *LogicMessengerCrossChain) computeBlockBalance(ctx context.Context, layer types.LayerType, messages []*orm.MessengerMessageMatch, messengerETHBalance *big.Int) {
 	blockNumberAmountMap := make(map[uint64]*big.Int)
 	for _, message := range messages {
+		c.checker.MessengerCrossChainCheck(layer, message)
+
 		if layer == types.Layer1 {
 			if _, ok := blockNumberAmountMap[message.L1BlockNumber]; !ok {
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int)
@@ -310,11 +306,11 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 				return
 			}
 
-			if types.EventType(message.L1EventType) == types.L1SentMessage || types.EventType(message.L1EventType) == types.L1DepositERC20 {
+			if types.EventType(message.L1EventType) == types.L1SentMessage {
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int).Add(blockNumberAmountMap[message.L1BlockNumber], amount)
 			}
 
-			if types.EventType(message.L1EventType) == types.L1RelayedMessage || types.EventType(message.L1EventType) == types.L1FinalizeWithdrawERC20 {
+			if types.EventType(message.L1EventType) == types.L1RelayedMessage {
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int).Sub(blockNumberAmountMap[message.L1BlockNumber], amount)
 			}
 		}
@@ -330,17 +326,17 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 				return
 			}
 
-			if types.EventType(message.L2EventType) == types.L2SentMessage || types.EventType(message.L2EventType) == types.L2WithdrawERC20 {
+			if types.EventType(message.L2EventType) == types.L2SentMessage {
 				blockNumberAmountMap[message.L2BlockNumber] = new(big.Int).Add(blockNumberAmountMap[message.L2BlockNumber], amount)
 			}
 
-			if types.EventType(message.L2EventType) == types.L2RelayedMessage || types.EventType(message.L2EventType) == types.L2FinalizeDepositERC20 {
+			if types.EventType(message.L2EventType) == types.L2RelayedMessage {
 				blockNumberAmountMap[message.L2BlockNumber] = new(big.Int).Sub(blockNumberAmountMap[message.L2BlockNumber], amount)
 			}
 		}
 	}
 
-	var updateETHMessageMatches []orm.MessageMatch
+	var updateETHMessageMatches []orm.MessengerMessageMatch
 	lastBlockBalance := new(big.Int).Set(messengerETHBalance)
 	lastBlockNumber := uint64(0)
 	for _, v := range messages {
@@ -355,7 +351,7 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 		}
 
 		// update the db
-		mm := orm.MessageMatch{ID: v.ID}
+		mm := orm.MessengerMessageMatch{ID: v.ID}
 		if layer == types.Layer1 {
 			mm.L1MessengerETHBalance = decimal.NewFromBigInt(lastBlockBalance, 0)
 			mm.L1ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)
@@ -374,7 +370,7 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 
 	err := c.db.Transaction(func(tx *gorm.DB) error {
 		for _, updateEthMessageMatch := range updateETHMessageMatches {
-			if err := c.messageOrm.UpdateETHBalance(ctx, layer, updateEthMessageMatch, tx); err != nil {
+			if err := c.messengerMessageOrm.UpdateETHBalance(ctx, layer, updateEthMessageMatch, tx); err != nil {
 				log.Error("computeOverageBlockBalance.UpdateETHBalance failed", "layer", layer, "message match:%v", updateEthMessageMatch, "error", err)
 				return err
 			}
@@ -386,7 +382,7 @@ func (c *LogicCrossChain) computeBlockBalance(ctx context.Context, layer types.L
 	}
 }
 
-func (c *LogicCrossChain) getLatestBlockNumber(ctx context.Context, layerType types.LayerType) (uint64, error) {
+func (c *LogicMessengerCrossChain) getLatestBlockNumber(ctx context.Context, layerType types.LayerType) (uint64, error) {
 	switch layerType {
 	case types.Layer1:
 		latestHeader, err := c.l1Client.HeaderByNumber(ctx, nil)

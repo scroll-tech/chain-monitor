@@ -13,23 +13,25 @@ import (
 
 // LogicMessageMatch defines the logic related to message matching.
 type LogicMessageMatch struct {
-	db              *gorm.DB
-	conf            *config.Config
-	messageMatchOrm *orm.MessageMatch
+	db                       *gorm.DB
+	conf                     *config.Config
+	gatewayMessageMatchOrm   *orm.GatewayMessageMatch
+	messengerMessageMatchOrm *orm.MessengerMessageMatch
 }
 
-// NewMessageMatchLogic initializes a new instance of Logic with an instance of orm.MessageMatch.
+// NewMessageMatchLogic initializes a new instance of Logic with an instance of orm.GatewayMessageMatch/orm.MessengerMessageMatch
 func NewMessageMatchLogic(cfg *config.Config, db *gorm.DB) *LogicMessageMatch {
 	return &LogicMessageMatch{
-		db:              db,
-		conf:            cfg,
-		messageMatchOrm: orm.NewMessageMatch(db),
+		db:                       db,
+		conf:                     cfg,
+		gatewayMessageMatchOrm:   orm.NewGatewayMessageMatch(db),
+		messengerMessageMatchOrm: orm.NewMessengerMessageMatch(db),
 	}
 }
 
 // GetLatestBlockNumber retrieves the latest block number for a given layer type.
 func (t *LogicMessageMatch) GetLatestBlockNumber(ctx context.Context, layer types.LayerType) (uint64, error) {
-	blockValidMessageMatch, blockValidErr := t.messageMatchOrm.GetLatestBlockValidMessageMatch(ctx, layer)
+	blockValidMessageMatch, blockValidErr := t.messengerMessageMatchOrm.GetLatestBlockValidMessageMatch(ctx, layer)
 	if blockValidErr != nil {
 		return 0, blockValidErr
 	}
@@ -54,13 +56,21 @@ func (t *LogicMessageMatch) GetLatestBlockNumber(ctx context.Context, layer type
 }
 
 // InsertOrUpdateMessageMatches insert or update the gateway/messenger event info
-func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, layer types.LayerType, messengerMessageMatches []orm.MessageMatch) error {
+func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, layer types.LayerType, gatewayMessageMatches []orm.GatewayMessageMatch, messengerMessageMatches []orm.MessengerMessageMatch) error {
 	var effectRows int64
 	err := t.db.Transaction(func(tx *gorm.DB) error {
 		for _, message := range messengerMessageMatches {
-			effectRow, err := t.messageMatchOrm.InsertOrUpdateEventInfo(ctx, layer, message, tx)
+			effectRow, err := t.messengerMessageMatchOrm.InsertOrUpdateEventInfo(ctx, layer, message, tx)
 			if err != nil {
-				return fmt.Errorf("event orm insert failed, err: %w, layer:%s", err, layer.String())
+				return fmt.Errorf("messenger event orm insert failed, err: %w, layer:%s", err, layer.String())
+			}
+			effectRows += effectRow
+		}
+
+		for _, message := range gatewayMessageMatches {
+			effectRow, err := t.gatewayMessageMatchOrm.InsertOrUpdateEventInfo(ctx, layer, message, tx)
+			if err != nil {
+				return fmt.Errorf("gateway event orm insert failed, err: %w, layer:%s", err, layer.String())
 			}
 			effectRows += effectRow
 		}
@@ -70,8 +80,8 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 		return fmt.Errorf("insert or update event info failed, err:%w", err)
 	}
 
-	if int(effectRows) != len(messengerMessageMatches) {
-		return fmt.Errorf("messenger event orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(messengerMessageMatches))
+	if int(effectRows) != len(messengerMessageMatches)+len(gatewayMessageMatches) {
+		return fmt.Errorf("gateway and messenger event orm insert failed, effectRow:%d not equal messageMatches:%d", effectRows, len(messengerMessageMatches)+len(gatewayMessageMatches))
 	}
 	return nil
 }

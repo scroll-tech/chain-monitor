@@ -1,4 +1,4 @@
-package checker
+package assembler
 
 import (
 	"fmt"

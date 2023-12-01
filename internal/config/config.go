@@ -36,10 +36,11 @@ type L1Contracts struct {
 
 // L1Config l1 chain config.
 type L1Config struct {
-	L1URL       string `json:"l1_url"`
-	Confirm     rpc.BlockNumber
-	L1Contracts *L1Contracts `json:"l1_contracts"`
-	StartNumber uint64       `json:"start_number"`
+	L1URL                 string `json:"l1_url"`
+	Confirm               rpc.BlockNumber
+	L1Contracts           *L1Contracts `json:"l1_contracts"`
+	StartNumber           uint64       `json:"start_number"`
+	StartMessengerBalance uint64       `json:"start_messenger_balance"`
 }
 
 // L2Contracts l1chain config.
