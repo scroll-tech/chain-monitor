@@ -120,55 +120,44 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 		}
 	}
 
-	// NOTE: Suppose the `messages` get 1000 messageMatch, it contains the l1_block_number is [0-1000].
-	// but the block number 1000 has more than one messageMatch. so the 1000 block number need to be ignored.
-	// the bad case: the 1000 MessageMatch all have the same block number, so need another 1000 MessageMatch.
-	var ignoredLastMessageMatch []orm.MessageMatch
-	batchSize := 1000
-	for {
-		messages, err := c.messageOrm.GetUncheckedLatestETHMessageMatch(ctx, layerType, batchSize)
-		if err != nil {
-			log.Error("CheckETHBalance.GetUncheckedLatestETHMessageMatch failed", "error", err)
-			return
-		}
-
-		// Find the index of the first message with ETHAmountStatus unset.
-		unsetIndex := len(messages)
-		for i, message := range messages {
-			if message.ETHAmountStatus == int(types.ETHAmountStatusTypeUnset) {
-				unsetIndex = i
-				break
-			}
-		}
-
-		// If unsetIndex is 0, there are no messages to process.
-		if unsetIndex == 0 {
-			return
-		}
-
-		// Process the messages up to the unset index.
-		for _, message := range messages[:unsetIndex] {
-			switch layerType {
-			case types.Layer1:
-				maxBlockNumber := messages[unsetIndex-1].L1BlockNumber
-				if message.L1BlockNumber < maxBlockNumber {
-					ignoredLastMessageMatch = append(ignoredLastMessageMatch, message)
-				}
-			case types.Layer2:
-				maxBlockNumber := messages[unsetIndex-1].L2BlockNumber
-				if message.L2BlockNumber < maxBlockNumber {
-					ignoredLastMessageMatch = append(ignoredLastMessageMatch, message)
-				}
-			}
-		}
-
-		if len(ignoredLastMessageMatch) > 0 {
-			break
-		}
-		batchSize += 1000
+	// Get 100 messages to determine the start block number and end block number.
+	messageLimit := 100
+	messages, err := c.messageOrm.GetUncheckedLatestETHMessageMatch(ctx, layerType, messageLimit)
+	if err != nil {
+		log.Error("CheckETHBalance.GetUncheckedLatestETHMessageMatch failed", "limit", messageLimit, "error", err)
+		return
 	}
 
-	c.checkETH(ctx, layerType, latestBlockNumber, startBalance, ignoredLastMessageMatch)
+	// Find the index of the first message with ETHAmountStatus unset.
+	unsetIndex := len(messages)
+	for i, message := range messages {
+		if message.ETHAmountStatus == int(types.ETHAmountStatusTypeUnset) {
+			unsetIndex = i
+			break
+		}
+	}
+
+	// If unsetIndex is 0, there are no messages to process.
+	if unsetIndex == 0 {
+		return
+	}
+
+	messages = messages[:unsetIndex]
+	var startBlockNumber, endBlockNumber uint64
+	if layerType == types.Layer1 {
+		startBlockNumber = messages[0].L1BlockNumber
+		endBlockNumber = messages[len(messages)-1].L1BlockNumber
+	} else {
+		startBlockNumber = messages[0].L2BlockNumber
+		endBlockNumber = messages[len(messages)-1].L2BlockNumber
+	}
+	messageMatches, err := c.messageOrm.GetETHMessageMatchByBlockRange(ctx, layerType, startBlockNumber, endBlockNumber)
+	if err != nil {
+		log.Error("CheckETHBalance.GetETHMessageMatchByBlockRange failed", "start", startBlockNumber, "end", endBlockNumber, "error", err)
+		return
+	}
+
+	c.checkETH(ctx, layerType, latestBlockNumber, startBalance, messageMatches)
 	log.Info("CheckETHBalance completed", "layer type", layerType)
 }
 
