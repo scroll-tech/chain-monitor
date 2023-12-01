@@ -29,13 +29,13 @@ const maxBlockFetchSize uint64 = 49
 
 // ContractController is a struct that manages the interaction with contracts on Layer 1 and Layer 2.
 type ContractController struct {
-	l1Client          *rpc.Client
-	l2Client          *rpc.Client
-	conf              *config.Config
-	eventGatherLogic  *events.EventGather
-	contractsLogic    *contracts.Contracts
-	checker           *assembler.MessageMatchAssembler
-	messageMatchLogic *messagematch.LogicMessageMatch
+	l1Client              *rpc.Client
+	l2Client              *rpc.Client
+	conf                  *config.Config
+	eventGatherLogic      *events.EventGather
+	contractsLogic        *contracts.Contracts
+	messageMatchAssembler *assembler.MessageMatchAssembler
+	messageMatchLogic     *messagematch.LogicMessageMatch
 
 	stopL1ContractChan  chan struct{}
 	stopL2ContractChan  chan struct{}
@@ -63,7 +63,7 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 		conf:                     conf,
 		eventGatherLogic:         events.NewEventGather(),
 		contractsLogic:           contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
-		checker:                  assembler.NewMessageMatchAssembler(db),
+		messageMatchAssembler:    assembler.NewMessageMatchAssembler(db),
 		messageMatchLogic:        messagematch.NewMessageMatchLogic(conf, db),
 		stopL1ContractChan:       make(chan struct{}),
 		stopL2ContractChan:       make(chan struct{}),
@@ -225,7 +225,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			var lastMessage *orm.MessengerMessageMatch
 			if layer == types.Layer2 {
 				var checkErr error
-				lastMessage, checkErr = c.checker.CheckL2WithdrawRoots(ctx, start, loopEnd, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
+				lastMessage, checkErr = c.messageMatchAssembler.L2WithdrawRootsValidator(ctx, start, loopEnd, c.l2Client, c.conf.L2Config.L2Contracts.MessageQueue)
 				if checkErr != nil {
 					c.contractControllerCheckWithdrawRootFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 					log.Error("check withdraw roots failed", "layer", types.Layer2, "start", start, "end", loopEnd, "error", checkErr)
@@ -276,7 +276,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		return err
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
-	messengerMessageMatches, err := c.checker.MessengerCheck(messengerEvents)
+	messengerMessageMatches, err := c.messageMatchAssembler.MessageMatchAssembler(messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return err
@@ -310,7 +310,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		}
 
 		// match transfer event
-		retL1MessageMatches, checkErr := c.checker.GatewayCheck(eventCategory, gatewayEvents, messengerEvents, transferEvents)
+		retL1MessageMatches, checkErr := c.messageMatchAssembler.GatewayMessageAssembler(eventCategory, gatewayEvents, messengerEvents, transferEvents)
 		l1GatewayMessageMatches = append(l1GatewayMessageMatches, retL1MessageMatches...)
 		if checkErr != nil {
 			c.contractControllerGatewayCheckFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
@@ -343,7 +343,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return err
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
-	messengerMessageMatches, err := c.checker.MessengerCheck(messengerEvents)
+	messengerMessageMatches, err := c.messageMatchAssembler.MessageMatchAssembler(messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return err
@@ -379,7 +379,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		}
 
 		// match transfer event
-		retL2MessageMatches, checkErr := c.checker.GatewayCheck(eventCategory, gatewayEvents, messengerEvents, transferEvents)
+		retL2MessageMatches, checkErr := c.messageMatchAssembler.GatewayMessageAssembler(eventCategory, gatewayEvents, messengerEvents, transferEvents)
 		l2GatewayMessageMatches = append(l2GatewayMessageMatches, retL2MessageMatches...)
 		if checkErr != nil {
 			c.contractControllerGatewayCheckFailureTotal.WithLabelValues(types.Layer2.String()).Inc()

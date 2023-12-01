@@ -231,25 +231,25 @@ func (m *MessengerMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, lay
 	var assignmentColumn clause.Set
 	if layer == types.Layer1 {
 		if message.L1EventType == int(types.L1SentMessage) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_amounts", "l2_amounts", "eth_amount", "eth_amount_status"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_event_type", "l1_tx_hash", "eth_amount", "eth_amount_status"})
 		} else if message.L1EventType == int(types.L1RelayedMessage) { // relayed
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_event_type", "l1_block_number", "l1_tx_hash", "l1_token_ids"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_event_type", "l1_tx_hash"})
 		} else if message.L1EventType == int(types.L1DepositERC20) || message.L1EventType == int(types.L1DepositERC721) || message.L1EventType == int(types.L1DepositERC1155) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_tx_hash", "l1_event_type", "l1_token_ids", "l1_amounts", "eth_amount", "eth_amount_status"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_event_type", "l1_tx_hash", "eth_amount", "eth_amount_status"})
 		} else { // relayed
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_tx_hash", "l1_event_type", "l1_token_ids", "l1_amounts"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_event_type", "l1_tx_hash"})
 		}
 	}
 
 	if layer == types.Layer2 {
 		if message.L2EventType == int(types.L2SentMessage) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_block_number", "l2_tx_hash", "l1_amounts", "l2_amounts", "eth_amount", "eth_amount_status", "next_message_nonce"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_event_type", "l2_tx_hash", "eth_amount", "eth_amount_status", "next_message_nonce"})
 		} else if message.L2EventType == int(types.L2RelayedMessage) { // relayed
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_block_number", "l2_tx_hash"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_event_type", "l2_tx_hash"})
 		} else if message.L2EventType == int(types.L2WithdrawERC20) || message.L2EventType == int(types.L2WithdrawERC721) || message.L2EventType == int(types.L2WithdrawERC1155) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts", "eth_amount", "eth_amount_status", "next_message_nonce"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_event_type", "l2_tx_hash", "eth_amount", "eth_amount_status", "next_message_nonce"})
 		} else { // relayed
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_event_type", "l2_tx_hash"})
 		}
 	}
 

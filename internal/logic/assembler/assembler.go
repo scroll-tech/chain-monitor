@@ -34,8 +34,8 @@ func NewMessageMatchAssembler(db *gorm.DB) *MessageMatchAssembler {
 	}
 }
 
-// GatewayCheck checks the gateway events.
-func (c *MessageMatchAssembler) GatewayCheck(eventCategory types.EventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) ([]orm.GatewayMessageMatch, error) {
+// GatewayMessageAssembler assemble the gateway events.
+func (c *MessageMatchAssembler) GatewayMessageAssembler(eventCategory types.EventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) ([]orm.GatewayMessageMatch, error) {
 	switch eventCategory {
 	case types.ERC20EventCategory:
 		return c.erc20EventMessageMatchAssembler(gatewayEvents, messengerEvents, transferEvents)
@@ -47,13 +47,13 @@ func (c *MessageMatchAssembler) GatewayCheck(eventCategory types.EventCategory, 
 	return nil, nil
 }
 
-// CheckL2WithdrawRoots checks the L2 withdraw roots.
-func (c *MessageMatchAssembler) CheckL2WithdrawRoots(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) (*orm.MessengerMessageMatch, error) {
+// L2WithdrawRootsValidator the L2 withdraw roots validator.
+func (c *MessageMatchAssembler) L2WithdrawRootsValidator(ctx context.Context, startBlockNumber, endBlockNumber uint64, client *rpc.Client, messageQueueAddr common.Address) (*orm.MessengerMessageMatch, error) {
 	return c.checkL2WithdrawRoots(ctx, startBlockNumber, endBlockNumber, client, messageQueueAddr)
 }
 
-// MessengerCheck checks the messenger events.
-func (c *MessageMatchAssembler) MessengerCheck(messengerEvents []events.EventUnmarshaler) ([]orm.MessengerMessageMatch, error) {
+// MessageMatchAssembler assemble the messenger events.
+func (c *MessageMatchAssembler) MessageMatchAssembler(messengerEvents []events.EventUnmarshaler) ([]orm.MessengerMessageMatch, error) {
 	return c.messengerMessageMatchAssembler(messengerEvents)
 }
 
