@@ -83,6 +83,10 @@ func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerTyp
 		return
 	}
 
+	if len(messages) == 0 {
+		return
+	}
+
 	var startBlockNumber, endBlockNumber uint64
 	if layerType == types.Layer1 {
 		startBlockNumber = messages[0].L1BlockNumber
@@ -99,12 +103,12 @@ func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerTyp
 	}
 
 	var truncateBlockNumber uint64
-	for i := len(messageMatches) - 1; i >= 0; i-- {
-		if types.ETHAmountStatus(messageMatches[i].ETHAmountStatus) != types.ETHAmountStatusTypeUnset {
+	for _, messageMatch := range messageMatches {
+		if types.ETHAmountStatus(messageMatch.ETHAmountStatus) != types.ETHAmountStatusTypeSet {
 			if layerType == types.Layer1 {
-				truncateBlockNumber = messageMatches[i].L1BlockNumber
+				truncateBlockNumber = messageMatch.L1BlockNumber
 			} else {
-				truncateBlockNumber = messageMatches[i].L2BlockNumber
+				truncateBlockNumber = messageMatch.L2BlockNumber
 			}
 			break
 		}
@@ -121,6 +125,19 @@ func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerTyp
 				truncatedMessageMatches = append(truncatedMessageMatches, message)
 			}
 		}
+	}
+
+	if len(truncatedMessageMatches) == 0 {
+		return
+	}
+
+	switch layerType {
+	case types.Layer1:
+		startBlockNumber = truncatedMessageMatches[0].L1BlockNumber
+		endBlockNumber = truncatedMessageMatches[len(truncatedMessageMatches)-1].L1BlockNumber
+	case types.Layer2:
+		startBlockNumber = truncatedMessageMatches[0].L2BlockNumber
+		endBlockNumber = truncatedMessageMatches[len(truncatedMessageMatches)-1].L2BlockNumber
 	}
 
 	c.checkETH(ctx, layerType, startBlockNumber, endBlockNumber, latestBlockNumber, startBalance, truncatedMessageMatches)
@@ -260,7 +277,7 @@ func (c *LogicMessengerCrossChain) checkBalance(layer types.LayerType, startBala
 		return true, expectedEndBalance, endBalance, nil
 	}
 
-	log.Info("balance check failed", "expectedEndBalance", expectedEndBalance.String(), "actualBalance", endBalance.String())
+	log.Error("balance check failed", "expectedEndBalance", expectedEndBalance.String(), "actualBalance", endBalance.String())
 	return false, expectedEndBalance, endBalance, nil
 }
 
