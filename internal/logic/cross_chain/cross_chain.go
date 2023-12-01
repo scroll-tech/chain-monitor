@@ -119,8 +119,8 @@ func (c *LogicCrossChain) CheckETHBalance(ctx context.Context, layerType types.L
 		}
 	}
 
-	// Get 100 messages to determine the start block number and end block number.
-	messageLimit := 100
+	// Get 1000 messages to determine the start block number and end block number.
+	messageLimit := 1000
 	messages, err := c.messageOrm.GetUncheckedLatestETHMessageMatch(ctx, layerType, messageLimit)
 	if err != nil {
 		log.Error("CheckETHBalance.GetUncheckedLatestETHMessageMatch failed", "limit", messageLimit, "error", err)
