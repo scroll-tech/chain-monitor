@@ -45,15 +45,15 @@ CREATE TABLE messenger_message_match
     deleted_at                       TIMESTAMP(0)    DEFAULT NULL
 );
 
-CREATE UNIQUE INDEX if not exists idx_message_match_message_hash ON messenger_message_match (message_hash);
-CREATE INDEX if not exists idx_l1_l2_l1cc_id ON messenger_message_match (l1_block_status, l2_block_status, l1_cross_chain_status, id);
-CREATE INDEX if not exists idx_l1_l2_l2cc_id ON messenger_message_match (l1_block_status, l2_block_status, l2_cross_chain_status,  id);
-CREATE INDEX if not exists idx_l1eth_tokentype_id ON messenger_message_match (l1_eth_balance_status, token_type,  id);
-CREATE INDEX if not exists idx_l2eth_tokentype_id ON messenger_message_match (l2_eth_balance_status, token_type, id);
-CREATE INDEX if not exists idx_l1block_l1blocknum_id ON messenger_message_match (l1_block_status, l1_block_number desc, id DESC);
-CREATE INDEX if not exists idx_l2block_l2blocknum_id ON messenger_message_match (l2_block_status, l2_block_number desc, id DESC);
-CREATE INDEX if not exists idx_withdrawroot_nextnonce_id ON messenger_message_match (withdraw_root_status, next_message_nonce DESC, id);
-CREATE INDEX if not exists idx_withdrawroot_l2blocknumber_nextnonce ON messenger_message_match (withdraw_root_status, l2_block_number, next_message_nonce);
+CREATE UNIQUE INDEX if not exists idx_mmm_message_hash ON messenger_message_match (message_hash);
+CREATE INDEX if not exists idx_mmm_l1_l2_l1cc_id ON messenger_message_match (l1_block_status, l2_block_status, l1_cross_chain_status, id);
+CREATE INDEX if not exists idx_mmm_l1_l2_l2cc_id ON messenger_message_match (l1_block_status, l2_block_status, l2_cross_chain_status,  id);
+CREATE INDEX if not exists idx_mmm_l1eth_tokentype_id ON messenger_message_match (l1_eth_balance_status, token_type,  id);
+CREATE INDEX if not exists idx_mmm_l2eth_tokentype_id ON messenger_message_match (l2_eth_balance_status, token_type, id);
+CREATE INDEX if not exists idx_mmm_l1block_l1blocknum_id ON messenger_message_match (l1_block_status, l1_block_number desc, id DESC);
+CREATE INDEX if not exists idx_mmm_l2block_l2blocknum_id ON messenger_message_match (l2_block_status, l2_block_number desc, id DESC);
+CREATE INDEX if not exists idx_mmm_withdrawroot_nextnonce_id ON messenger_message_match (withdraw_root_status, next_message_nonce DESC, id);
+CREATE INDEX if not exists idx_mmm_withdrawroot_l2blocknumber_nextnonce ON messenger_message_match (withdraw_root_status, l2_block_number, next_message_nonce);
 -- +goose MessengerMessageMatchEnd
 
 -- +goose Down
