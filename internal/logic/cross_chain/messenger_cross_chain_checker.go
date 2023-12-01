@@ -23,7 +23,7 @@ func NewMessengerCrossEventMatcher() *MessengerCrossEventMatcher {
 }
 
 // MessengerCrossChainCheck checks the cross chain events.
-func (c *MessengerCrossEventMatcher) MessengerCrossChainCheck(layer types.LayerType, messageMatch orm.MessengerMessageMatch) types.MismatchType {
+func (c *MessengerCrossEventMatcher) MessengerCrossChainCheck(layer types.LayerType, messageMatch *orm.MessengerMessageMatch) types.MismatchType {
 	switch layer {
 	case types.Layer1:
 		return c.checkL1EventAndAmountMatchL2(messageMatch)
@@ -34,14 +34,14 @@ func (c *MessengerCrossEventMatcher) MessengerCrossChainCheck(layer types.LayerT
 }
 
 // checkL1EventAndAmountMatchL2 checks that every L1FinalizeWithdraw/L1RelayedMessage has a corresponding L2 event.
-func (c *MessengerCrossEventMatcher) checkL1EventAndAmountMatchL2(messageMatch orm.MessengerMessageMatch) types.MismatchType {
+func (c *MessengerCrossEventMatcher) checkL1EventAndAmountMatchL2(messageMatch *orm.MessengerMessageMatch) types.MismatchType {
 	if !c.checkL1EventMatchL2(messageMatch) {
 		return types.MismatchTypeL1EventNotMatch
 	}
 	return types.MismatchTypeValid
 }
 
-func (c *MessengerCrossEventMatcher) checkL1EventMatchL2(messageMatch orm.MessengerMessageMatch) bool {
+func (c *MessengerCrossEventMatcher) checkL1EventMatchL2(messageMatch *orm.MessengerMessageMatch) bool {
 	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L1EventType)]
 	if !isPresent {
 		// If the L1 event type is not in the checklist, skip the check
@@ -64,7 +64,7 @@ func (c *MessengerCrossEventMatcher) checkL1EventMatchL2(messageMatch orm.Messen
 }
 
 // checkL2EventAndAmountMatchL1  checks that every L2FinalizeDeposit/L2RelayedMessage has a corresponding L1 event.
-func (c *MessengerCrossEventMatcher) checkL2EventAndAmountMatchL1(messageMatch orm.MessengerMessageMatch) types.MismatchType {
+func (c *MessengerCrossEventMatcher) checkL2EventAndAmountMatchL1(messageMatch *orm.MessengerMessageMatch) types.MismatchType {
 	if !c.checkL2EventMatchL1(messageMatch) {
 		return types.MismatchTypeL2EventNotMatch
 	}
@@ -72,7 +72,7 @@ func (c *MessengerCrossEventMatcher) checkL2EventAndAmountMatchL1(messageMatch o
 }
 
 // checkL2EventMatchL1 checks that every L2FinalizeDeposit/L2RelayedMessage has a corresponding L1 event.
-func (c *MessengerCrossEventMatcher) checkL2EventMatchL1(messageMatch orm.MessengerMessageMatch) bool {
+func (c *MessengerCrossEventMatcher) checkL2EventMatchL1(messageMatch *orm.MessengerMessageMatch) bool {
 	matchingEvent, isPresent := c.eventMatchMap[types.EventType(messageMatch.L2EventType)]
 	if !isPresent {
 		// If the L2 event type is not in the checklist, skip the check

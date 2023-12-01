@@ -97,8 +97,8 @@ func (m *MessengerMessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Co
 }
 
 // GetETHMessageMatchByBlockRange get the unchecked eth message match records by block range
-func (m *MessengerMessageMatch) GetETHMessageMatchByBlockRange(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64) ([]MessengerMessageMatch, error) {
-	var messages []MessengerMessageMatch
+func (m *MessengerMessageMatch) GetETHMessageMatchByBlockRange(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64) ([]*MessengerMessageMatch, error) {
+	var messages []*MessengerMessageMatch
 	db := m.db.WithContext(ctx)
 	switch layer {
 	case types.Layer1:
