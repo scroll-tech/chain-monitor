@@ -3,8 +3,6 @@ package crosschain
 import (
 	"context"
 	"fmt"
-	"math/big"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/common"
@@ -12,6 +10,8 @@ import (
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+	"math/big"
+	"sort"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
@@ -77,8 +77,8 @@ func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerTyp
 		}
 	}
 
-	// Get 100 messages to determine the start block number and end block number.
-	messageLimit := 100
+	// Get 1000 messages to determine the start block number and end block number.
+	messageLimit := 1000
 	messages, err := c.messengerMessageOrm.GetUncheckedLatestETHMessageMatch(ctx, layerType, messageLimit)
 	if err != nil {
 		log.Error("CheckETHBalance.GetUncheckedLatestETHMessageMatch failed", "limit", messageLimit, "error", err)
@@ -326,6 +326,12 @@ func (c *LogicMessengerCrossChain) computeBlockBalance(ctx context.Context, laye
 		}
 		updateETHMessageMatches = append(updateETHMessageMatches, mm)
 	}
+
+	// Sort the updateETHMessageMatches slice by id to prevent "ERROR: deadlock detected (SQLSTATE 40P01)"
+	// when simultaneously updating rows of postgres in a transaction by L1 & L2 eth balance checkers.
+	sort.Slice(updateETHMessageMatches, func(i, j int) bool {
+		return updateETHMessageMatches[i].ID < updateETHMessageMatches[j].ID
+	})
 
 	err := c.db.Transaction(func(tx *gorm.DB) error {
 		for _, updateEthMessageMatch := range updateETHMessageMatches {
