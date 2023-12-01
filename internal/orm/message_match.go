@@ -101,7 +101,7 @@ func (m *MessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx 
 	return messages, nil
 }
 
-// GetUncheckedLatestETHMessageMatch get the latest uncheck eth message match record
+// GetUncheckedLatestETHMessageMatch get the latest uncheck eth message match records
 func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, layer types.LayerType, limit int) ([]MessageMatch, error) {
 	var messages []MessageMatch
 	db := m.db.WithContext(ctx)
@@ -120,6 +120,32 @@ func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, la
 	if err := db.Find(&messages).Error; err != nil {
 		log.Warn("MessageMatch.GetUncheckedLatestETHMessageMatch failed", "error", err)
 		return nil, fmt.Errorf("MessageMatch.GetUncheckedLatestETHMessageMatch failed err:%w", err)
+	}
+	return messages, nil
+}
+
+// GetETHMessageMatchByBlockRange get the unchecked eth message match records by block range
+func (m *MessageMatch) GetETHMessageMatchByBlockRange(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64) ([]MessageMatch, error) {
+	var messages []MessageMatch
+	db := m.db.WithContext(ctx)
+	switch layer {
+	case types.Layer1:
+		db = db.Where("l1_eth_balance_status = ?", types.ETHBalanceStatusTypeInvalid)
+		db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
+		db = db.Where("l1_block_number >= ?", startBlockNumber)
+		db = db.Where("l1_block_number <= ?", endBlockNumber)
+		db = db.Order("l1_block_number asc")
+	case types.Layer2:
+		db = db.Where("l2_eth_balance_status = ?", types.ETHBalanceStatusTypeInvalid)
+		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
+		db = db.Where("l2_block_number >= ?", startBlockNumber)
+		db = db.Where("l2_block_number <= ?", endBlockNumber)
+		db = db.Order("l2_block_number asc")
+	}
+	db = db.Where("token_type = ? or token_type = ?", types.TokenTypeETH, types.TokenTypeERC20)
+	if err := db.Find(&messages).Error; err != nil {
+		log.Warn("MessageMatch.GetETHMessageMatchByBlockRange failed", "error", err)
+		return nil, fmt.Errorf("MessageMatch.GetETHMessageMatchByBlockRange failed err:%w", err)
 	}
 	return messages, nil
 }
@@ -243,11 +269,11 @@ func (m *MessageMatch) InsertOrUpdateEventInfo(ctx context.Context, layer types.
 
 	if layer == types.Layer2 {
 		if message.L2EventType == int(types.L2SentMessage) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_block_number", "l2_tx_hash", "l1_amounts", "l2_amounts", "eth_amount", "eth_amount_status"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_block_number", "l2_tx_hash", "l1_amounts", "l2_amounts", "eth_amount", "eth_amount_status", "next_message_nonce"})
 		} else if message.L2EventType == int(types.L2RelayedMessage) { // relayed
 			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_event_type", "l2_block_number", "l2_tx_hash"})
 		} else if message.L2EventType == int(types.L2WithdrawERC20) || message.L2EventType == int(types.L2WithdrawERC721) || message.L2EventType == int(types.L2WithdrawERC1155) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts", "eth_amount", "eth_amount_status"})
+			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts", "eth_amount", "eth_amount_status", "next_message_nonce"})
 		} else { // relayed
 			assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts"})
 		}
