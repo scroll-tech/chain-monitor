@@ -231,7 +231,7 @@ func (c *LogicCrossChain) checkBlockBalanceOneByOne(ctx context.Context, client 
 
 		tmpBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
 		if err != nil {
-			log.Error("get balance failed", "err", err)
+			log.Error("get balance failed", "block number", blockNumber, "err", err)
 			continue
 		}
 
