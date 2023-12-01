@@ -80,8 +80,8 @@ func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerTyp
 		}
 
 		if layerType == types.Layer1 {
-			log.Info("L1 messenger start balance", "start", startBalance.String())
 			startBalance = new(big.Int).SetUint64(c.startMessengerBalance)
+			log.Info("L1 messenger start balance", "start", startBalance.String())
 		}
 	}
 
@@ -126,11 +126,11 @@ func (c *LogicMessengerCrossChain) CheckETHBalance(ctx context.Context, layerTyp
 	var truncatedMessageMatches []*orm.MessengerMessageMatch
 	for _, message := range messageMatches {
 		if layerType == types.Layer1 {
-			if truncateBlockNumber != 0 && message.L1BlockNumber < truncateBlockNumber {
+			if truncateBlockNumber == 0 || message.L1BlockNumber < truncateBlockNumber {
 				truncatedMessageMatches = append(truncatedMessageMatches, message)
 			}
 		} else {
-			if truncateBlockNumber != 0 && message.L2BlockNumber < truncateBlockNumber {
+			if truncateBlockNumber == 0 || message.L2BlockNumber < truncateBlockNumber {
 				truncatedMessageMatches = append(truncatedMessageMatches, message)
 			}
 		}
