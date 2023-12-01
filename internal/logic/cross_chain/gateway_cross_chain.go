@@ -53,7 +53,7 @@ func (c *LogicGatewayCrossChain) CheckCrossChainGatewayMessage(ctx context.Conte
 		return
 	}
 
-	log.Info("checking cross chain gateway messages", "number of messages", len(messages))
+	log.Info("checking cross chain gateway messages", "layer", layerType.String(), "number of messages", len(messages))
 
 	var messageMatchIds []int64
 	for _, message := range messages {
