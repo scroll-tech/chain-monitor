@@ -16,41 +16,36 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
-// MessageMatch contains the tx of l1 & l2
-type MessageMatch struct {
+// MessengerMessageMatch contains the messenger tx of l1 & l2
+type MessengerMessageMatch struct {
 	db *gorm.DB `gorm:"column:-"`
 
 	ID          int64  `json:"id" gorm:"column:id"`
 	MessageHash string `json:"message_hash" gorm:"message_hash"`
 	TokenType   int    `json:"token_type" gorm:"token_type"`
 
-	// l1 event info
-	L1EventType   int    `json:"l1_event_type" gorm:"l1_event_type"`
-	L1BlockNumber uint64 `json:"l1_block_number" gorm:"l1_block_number"`
-	L1TxHash      string `json:"l1_tx_hash" gorm:"l1_tx_hash"`
-	L1TokenIds    string `json:"l1_token_ids" gorm:"l1_token_ids"`
-	L1Amounts     string `json:"l1_amounts" gorm:"l1_amounts"`
-
-	// l2 event info
-	L2EventType   int    `json:"l2_event_type" gorm:"l2_event_type"`
-	L2BlockNumber uint64 `json:"l2_block_number" gorm:"l2_block_number"`
-	L2TxHash      string `json:"l2_tx_hash" gorm:"l2_tx_hash"`
-	L2TokenIds    string `json:"l2_token_ids" gorm:"l2_token_ids"`
-	L2Amounts     string `json:"l2_amounts" gorm:"l2_amounts"`
-
-	// eth event info
+	// l2 messenger info
+	L1EventType           int             `json:"l1_event_type" gorm:"l1_event_type"`
+	L1BlockNumber         uint64          `json:"l1_block_number" gorm:"l1_block_number"`
+	L1TxHash              string          `json:"l1_tx_hash" gorm:"l1_tx_hash"`
 	L1MessengerETHBalance decimal.Decimal `json:"l1_messenger_eth_balance" gorm:"l1_messenger_eth_balance"`
-	L1ETHBalanceStatus    int             `json:"l1_eth_balance_status" gorm:"l1_eth_balance_status"`
+
+	// l1 messenger info
+	L2EventType           int             `json:"l2_event_type" gorm:"l2_event_type"`
+	L2BlockNumber         uint64          `json:"l2_block_number" gorm:"l2_block_number"`
+	L2TxHash              string          `json:"l2_tx_hash" gorm:"l2_tx_hash"`
 	L2MessengerETHBalance decimal.Decimal `json:"l2_messenger_eth_balance" gorm:"l2_messenger_eth_balance"`
-	L2ETHBalanceStatus    int             `json:"l2_eth_balance_status" gorm:"l2_eth_balance_status"`
-	ETHAmount             string          `json:"eth_amount" gorm:"eth_amount"`
-	ETHAmountStatus       int             `json:"eth_amount_status" gorm:"eth_amount_status"`
+
+	ETHAmount       string `json:"eth_amount" gorm:"eth_amount"`
+	ETHAmountStatus int    `json:"eth_amount_status" gorm:"eth_amount_status"`
 
 	// status
 	L1BlockStatus      int `json:"l1_block_status" gorm:"l1_block_status"`
 	L2BlockStatus      int `json:"l2_block_status" gorm:"l2_block_status"`
 	L1CrossChainStatus int `json:"l1_cross_chain_status" gorm:"l1_cross_chain_status"`
 	L2CrossChainStatus int `json:"l2_cross_chain_status" gorm:"l2_cross_chain_status"`
+	L1ETHBalanceStatus int `json:"l1_eth_balance_status" gorm:"l1_eth_balance_status"`
+	L2ETHBalanceStatus int `json:"l2_eth_balance_status" gorm:"l2_eth_balance_status"`
 	WithdrawRootStatus int `json:"withdraw_root_status" gorm:"withdraw_root_status"`
 
 	// only not null in the last message of each block.
@@ -70,20 +65,20 @@ type MessageMatch struct {
 	DeletedAt                   gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
 }
 
-// NewMessageMatch creates a new MessageMatch database instance.
-func NewMessageMatch(db *gorm.DB) *MessageMatch {
-	return &MessageMatch{db: db}
+// NewMessengerMessageMatch creates a new MessageMatch database instance.
+func NewMessengerMessageMatch(db *gorm.DB) *MessengerMessageMatch {
+	return &MessengerMessageMatch{db: db}
 }
 
 // TableName returns the table name for the Batch model.
-func (*MessageMatch) TableName() string {
-	return "message_match"
+func (*MessengerMessageMatch) TableName() string {
+	return "messenger_message_match"
 }
 
 // GetUncheckedAndDoubleLayerValidGatewayMessageMatches retrieves the earliest unchecked gateway message match records
 // that are valid in both Layer1 and Layer2.
-func (m *MessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx context.Context, layer types.LayerType, limit int) ([]MessageMatch, error) {
-	var messages []MessageMatch
+func (m *MessengerMessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx context.Context, layer types.LayerType, limit int) ([]MessengerMessageMatch, error) {
+	var messages []MessengerMessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
 	db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
@@ -102,8 +97,8 @@ func (m *MessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx 
 }
 
 // GetUncheckedLatestETHMessageMatch get the latest uncheck eth message match record
-func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, layer types.LayerType, limit int) ([]MessageMatch, error) {
-	var messages []MessageMatch
+func (m *MessengerMessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, layer types.LayerType, limit int) ([]MessengerMessageMatch, error) {
+	var messages []MessengerMessageMatch
 	db := m.db.WithContext(ctx)
 	switch layer {
 	case types.Layer1:
@@ -125,8 +120,8 @@ func (m *MessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, la
 }
 
 // GetLatestBlockValidMessageMatch fetches the latest valid message match record for the specified layer.
-func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, layer types.LayerType) (*MessageMatch, error) {
-	var message MessageMatch
+func (m *MessengerMessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, layer types.LayerType) (*MessengerMessageMatch, error) {
+	var message MessengerMessageMatch
 	db := m.db.WithContext(ctx)
 	switch layer {
 	case types.Layer1:
@@ -150,8 +145,8 @@ func (m *MessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, laye
 
 // GetETHCheckStartBlockNumberAndBalance fetches the latest valid Ethereum balance match record for the specified layer
 // and returns the block number and messenger balance for the specified layer.
-func (m *MessageMatch) GetETHCheckStartBlockNumberAndBalance(ctx context.Context, layer types.LayerType) (*big.Int, error) {
-	var message MessageMatch
+func (m *MessengerMessageMatch) GetETHCheckStartBlockNumberAndBalance(ctx context.Context, layer types.LayerType) (*big.Int, error) {
+	var message MessengerMessageMatch
 	db := m.db.WithContext(ctx)
 	switch layer {
 	case types.Layer1:
@@ -182,8 +177,8 @@ func (m *MessageMatch) GetETHCheckStartBlockNumberAndBalance(ctx context.Context
 }
 
 // GetLatestValidL2SentMessageMatch fetches the valid l2 sent message with the largest message nonce.
-func (m *MessageMatch) GetLatestValidL2SentMessageMatch(ctx context.Context) (*MessageMatch, error) {
-	var message MessageMatch
+func (m *MessengerMessageMatch) GetLatestValidL2SentMessageMatch(ctx context.Context) (*MessengerMessageMatch, error) {
+	var message MessengerMessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("withdraw_root_status = ?", types.WithdrawRootStatusTypeValid)
 	db = db.Where("next_message_nonce > 0")
@@ -200,8 +195,8 @@ func (m *MessageMatch) GetLatestValidL2SentMessageMatch(ctx context.Context) (*M
 }
 
 // GetL2SentMessagesInBlockRange fetches the message match records of l2 sent message within the block range.
-func (m *MessageMatch) GetL2SentMessagesInBlockRange(ctx context.Context, startBlockNumber, endBlockNumber uint64) ([]*MessageMatch, error) {
-	var messages []*MessageMatch
+func (m *MessengerMessageMatch) GetL2SentMessagesInBlockRange(ctx context.Context, startBlockNumber, endBlockNumber uint64) ([]*MessengerMessageMatch, error) {
+	var messages []*MessengerMessageMatch
 	db := m.db.WithContext(ctx)
 	db = db.Where("withdraw_root_status = ?", types.WithdrawRootStatusTypeUnknown)
 	db = db.Where("l2_block_number >= ?", startBlockNumber)
@@ -220,14 +215,14 @@ func (m *MessageMatch) GetL2SentMessagesInBlockRange(ctx context.Context, startB
 }
 
 // InsertOrUpdateEventInfo insert or update event info
-func (m *MessageMatch) InsertOrUpdateEventInfo(ctx context.Context, layer types.LayerType, message MessageMatch, dbTX ...*gorm.DB) (int64, error) {
+func (m *MessengerMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, layer types.LayerType, message MessengerMessageMatch, dbTX ...*gorm.DB) (int64, error) {
 	db := m.db
 	if len(dbTX) > 0 && dbTX[0] != nil {
 		db = dbTX[0]
 	}
 
 	db = db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
+	db = db.Model(&MessengerMessageMatch{})
 	var assignmentColumn clause.Set
 	if layer == types.Layer1 {
 		if message.L1EventType == int(types.L1SentMessage) { // sent
@@ -266,9 +261,9 @@ func (m *MessageMatch) InsertOrUpdateEventInfo(ctx context.Context, layer types.
 }
 
 // UpdateCrossChainStatus updates the cross chain status for the message matches with the provided ids.
-func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, layer types.LayerType, status types.CrossChainStatusType) error {
+func (m *MessengerMessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, layer types.LayerType, status types.CrossChainStatusType) error {
 	db := m.db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
+	db = db.Model(&MessengerMessageMatch{})
 	db = db.Where("id in (?)", id)
 
 	var updateFields map[string]interface{}
@@ -293,7 +288,7 @@ func (m *MessageMatch) UpdateCrossChainStatus(ctx context.Context, id []int64, l
 }
 
 // UpdateMsgProofAndStatus insert or update the withdrawal tree root's message proof and withdraw root status
-func (m *MessageMatch) UpdateMsgProofAndStatus(ctx context.Context, message *MessageMatch, dbTX ...*gorm.DB) error {
+func (m *MessengerMessageMatch) UpdateMsgProofAndStatus(ctx context.Context, message *MessengerMessageMatch, dbTX ...*gorm.DB) error {
 	if message == nil {
 		return nil
 	}
@@ -302,7 +297,7 @@ func (m *MessageMatch) UpdateMsgProofAndStatus(ctx context.Context, message *Mes
 		db = dbTX[0]
 	}
 	db = db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
+	db = db.Model(&MessengerMessageMatch{})
 	db = db.Where("message_hash = ?", message.MessageHash)
 
 	updateFields := map[string]interface{}{
@@ -317,14 +312,14 @@ func (m *MessageMatch) UpdateMsgProofAndStatus(ctx context.Context, message *Mes
 }
 
 // UpdateBlockStatus updates the block status for the given layer and block number range.
-func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64, dbTX ...*gorm.DB) error {
+func (m *MessengerMessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerType, startBlockNumber, endBlockNumber uint64, dbTX ...*gorm.DB) error {
 	db := m.db
 	if len(dbTX) > 0 && dbTX[0] != nil {
 		db = dbTX[0]
 	}
 
 	db = db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
+	db = db.Model(&MessengerMessageMatch{})
 
 	var updateFields map[string]interface{}
 	switch layer {
@@ -349,14 +344,14 @@ func (m *MessageMatch) UpdateBlockStatus(ctx context.Context, layer types.LayerT
 }
 
 // UpdateETHBalance update the eth balance and eth status
-func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layer types.LayerType, messageMatch MessageMatch, dbTX ...*gorm.DB) error {
+func (m *MessengerMessageMatch) UpdateETHBalance(ctx context.Context, layer types.LayerType, messageMatch MessengerMessageMatch, dbTX ...*gorm.DB) error {
 	db := m.db
 	if len(dbTX) > 0 && dbTX[0] != nil {
 		db = dbTX[0]
 	}
 
 	db = db.WithContext(ctx)
-	db = db.Model(&MessageMatch{})
+	db = db.Model(&MessengerMessageMatch{})
 	db = db.Where("id = ?", messageMatch.ID)
 
 	var updateFields map[string]interface{}
@@ -364,13 +359,11 @@ func (m *MessageMatch) UpdateETHBalance(ctx context.Context, layer types.LayerTy
 	case types.Layer1:
 		updateFields = map[string]interface{}{
 			"l1_messenger_eth_balance":         messageMatch.L1MessengerETHBalance,
-			"l1_eth_balance_status":            types.ETHBalanceStatusTypeValid,
 			"l1_eth_balance_status_updated_at": utils.NowUTC(),
 		}
 	case types.Layer2:
 		updateFields = map[string]interface{}{
 			"l2_messenger_eth_balance":         messageMatch.L2MessengerETHBalance,
-			"l2_eth_balance_status":            types.ETHBalanceStatusTypeValid,
 			"l2_eth_balance_status_updated_at": utils.NowUTC(),
 		}
 	}
