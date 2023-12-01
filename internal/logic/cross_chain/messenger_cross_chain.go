@@ -221,7 +221,7 @@ func (c *LogicMessengerCrossChain) checkBalance(layer types.LayerType, startBala
 		var ok bool
 		amount, ok = new(big.Int).SetString(message.ETHAmount, 10)
 		if !ok {
-			return false, nil, nil, fmt.Errorf("invalid ETHAmount value: %v, layer: %v", message.ETHAmount, layer)
+			return false, nil, nil, fmt.Errorf("database id:%d invalid ETHAmount value: %v, layer: %v", message.ID, message.ETHAmount, layer)
 		}
 
 		if layer == types.Layer1 {
