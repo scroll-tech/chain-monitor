@@ -3,6 +3,9 @@ package crosschain
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"sort"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/common"
@@ -10,8 +13,6 @@ import (
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
-	"math/big"
-	"sort"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"

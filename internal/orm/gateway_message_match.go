@@ -2,7 +2,6 @@ package orm
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -51,7 +50,7 @@ type GatewayMessageMatch struct {
 	DeletedAt                   gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
 }
 
-// NewGatewayMessageMatch creates a new MessageMatch database instance.
+// NewGatewayMessageMatch creates a new GatewayMessageMatch database instance.
 func NewGatewayMessageMatch(db *gorm.DB) *GatewayMessageMatch {
 	return &GatewayMessageMatch{db: db}
 }
@@ -76,34 +75,10 @@ func (m *GatewayMessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatch
 	}
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
-		log.Warn("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatches failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatches failed err:%w", err)
+		log.Warn("GatewayMessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatches failed", "error", err)
+		return nil, fmt.Errorf("GatewayMessageMatch.GetUncheckedAndDoubleLayerValidGatewayMessageMatches failed err:%w", err)
 	}
 	return messages, nil
-}
-
-// GetLatestBlockValidMessageMatch fetches the latest valid message match record for the specified layer.
-func (m *GatewayMessageMatch) GetLatestBlockValidMessageMatch(ctx context.Context, layer types.LayerType) (*GatewayMessageMatch, error) {
-	var message GatewayMessageMatch
-	db := m.db.WithContext(ctx)
-	switch layer {
-	case types.Layer1:
-		db = db.Where("l1_block_status = ?", types.BlockStatusTypeValid)
-		db = db.Order("l1_block_number desc")
-	case types.Layer2:
-		db = db.Where("l2_block_status = ?", types.BlockStatusTypeValid)
-		db = db.Order("l2_block_number desc")
-	}
-	err := db.First(&message).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
-	}
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	return &message, nil
 }
 
 // InsertOrUpdateEventInfo insert or update event info
@@ -129,7 +104,7 @@ func (m *GatewayMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, layer
 
 	result := db.Create(&message)
 	if result.Error != nil {
-		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateGatewayEventInfo error: %w, messages: %v", result.Error, message)
+		return 0, fmt.Errorf("GatewayMessageMatch.InsertOrUpdateGatewayEventInfo error: %w, messages: %v", result.Error, message)
 	}
 	return result.RowsAffected, nil
 }
@@ -155,8 +130,8 @@ func (m *GatewayMessageMatch) UpdateCrossChainStatus(ctx context.Context, id []i
 	}
 
 	if err := db.Updates(updateFields).Error; err != nil {
-		log.Warn("MessageMatch.UpdateCrossChainStatus failed", "error", err)
-		return fmt.Errorf("MessageMatch.UpdateCrossChainStatus failed err:%w", err)
+		log.Warn("GatewayMessageMatch.UpdateCrossChainStatus failed", "error", err)
+		return fmt.Errorf("GatewayMessageMatch.UpdateCrossChainStatus failed err:%w", err)
 	}
 	return nil
 }
@@ -188,7 +163,7 @@ func (m *GatewayMessageMatch) UpdateBlockStatus(ctx context.Context, layer types
 	}
 
 	if err := db.Updates(updateFields).Error; err != nil {
-		return fmt.Errorf("MessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
+		return fmt.Errorf("GatewayMessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
 	}
 	return nil
 }

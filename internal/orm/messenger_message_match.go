@@ -65,14 +65,14 @@ type MessengerMessageMatch struct {
 	DeletedAt                   gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
 }
 
-// NewMessengerMessageMatch creates a new MessageMatch database instance.
+// NewMessengerMessageMatch creates a new MessengerMessageMatch database instance.
 func NewMessengerMessageMatch(db *gorm.DB) *MessengerMessageMatch {
 	return &MessengerMessageMatch{db: db}
 }
 
 // TableName returns the table name for the Batch model.
 func (*MessengerMessageMatch) TableName() string {
-	return "message_match"
+	return "messenger_message_match"
 }
 
 // GetUncheckedLatestETHMessageMatch get the latest uncheck eth message match records
@@ -92,8 +92,8 @@ func (m *MessengerMessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Co
 	db = db.Where("token_type = ? or token_type = ?", types.TokenTypeETH, types.TokenTypeERC20)
 	db = db.Limit(limit)
 	if err := db.Find(&messages).Error; err != nil {
-		log.Warn("MessageMatch.GetUncheckedLatestETHMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetUncheckedLatestETHMessageMatch failed err:%w", err)
+		log.Warn("MessengerMessageMatch.GetUncheckedLatestETHMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessengerMessageMatch.GetUncheckedLatestETHMessageMatch failed err:%w", err)
 	}
 	return messages, nil
 }
@@ -118,8 +118,8 @@ func (m *MessengerMessageMatch) GetETHMessageMatchByBlockRange(ctx context.Conte
 	}
 	db = db.Where("token_type = ? or token_type = ?", types.TokenTypeETH, types.TokenTypeERC20)
 	if err := db.Find(&messages).Error; err != nil {
-		log.Warn("MessageMatch.GetETHMessageMatchByBlockRange failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetETHMessageMatchByBlockRange failed err:%w", err)
+		log.Warn("MessengerMessageMatch.GetETHMessageMatchByBlockRange failed", "error", err)
+		return nil, fmt.Errorf("MessengerMessageMatch.GetETHMessageMatchByBlockRange failed err:%w", err)
 	}
 	return messages, nil
 }
@@ -138,8 +138,8 @@ func (m *MessengerMessageMatch) GetLatestBlockValidMessageMatch(ctx context.Cont
 	}
 	err := db.First(&message).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Warn("MessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("MessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
+		log.Warn("MessengerMessageMatch.GetLatestBlockValidMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessengerMessageMatch.GetLatestBlockValidMessageMatch failed err:%w", err)
 	}
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -166,8 +166,8 @@ func (m *MessengerMessageMatch) GetETHCheckStartBlockNumberAndBalance(ctx contex
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return big.NewInt(0), nil
 		}
-		log.Warn("MessageMatch.GetETHCheckStartBlockNumberAndBalance failed", "error", err)
-		return big.NewInt(0), fmt.Errorf("MessageMatch.GetETHCheckStartBlockNumberAndBalance failed err:%w", err)
+		log.Warn("MessengerMessageMatch.GetETHCheckStartBlockNumberAndBalance failed", "error", err)
+		return big.NewInt(0), fmt.Errorf("MessengerMessageMatch.GetETHCheckStartBlockNumberAndBalance failed err:%w", err)
 	}
 
 	// Return the block number and messenger balance for the specified layer
@@ -193,8 +193,8 @@ func (m *MessengerMessageMatch) GetLatestValidL2SentMessageMatch(ctx context.Con
 		return nil, nil
 	}
 	if err != nil {
-		log.Warn("GetLatestValidL2SentMessageMatch failed", "error", err)
-		return nil, fmt.Errorf("GetLatestValidL2SentMessageMatch failed, err:%w", err)
+		log.Warn("MessengerMessageMatch.GetLatestValidL2SentMessageMatch failed", "error", err)
+		return nil, fmt.Errorf("MessengerMessageMatch.GetLatestValidL2SentMessageMatch failed, err:%w", err)
 	}
 	return &message, nil
 }
@@ -213,8 +213,8 @@ func (m *MessengerMessageMatch) GetL2SentMessagesInBlockRange(ctx context.Contex
 		return nil, nil
 	}
 	if err != nil {
-		log.Warn("GetL2SentMessagesInBlockRange failed", "error", err)
-		return nil, fmt.Errorf("GetL2SentMessagesInBlockRange failed, err:%w", err)
+		log.Warn("MessengerMessageMatch.GetL2SentMessagesInBlockRange failed", "error", err)
+		return nil, fmt.Errorf("MessengerMessageMatch.GetL2SentMessagesInBlockRange failed, err:%w", err)
 	}
 	return messages, nil
 }
@@ -260,7 +260,7 @@ func (m *MessengerMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, lay
 
 	result := db.Create(&message)
 	if result.Error != nil {
-		return 0, fmt.Errorf("MessageMatch.InsertOrUpdateGatewayEventInfo error: %w, messages: %v", result.Error, message)
+		return 0, fmt.Errorf("MessengerMessageMatch.InsertOrUpdateGatewayEventInfo error: %w, messages: %v", result.Error, message)
 	}
 	return result.RowsAffected, nil
 }
@@ -284,7 +284,7 @@ func (m *MessengerMessageMatch) UpdateMsgProofAndStatus(ctx context.Context, mes
 	}
 
 	if err := db.Updates(updateFields).Error; err != nil {
-		return fmt.Errorf("MessageMatch.UpdateMsgProofAndStatus failed err:%w", err)
+		return fmt.Errorf("MessengerMessageMatch.UpdateMsgProofAndStatus failed err:%w", err)
 	}
 	return nil
 }
@@ -316,7 +316,7 @@ func (m *MessengerMessageMatch) UpdateBlockStatus(ctx context.Context, layer typ
 	}
 
 	if err := db.Updates(updateFields).Error; err != nil {
-		return fmt.Errorf("MessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
+		return fmt.Errorf("MessengerMessageMatch.UpdateBlockStatus failed, start block number: %v, end block number: %v, err: %w", startBlockNumber, endBlockNumber, db.Error)
 	}
 	return nil
 }
@@ -348,8 +348,8 @@ func (m *MessengerMessageMatch) UpdateETHBalance(ctx context.Context, layer type
 		}
 	}
 	if err := db.Updates(updateFields).Error; err != nil {
-		log.Warn("MessageMatch.UpdateETHBalance failed", "error", err)
-		return fmt.Errorf("MessageMatch.UpdateETHBalance failed err:%w", err)
+		log.Warn("MessengerMessageMatch.UpdateETHBalance failed", "error", err)
+		return fmt.Errorf("MessengerMessageMatch.UpdateETHBalance failed err:%w", err)
 	}
 	return nil
 }

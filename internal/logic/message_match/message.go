@@ -19,7 +19,7 @@ type LogicMessageMatch struct {
 	messengerMessageMatchOrm *orm.MessengerMessageMatch
 }
 
-// NewMessageMatchLogic initializes a new instance of Logic with an instance of orm.MessageMatch.
+// NewMessageMatchLogic initializes a new instance of Logic with an instance of orm.GatewayMessageMatch/orm.MessengerMessageMatch
 func NewMessageMatchLogic(cfg *config.Config, db *gorm.DB) *LogicMessageMatch {
 	return &LogicMessageMatch{
 		db:                       db,
