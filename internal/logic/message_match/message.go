@@ -54,7 +54,7 @@ func (t *LogicMessageMatch) GetLatestBlockNumber(ctx context.Context, layer type
 }
 
 // InsertOrUpdateMessageMatches insert or update the gateway/messenger event info
-func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, layer types.LayerType, messengerMessageMatches []orm.MessageMatch) error {
+func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, layer types.LayerType, gatewayMessageMatches []orm.GatewayMessageMatch, messengerMessageMatches []orm.MessengerMessageMatch) error {
 	var effectRows int64
 	err := t.db.Transaction(func(tx *gorm.DB) error {
 		for _, message := range messengerMessageMatches {

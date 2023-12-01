@@ -269,7 +269,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		return err
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
-	messengerMessageMatches, err := c.checker.MessengerCheck(ctx, types.Layer1, messengerEvents)
+	messengerMessageMatches, err := c.checker.MessengerCheck(messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
 		return err
@@ -303,7 +303,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		}
 
 		// match transfer event
-		retL1MessageMatches, checkErr := c.checker.GatewayCheck(ctx, eventCategory, gatewayEvents, messengerEvents, transferEvents)
+		retL1MessageMatches, checkErr := c.checker.GatewayCheck(eventCategory, gatewayEvents, messengerEvents, transferEvents)
 		l1GatewayMessageMatches = append(l1GatewayMessageMatches, retL1MessageMatches...)
 		if checkErr != nil {
 			c.contractControllerGatewayCheckFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
@@ -312,8 +312,8 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		}
 	}
 
-	c.replaceGatewayEventInfo(types.Layer1, l1GatewayMessageMatches, messengerMessageMatches)
-	if err := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer1, messengerMessageMatches); err != nil {
+	c.updateMessengerMessageMatchInfo(types.Layer1, l1GatewayMessageMatches, messengerMessageMatches)
+	if err := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer1, l1GatewayMessageMatches, messengerMessageMatches); err != nil {
 		c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
 		log.Error("insert message events failed", "layer", types.Layer1, "error", err)
 		return err
@@ -346,7 +346,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		return nil
 	}
 
-	var l2GatewayMessageMatches []orm.MessageMatch
+	var l2GatewayMessageMatches []orm.GatewayMessageMatch
 	for _, eventCategory := range c.l2EventCategoryList {
 		var wrapIterList []types.WrapIterator
 		wrapIterList, err = c.contractsLogic.Iterator(ctx, &opts, types.Layer2, eventCategory)
@@ -381,7 +381,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		}
 	}
 
-	c.replaceGatewayEventInfo(types.Layer2, l2GatewayMessageMatches, messengerMessageMatches)
+	c.updateMessengerMessageMatchInfo(types.Layer2, l2GatewayMessageMatches, messengerMessageMatches)
 	if err = c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, messengerMessageMatches); err != nil {
 		c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 		log.Error("insert message events failed", "layer", types.Layer2, "error", err)
@@ -407,12 +407,8 @@ func (c *ContractController) updateMessengerMessageMatchInfo(layer types.LayerTy
 		switch layer {
 		case types.Layer1:
 			messengerMessages[i].L1EventType = gatewayMessageMatch.L1EventType
-			messengerMessages[i].L1TokenIds = gatewayMessageMatch.L1TokenIds
-			messengerMessages[i].L1Amounts = gatewayMessageMatch.L1Amounts
 		case types.Layer2:
 			messengerMessages[i].L2EventType = gatewayMessageMatch.L2EventType
-			messengerMessages[i].L2TokenIds = gatewayMessageMatch.L2TokenIds
-			messengerMessages[i].L2Amounts = gatewayMessageMatch.L2Amounts
 		}
 	}
 }
