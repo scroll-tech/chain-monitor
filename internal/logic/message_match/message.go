@@ -3,6 +3,7 @@ package messagematch
 import (
 	"context"
 	"fmt"
+	"github.com/scroll-tech/go-ethereum/log"
 
 	"gorm.io/gorm"
 
@@ -27,6 +28,63 @@ func NewMessageMatchLogic(cfg *config.Config, db *gorm.DB) *LogicMessageMatch {
 		gatewayMessageMatchOrm:   orm.NewGatewayMessageMatch(db),
 		messengerMessageMatchOrm: orm.NewMessengerMessageMatch(db),
 	}
+}
+
+func (t *LogicMessageMatch) GetBlocksStatus(ctx context.Context, startBlockNumber, endBlockNumber uint64) bool {
+	gatewayMessageMatches, err := t.gatewayMessageMatchOrm.GetBlocksStatus(ctx, startBlockNumber, endBlockNumber)
+	if err != nil {
+		log.Error("LogicMessageMatch.gatewayMessageMatches failed", "start block number", startBlockNumber, "end block number", endBlockNumber, "error", err)
+		return false
+	}
+
+	for _, gatewayMessageMatch := range gatewayMessageMatches {
+		if gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC20) ||
+			gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC721) ||
+			gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC1155) ||
+			gatewayMessageMatch.L2EventType != int(types.L2BatchWithdrawERC721) ||
+			gatewayMessageMatch.L2EventType != int(types.L2FinalizeBatchDepositERC1155) {
+			if gatewayMessageMatch.L2BlockNumber == 0 || gatewayMessageMatch.L2BlockStatus != int(types.BlockStatusTypeValid) {
+				return false
+			}
+		}
+
+		if gatewayMessageMatch.L1BlockNumber != 0 {
+			if gatewayMessageMatch.L2BlockStatus == 0 ||
+				gatewayMessageMatch.L1BlockStatus != int(types.BlockStatusTypeValid) ||
+				gatewayMessageMatch.L1CrossChainStatus != int(types.CrossChainStatusTypeValid) ||
+				gatewayMessageMatch.L2CrossChainStatus != int(types.CrossChainStatusTypeValid) {
+				return false
+			}
+		}
+	}
+
+	messengerMessageMatches, err := t.messengerMessageMatchOrm.GetBlocksStatus(ctx, startBlockNumber, endBlockNumber)
+	if err != nil {
+		log.Error("LogicMessageMatch.messengerMessageMatches failed", "start block number", startBlockNumber, "end block number", endBlockNumber, "error", err)
+		return false
+	}
+
+	for _, messengerMessageMatch := range messengerMessageMatches {
+		if messengerMessageMatch.L2EventType != int(types.L2SentMessage) {
+			if messengerMessageMatch.L2BlockNumber == 0 ||
+				messengerMessageMatch.L2BlockStatus != int(types.BlockStatusTypeValid) ||
+				messengerMessageMatch.L2ETHBalanceStatus != int(types.ETHBalanceStatusTypeValid) {
+				return false
+			}
+		}
+
+		if messengerMessageMatch.L1BlockNumber != 0 {
+			if messengerMessageMatch.L2BlockStatus == 0 ||
+				messengerMessageMatch.L1BlockStatus != int(types.BlockStatusTypeValid) ||
+				messengerMessageMatch.L1CrossChainStatus != int(types.CrossChainStatusTypeValid) ||
+				messengerMessageMatch.L2CrossChainStatus != int(types.CrossChainStatusTypeValid) ||
+				messengerMessageMatch.L1ETHBalanceStatus != int(types.ETHBalanceStatusTypeValid) ||
+				messengerMessageMatch.L2ETHBalanceStatus != int(types.ETHBalanceStatusTypeValid) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // GetLatestBlockNumber retrieves the latest block number for a given layer type.

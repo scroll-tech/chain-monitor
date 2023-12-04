@@ -60,6 +60,18 @@ func (*GatewayMessageMatch) TableName() string {
 	return "gateway_message_match"
 }
 
+// GetBlocksStatus get block status which block number between startBlockNumber and endBlockNumber
+func (m *GatewayMessageMatch) GetBlocksStatus(ctx context.Context, startBlockNumber, endBlockNumber uint64) ([]GatewayMessageMatch, error) {
+	var messages []GatewayMessageMatch
+	db := m.db.WithContext(ctx)
+	db = db.Where("l2_block_number >= ? AND l2_block_number <= ?", startBlockNumber, endBlockNumber)
+	if err := db.Find(&messages).Error; err != nil {
+		log.Warn("GatewayMessageMatch.GetBlocksStatus failed", "error", err)
+		return nil, fmt.Errorf("GatewayMessageMatch.GetBlocksStatus failed err:%w", err)
+	}
+	return messages, nil
+}
+
 // GetUncheckedAndDoubleLayerValidGatewayMessageMatches retrieves the earliest unchecked gateway message match records
 // that are valid in both Layer1 and Layer2.
 func (m *GatewayMessageMatch) GetUncheckedAndDoubleLayerValidGatewayMessageMatches(ctx context.Context, layer types.LayerType, limit int) ([]GatewayMessageMatch, error) {

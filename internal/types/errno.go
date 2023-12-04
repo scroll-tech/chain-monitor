@@ -5,9 +5,6 @@ const (
 	Success = 0
 	// InternalServerError shows a fatal error in the server
 	InternalServerError = 500
-
-	// ErrJWTCommonErr jwt common error
-	ErrJWTCommonErr = 50000
-	// ErrJWTTokenExpired jwt token expired
-	ErrJWTTokenExpired = 50001
+	// ErrParameterInvalidNo is invalid params
+	ErrParameterInvalidNo = 40001
 )
