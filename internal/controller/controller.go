@@ -8,7 +8,7 @@ import (
 // FinalizeBatchCtl the Finalize batch handler
 var FinalizeBatchCtl *FinalizeBatchCheckController
 
-// InitApi init the api controller
-func InitApi(conf *config.Config, db *gorm.DB) {
+// InitAPI init the api controller
+func InitAPI(conf *config.Config, db *gorm.DB) {
 	FinalizeBatchCtl = NewFinalizeBatchCheckController(conf, db)
 }

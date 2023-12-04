@@ -127,7 +127,7 @@ func apiServer(ctx *cli.Context, cfg *config.Config, db *gorm.DB) *http.Server {
 	log.Info("api controller start successful")
 
 	router := gin.New()
-	controller.InitApi(cfg, db)
+	controller.InitAPI(cfg, db)
 	route.Route(router)
 	port := ctx.String(utils.HTTPPortFlag.Name)
 	srv := &http.Server{

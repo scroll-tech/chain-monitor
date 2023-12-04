@@ -3,8 +3,8 @@ package messagematch
 import (
 	"context"
 	"fmt"
-	"github.com/scroll-tech/go-ethereum/log"
 
+	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
@@ -30,6 +30,7 @@ func NewMessageMatchLogic(cfg *config.Config, db *gorm.DB) *LogicMessageMatch {
 	}
 }
 
+// GetBlocksStatus get the status from start block number to end block number
 func (t *LogicMessageMatch) GetBlocksStatus(ctx context.Context, startBlockNumber, endBlockNumber uint64) bool {
 	gatewayMessageMatches, err := t.gatewayMessageMatchOrm.GetBlocksStatus(ctx, startBlockNumber, endBlockNumber)
 	if err != nil {
@@ -38,10 +39,10 @@ func (t *LogicMessageMatch) GetBlocksStatus(ctx context.Context, startBlockNumbe
 	}
 
 	for _, gatewayMessageMatch := range gatewayMessageMatches {
-		if gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC20) ||
-			gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC721) ||
-			gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC1155) ||
-			gatewayMessageMatch.L2EventType != int(types.L2BatchWithdrawERC721) ||
+		if gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC20) &&
+			gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC721) &&
+			gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC1155) &&
+			gatewayMessageMatch.L2EventType != int(types.L2BatchWithdrawERC721) &&
 			gatewayMessageMatch.L2EventType != int(types.L2FinalizeBatchDepositERC1155) {
 			if gatewayMessageMatch.L2BlockNumber == 0 || gatewayMessageMatch.L2BlockStatus != int(types.BlockStatusTypeValid) {
 				return false
