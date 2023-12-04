@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
+	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
@@ -64,6 +65,11 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 			if err != nil {
 				return fmt.Errorf("messenger event orm insert failed, err: %w, layer:%s", err, layer.String())
 			}
+
+			if effectRow == 0 {
+				slack.Notify(slack.MrkDwnMessengerMessageMatchDuplicated(layer, message))
+				return fmt.Errorf("messenger event orm insert duplicated")
+			}
 			effectRows += effectRow
 		}
 
@@ -71,6 +77,11 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 			effectRow, err := t.gatewayMessageMatchOrm.InsertOrUpdateEventInfo(ctx, layer, message, tx)
 			if err != nil {
 				return fmt.Errorf("gateway event orm insert failed, err: %w, layer:%s", err, layer.String())
+			}
+
+			if effectRow == 0 {
+				slack.Notify(slack.MrkDwnGatewayMessageMatchDuplicated(layer, message))
+				return fmt.Errorf("gateway event orm insert duplicated")
 			}
 			effectRows += effectRow
 		}

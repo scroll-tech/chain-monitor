@@ -216,6 +216,18 @@ func (m *MessengerMessageMatch) GetL2SentMessagesInBlockRange(ctx context.Contex
 	return messages, nil
 }
 
+// GetMessageMatchByMessageHash get MessageMatch by message_hash
+func (m *MessengerMessageMatch) GetMessageMatchByMessageHash(ctx context.Context, msgHash string) (*MessengerMessageMatch, error) {
+	var message MessengerMessageMatch
+	db := m.db.WithContext(ctx)
+	db = db.Where("message_hash = ?", msgHash)
+	if err := db.First(&message).Error; err != nil {
+		log.Warn("MessengerMessageMatch.GetMessageMatchByMessageHash failed", "error", err)
+		return nil, fmt.Errorf("MessengerMessageMatch.GetMessageMatchByMessageHash failed, err:%w", err)
+	}
+	return &message, nil
+}
+
 // InsertOrUpdateEventInfo insert or update event info
 func (m *MessengerMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, layer types.LayerType, message MessengerMessageMatch, dbTX ...*gorm.DB) (int64, error) {
 	db := m.db
@@ -226,24 +238,30 @@ func (m *MessengerMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, lay
 	db = db.WithContext(ctx)
 	db = db.Model(&MessengerMessageMatch{})
 	var assignmentColumn clause.Set
+	var where clause.Where
 	if layer == types.Layer1 {
 		if message.L1EventType == int(types.L1SentMessage) { // sent
 			assignmentColumn = clause.AssignmentColumns([]string{"l1_block_number", "l1_event_type", "l1_tx_hash", "eth_amount", "eth_amount_status"})
+			where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "messenger_message_match.l1_block_number", Value: 0}}}
 		} else if message.L1EventType == int(types.L1RelayedMessage) { // relayed
 			assignmentColumn = clause.AssignmentColumns([]string{"l1_block_number", "l1_event_type", "l1_tx_hash"})
+			where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "messenger_message_match.l1_block_number", Value: 0}}}
 		}
 	}
 
 	if layer == types.Layer2 {
 		if message.L2EventType == int(types.L2SentMessage) { // sent
 			assignmentColumn = clause.AssignmentColumns([]string{"l2_block_number", "l2_event_type", "l2_tx_hash", "eth_amount", "eth_amount_status", "next_message_nonce"})
+			where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "messenger_message_match.l2_block_number", Value: 0}}}
 		} else if message.L2EventType == int(types.L2RelayedMessage) { // relayed
 			assignmentColumn = clause.AssignmentColumns([]string{"l2_block_number", "l2_event_type", "l2_tx_hash"})
+			where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "messenger_message_match.l2_block_number", Value: 0}}}
 		}
 	}
 
 	db = db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "message_hash"}},
+		Where:     where,
 		DoUpdates: assignmentColumn,
 	})
 
