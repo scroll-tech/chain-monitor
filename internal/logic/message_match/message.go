@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
 
@@ -18,6 +20,9 @@ type LogicMessageMatch struct {
 	conf                     *config.Config
 	gatewayMessageMatchOrm   *orm.GatewayMessageMatch
 	messengerMessageMatchOrm *orm.MessengerMessageMatch
+
+	gatewayBatchFinalizeCheckFailed   prometheus.Counter
+	messengerBatchFinalizeCheckFailed prometheus.Counter
 }
 
 // NewMessageMatchLogic initializes a new instance of Logic with an instance of orm.GatewayMessageMatch/orm.MessengerMessageMatch
@@ -27,12 +32,30 @@ func NewMessageMatchLogic(cfg *config.Config, db *gorm.DB) *LogicMessageMatch {
 		conf:                     cfg,
 		gatewayMessageMatchOrm:   orm.NewGatewayMessageMatch(db),
 		messengerMessageMatchOrm: orm.NewMessengerMessageMatch(db),
+		gatewayBatchFinalizeCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+			Name: "gateway_batch_finalized_failed_total",
+			Help: "The total number of gateway batch finalized failed.",
+		}),
+		messengerBatchFinalizeCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+			Name: "messenger_batch_finalized_failed_total",
+			Help: "The total number of messenger batch finalized failed.",
+		}),
 	}
 }
 
 // GetBlocksStatus get the status from start block number to end block number
 func (t *LogicMessageMatch) GetBlocksStatus(ctx context.Context, startBlockNumber, endBlockNumber uint64) bool {
-	return t.checkGateway(ctx, startBlockNumber, endBlockNumber) && t.checkMessenger(ctx, startBlockNumber, endBlockNumber)
+	if !t.checkGateway(ctx, startBlockNumber, endBlockNumber) {
+		t.gatewayBatchFinalizeCheckFailed.Inc()
+		return false
+	}
+
+	if !t.checkMessenger(ctx, startBlockNumber, endBlockNumber) {
+		t.messengerBatchFinalizeCheckFailed.Inc()
+		return false
+	}
+
+	return true
 }
 
 func (t *LogicMessageMatch) checkGateway(ctx context.Context, startBlockNumber, endBlockNumber uint64) bool {
