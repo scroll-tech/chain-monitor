@@ -32,55 +32,73 @@ func NewMessageMatchLogic(cfg *config.Config, db *gorm.DB) *LogicMessageMatch {
 
 // GetBlocksStatus get the status from start block number to end block number
 func (t *LogicMessageMatch) GetBlocksStatus(ctx context.Context, startBlockNumber, endBlockNumber uint64) bool {
+	return t.checkGateway(ctx, startBlockNumber, endBlockNumber) && t.checkMessenger(ctx, startBlockNumber, endBlockNumber)
+}
+
+func (t *LogicMessageMatch) checkGateway(ctx context.Context, startBlockNumber, endBlockNumber uint64) bool {
 	gatewayMessageMatches, err := t.gatewayMessageMatchOrm.GetBlocksStatus(ctx, startBlockNumber, endBlockNumber)
 	if err != nil {
 		log.Error("LogicMessageMatch.gatewayMessageMatches failed", "start block number", startBlockNumber, "end block number", endBlockNumber, "error", err)
 		return false
 	}
 
+	if len(gatewayMessageMatches) == 0 {
+		return true
+	}
+
 	for _, gatewayMessageMatch := range gatewayMessageMatches {
-		if gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC20) &&
-			gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC721) &&
-			gatewayMessageMatch.L2EventType != int(types.L2WithdrawERC1155) &&
-			gatewayMessageMatch.L2EventType != int(types.L2BatchWithdrawERC721) &&
-			gatewayMessageMatch.L2EventType != int(types.L2FinalizeBatchDepositERC1155) {
-			if gatewayMessageMatch.L2BlockNumber == 0 || gatewayMessageMatch.L2BlockStatus != int(types.BlockStatusTypeValid) {
+		if gatewayMessageMatch.L2EventType == int(types.L2WithdrawERC20) ||
+			gatewayMessageMatch.L2EventType == int(types.L2WithdrawERC721) ||
+			gatewayMessageMatch.L2EventType == int(types.L2WithdrawERC1155) ||
+			gatewayMessageMatch.L2EventType == int(types.L2BatchWithdrawERC721) ||
+			gatewayMessageMatch.L2EventType == int(types.L2BatchWithdrawERC1155) {
+			if gatewayMessageMatch.L2BlockNumber == 0 ||
+				gatewayMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) {
 				return false
 			}
 		}
 
 		if gatewayMessageMatch.L1BlockNumber != 0 {
-			if gatewayMessageMatch.L2BlockStatus == 0 ||
-				gatewayMessageMatch.L1BlockStatus != int(types.BlockStatusTypeValid) ||
-				gatewayMessageMatch.L1CrossChainStatus != int(types.CrossChainStatusTypeValid) ||
-				gatewayMessageMatch.L2CrossChainStatus != int(types.CrossChainStatusTypeValid) {
+			if gatewayMessageMatch.L2BlockNumber == 0 ||
+				gatewayMessageMatch.L1BlockStatus == int(types.BlockStatusTypeInvalid) ||
+				gatewayMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
+				gatewayMessageMatch.L1CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
+				gatewayMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) {
 				return false
 			}
 		}
 	}
+	return true
+}
 
+func (t *LogicMessageMatch) checkMessenger(ctx context.Context, startBlockNumber, endBlockNumber uint64) bool {
 	messengerMessageMatches, err := t.messengerMessageMatchOrm.GetBlocksStatus(ctx, startBlockNumber, endBlockNumber)
 	if err != nil {
 		log.Error("LogicMessageMatch.messengerMessageMatches failed", "start block number", startBlockNumber, "end block number", endBlockNumber, "error", err)
 		return false
 	}
 
+	if len(messengerMessageMatches) == 0 {
+		return true
+	}
+
 	for _, messengerMessageMatch := range messengerMessageMatches {
-		if messengerMessageMatch.L2EventType != int(types.L2SentMessage) {
+		if messengerMessageMatch.L2EventType == int(types.L2SentMessage) {
 			if messengerMessageMatch.L2BlockNumber == 0 ||
-				messengerMessageMatch.L2BlockStatus != int(types.BlockStatusTypeValid) ||
-				messengerMessageMatch.L2ETHBalanceStatus != int(types.ETHBalanceStatusTypeValid) {
+				messengerMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
+				messengerMessageMatch.L2ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) {
 				return false
 			}
 		}
 
 		if messengerMessageMatch.L1BlockNumber != 0 {
-			if messengerMessageMatch.L2BlockStatus == 0 ||
-				messengerMessageMatch.L1BlockStatus != int(types.BlockStatusTypeValid) ||
-				messengerMessageMatch.L1CrossChainStatus != int(types.CrossChainStatusTypeValid) ||
-				messengerMessageMatch.L2CrossChainStatus != int(types.CrossChainStatusTypeValid) ||
-				messengerMessageMatch.L1ETHBalanceStatus != int(types.ETHBalanceStatusTypeValid) ||
-				messengerMessageMatch.L2ETHBalanceStatus != int(types.ETHBalanceStatusTypeValid) {
+			if messengerMessageMatch.L2BlockStatus == 0 || messengerMessageMatch.L1BlockStatus == 0 ||
+				messengerMessageMatch.L1BlockStatus == int(types.BlockStatusTypeInvalid) ||
+				messengerMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
+				messengerMessageMatch.L1CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
+				messengerMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
+				messengerMessageMatch.L1ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) ||
+				messengerMessageMatch.L2ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) {
 				return false
 			}
 		}
