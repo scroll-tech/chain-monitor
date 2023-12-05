@@ -33,6 +33,16 @@ var (
 		Name: "slack_alert_cross_chain_eth_event_not_match_total",
 		Help: "The total number of alert cross chain eth event not match total.",
 	})
+
+	gatewayEventDuplicatedTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_gateway_event_duplicated_total",
+		Help: "The total number of alert gateway event duplicated.",
+	})
+
+	messengerEventDuplicatedTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_messenger_event_duplicated_total",
+		Help: "The total number of alert messenger event duplicated.",
+	})
 )
 
 // GatewayTransferInfo the alert message of gateway and transfer event
@@ -129,5 +139,47 @@ func MrkDwnETHGatewayMessage(message *orm.MessengerMessageMatch, expectedEndBala
 	buffer.WriteString(fmt.Sprintf("• msg_hash: %s\n", message.MessageHash))
 	buffer.WriteString(fmt.Sprintf("• expected end balance: %s\n", expectedEndBalance.String()))
 	buffer.WriteString(fmt.Sprintf("• actual end balance: %s\n", actualEndBalance.String()))
+	return buffer.String()
+}
+
+// MrkDwnGatewayMessageMatchDuplicated make the markdown message of duplicated gateway message
+func MrkDwnGatewayMessageMatchDuplicated(layer types.LayerType, message orm.GatewayMessageMatch) string {
+	gatewayEventDuplicatedTotal.Inc()
+
+	var buffer bytes.Buffer
+	buffer.WriteString("\n:bangbang: ")
+	buffer.WriteString("*Gateway event duplicated*\n")
+	buffer.WriteString(fmt.Sprintf("• layer: %s\n", layer.String()))
+	if layer == types.Layer1 {
+		buffer.WriteString(fmt.Sprintf("• l1 event type: %s\n", types.EventType(message.L1EventType).String()))
+		buffer.WriteString(fmt.Sprintf("• l1 block number: %d\n", message.L1BlockNumber))
+		buffer.WriteString(fmt.Sprintf("• l1 tx_hash: %s\n", message.L1TxHash))
+	} else {
+		buffer.WriteString(fmt.Sprintf("• l2 event type: %s\n", types.EventType(message.L2EventType).String()))
+		buffer.WriteString(fmt.Sprintf("• l2 block number: %d\n", message.L2BlockNumber))
+		buffer.WriteString(fmt.Sprintf("• l2 tx_hash: %s\n", message.L2TxHash))
+	}
+	buffer.WriteString(fmt.Sprintf("• msg_hash: %s\n", message.MessageHash))
+	return buffer.String()
+}
+
+// MrkDwnMessengerMessageMatchDuplicated make the markdown message of duplicated messenger message
+func MrkDwnMessengerMessageMatchDuplicated(layer types.LayerType, message orm.MessengerMessageMatch) string {
+	messengerEventDuplicatedTotal.Inc()
+
+	var buffer bytes.Buffer
+	buffer.WriteString("\n:bangbang: ")
+	buffer.WriteString("*Messenger event duplicated*\n")
+	buffer.WriteString(fmt.Sprintf("• layer: %s\n", layer.String()))
+	if layer == types.Layer1 {
+		buffer.WriteString(fmt.Sprintf("• l1 event type: %s\n", types.EventType(message.L1EventType).String()))
+		buffer.WriteString(fmt.Sprintf("• l1 block number: %d\n", message.L1BlockNumber))
+		buffer.WriteString(fmt.Sprintf("• l1 tx_hash: %s\n", message.L1TxHash))
+	} else {
+		buffer.WriteString(fmt.Sprintf("• l2 event type: %s\n", types.EventType(message.L2EventType).String()))
+		buffer.WriteString(fmt.Sprintf("• l2 block number: %d\n", message.L2BlockNumber))
+		buffer.WriteString(fmt.Sprintf("• l2 tx_hash: %s\n", message.L2TxHash))
+	}
+	buffer.WriteString(fmt.Sprintf("• msg_hash: %s\n", message.MessageHash))
 	return buffer.String()
 }
