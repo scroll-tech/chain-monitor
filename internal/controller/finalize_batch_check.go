@@ -2,6 +2,8 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
@@ -14,6 +16,9 @@ type FinalizeBatchCheckController struct {
 	db *gorm.DB
 
 	messageMatchLogic *messagematch.LogicMessageMatch
+
+	gatewayBatchFinalizeCheckFailed   prometheus.Counter
+	messengerBatchFinalizeCheckFailed prometheus.Counter
 }
 
 // NewFinalizeBatchCheckController create finalize batch controller instance
@@ -21,6 +26,15 @@ func NewFinalizeBatchCheckController(conf *config.Config, db *gorm.DB) *Finalize
 	return &FinalizeBatchCheckController{
 		db:                db,
 		messageMatchLogic: messagematch.NewMessageMatchLogic(conf, db),
+
+		gatewayBatchFinalizeCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+			Name: "gateway_batch_finalized_failed_total",
+			Help: "The total number of gateway batch finalized failed.",
+		}),
+		messengerBatchFinalizeCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+			Name: "messenger_batch_finalized_failed_total",
+			Help: "The total number of messenger batch finalized failed.",
+		}),
 	}
 }
 
@@ -33,6 +47,14 @@ func (f *FinalizeBatchCheckController) BatchStatus(ctx *gin.Context) {
 		return
 	}
 
-	ret := f.messageMatchLogic.GetBlocksStatus(ctx, finalizeBatchParam.StartBlockNumber, finalizeBatchParam.EndBlockNumber)
-	types.RenderJSON(ctx, types.Success, nil, ret)
+	gatewayCheck, messengerCheck := f.messageMatchLogic.GetBlocksStatus(ctx, finalizeBatchParam.StartBlockNumber, finalizeBatchParam.EndBlockNumber)
+	if !gatewayCheck {
+		f.gatewayBatchFinalizeCheckFailed.Inc()
+	}
+
+	if !messengerCheck {
+		f.messengerBatchFinalizeCheckFailed.Inc()
+	}
+
+	types.RenderJSON(ctx, types.Success, nil, gatewayCheck && messengerCheck)
 }
