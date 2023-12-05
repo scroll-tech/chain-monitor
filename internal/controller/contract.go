@@ -257,8 +257,8 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 				}
 
 				if insertEventErr := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, layer, gatewayMessageMatches, messengerMessageMatches); insertEventErr != nil {
-					c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
-					log.Error("insert message events failed", "layer", types.Layer1, "error", insertEventErr)
+					c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(layer.String()).Inc()
+					log.Error("insert message events failed", "layer", layer.String(), "error", insertEventErr)
 					return insertEventErr
 				}
 				return nil
