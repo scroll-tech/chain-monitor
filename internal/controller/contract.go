@@ -89,7 +89,7 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 	reg := prometheus.DefaultRegisterer
 	c.contractControllerRunningTotal = promauto.With(reg).NewCounterVec(prometheus.CounterOpts{
 		Name: "contract_controller_running_total",
-		Help: "The total number of controller running.",
+		Help: "The total number of controllers running.",
 	}, []string{"layer"})
 	c.contractControllerBlockNumber = promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
 		Name: "contract_controller_block_number",

@@ -34,7 +34,7 @@ func NewMessageMatchAssembler(db *gorm.DB) *MessageMatchAssembler {
 	}
 }
 
-// GatewayMessageAssembler assemble the gateway events.
+// GatewayMessageAssembler assembles the gateway events.
 func (c *MessageMatchAssembler) GatewayMessageAssembler(eventCategory types.EventCategory, gatewayEvents, messengerEvents, transferEvents []events.EventUnmarshaler) ([]orm.GatewayMessageMatch, error) {
 	switch eventCategory {
 	case types.ERC20EventCategory:
@@ -52,7 +52,7 @@ func (c *MessageMatchAssembler) L2WithdrawRootsValidator(ctx context.Context, st
 	return c.checkL2WithdrawRoots(ctx, startBlockNumber, endBlockNumber, client, messageQueueAddr)
 }
 
-// MessageMatchAssembler assemble the messenger events.
+// MessageMatchAssembler assembles the messenger events.
 func (c *MessageMatchAssembler) MessageMatchAssembler(messengerEvents []events.EventUnmarshaler) ([]orm.MessengerMessageMatch, error) {
 	return c.messengerMessageMatchAssembler(messengerEvents)
 }
