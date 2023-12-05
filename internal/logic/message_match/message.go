@@ -81,9 +81,8 @@ func (t *LogicMessageMatch) checkGateway(ctx context.Context, startBlockNumber, 
 			}
 		}
 
-		if gatewayMessageMatch.L1BlockNumber != 0 {
-			if gatewayMessageMatch.L2BlockNumber == 0 ||
-				gatewayMessageMatch.L1BlockStatus == int(types.BlockStatusTypeInvalid) ||
+		if gatewayMessageMatch.L1BlockNumber != 0 && gatewayMessageMatch.L2BlockNumber != 0 {
+			if gatewayMessageMatch.L1BlockStatus == int(types.BlockStatusTypeInvalid) ||
 				gatewayMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
 				gatewayMessageMatch.L1CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
 				gatewayMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) {
@@ -114,9 +113,8 @@ func (t *LogicMessageMatch) checkMessenger(ctx context.Context, startBlockNumber
 			}
 		}
 
-		if messengerMessageMatch.L1BlockNumber != 0 {
-			if messengerMessageMatch.L2BlockStatus == 0 || messengerMessageMatch.L1BlockStatus == 0 ||
-				messengerMessageMatch.L1BlockStatus == int(types.BlockStatusTypeInvalid) ||
+		if messengerMessageMatch.L1BlockNumber != 0 && messengerMessageMatch.L2BlockNumber != 0 {
+			if messengerMessageMatch.L1BlockStatus == int(types.BlockStatusTypeInvalid) ||
 				messengerMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
 				messengerMessageMatch.L1CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
 				messengerMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
