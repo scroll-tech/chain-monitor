@@ -241,20 +241,20 @@ func (m *MessengerMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, lay
 	var where clause.Where
 	if layer == types.Layer1 {
 		if message.L1EventType == int(types.L1SentMessage) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"l1_block_number", "l1_event_type", "l1_tx_hash", "eth_amount", "eth_amount_status"})
+			assignmentColumn = clause.AssignmentColumns([]string{"l1_block_number", "l1_event_type", "l1_tx_hash", "eth_amount", "eth_amount_status", "l1_block_status", "l1_block_status_updated_at"})
 			where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "messenger_message_match.l1_block_number", Value: 0}}}
 		} else if message.L1EventType == int(types.L1RelayedMessage) { // relayed
-			assignmentColumn = clause.AssignmentColumns([]string{"l1_block_number", "l1_event_type", "l1_tx_hash"})
+			assignmentColumn = clause.AssignmentColumns([]string{"l1_block_number", "l1_event_type", "l1_tx_hash", "l1_block_status", "l1_block_status_updated_at"})
 			where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "messenger_message_match.l1_block_number", Value: 0}}}
 		}
 	}
 
 	if layer == types.Layer2 {
 		if message.L2EventType == int(types.L2SentMessage) { // sent
-			assignmentColumn = clause.AssignmentColumns([]string{"l2_block_number", "l2_event_type", "l2_tx_hash", "eth_amount", "eth_amount_status", "next_message_nonce"})
+			assignmentColumn = clause.AssignmentColumns([]string{"l2_block_number", "l2_event_type", "l2_tx_hash", "eth_amount", "eth_amount_status", "next_message_nonce", "l2_block_status", "l2_block_status_updated_at"})
 			where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "messenger_message_match.l2_block_number", Value: 0}}}
 		} else if message.L2EventType == int(types.L2RelayedMessage) { // relayed
-			assignmentColumn = clause.AssignmentColumns([]string{"l2_block_number", "l2_event_type", "l2_tx_hash"})
+			assignmentColumn = clause.AssignmentColumns([]string{"l2_block_number", "l2_event_type", "l2_tx_hash", "l2_block_status", "l2_block_status_updated_at"})
 			where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "messenger_message_match.l2_block_number", Value: 0}}}
 		}
 	}

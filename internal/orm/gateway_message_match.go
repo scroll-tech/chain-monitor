@@ -93,10 +93,10 @@ func (m *GatewayMessageMatch) InsertOrUpdateEventInfo(ctx context.Context, layer
 	var assignmentColumn clause.Set
 	var where clause.Where
 	if layer == types.Layer1 {
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_tx_hash", "l1_event_type", "l1_token_ids", "l1_amounts"})
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l1_block_number", "l1_tx_hash", "l1_event_type", "l1_token_ids", "l1_amounts", "l1_block_status", "l1_block_status_updated_at"})
 		where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "gateway_message_match.l1_block_number", Value: 0}}}
 	} else {
-		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts"})
+		assignmentColumn = clause.AssignmentColumns([]string{"token_type", "l2_block_number", "l2_tx_hash", "l2_event_type", "l2_token_ids", "l2_amounts", "l2_block_status", "l2_block_status_updated_at"})
 		where = clause.Where{Exprs: []clause.Expression{clause.Eq{Column: "gateway_message_match.l2_block_number", Value: 0}}}
 	}
 

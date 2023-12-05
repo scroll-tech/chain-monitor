@@ -10,6 +10,7 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/chain-monitor/internal/utils"
 )
 
 // LogicMessageMatch defines the logic related to message matching.
@@ -61,6 +62,13 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 	var effectRows int64
 	err := t.db.Transaction(func(tx *gorm.DB) error {
 		for _, message := range messengerMessageMatches {
+			if layer == types.Layer1 {
+				message.L1BlockStatus = int(types.BlockStatusTypeValid)
+				message.L1BlockStatusUpdatedAt = utils.NowUTC()
+			} else {
+				message.L2BlockStatus = int(types.BlockStatusTypeValid)
+				message.L2BlockStatusUpdatedAt = utils.NowUTC()
+			}
 			effectRow, err := t.messengerMessageMatchOrm.InsertOrUpdateEventInfo(ctx, layer, message, tx)
 			if err != nil {
 				return fmt.Errorf("messenger event orm insert failed, err: %w, layer:%s", err, layer.String())
@@ -74,6 +82,13 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 		}
 
 		for _, message := range gatewayMessageMatches {
+			if layer == types.Layer1 {
+				message.L1BlockStatus = int(types.BlockStatusTypeValid)
+				message.L1BlockStatusUpdatedAt = utils.NowUTC()
+			} else {
+				message.L2BlockStatus = int(types.BlockStatusTypeValid)
+				message.L2BlockStatusUpdatedAt = utils.NowUTC()
+			}
 			effectRow, err := t.gatewayMessageMatchOrm.InsertOrUpdateEventInfo(ctx, layer, message, tx)
 			if err != nil {
 				return fmt.Errorf("gateway event orm insert failed, err: %w, layer:%s", err, layer.String())

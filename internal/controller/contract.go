@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -134,9 +135,9 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 	log.Info("contract controller start successful", "layer", layer.String(), "confirmation", confirmation)
 
 	// 1. get the max l1_number and l2_number
-	blockNumberInDB, err := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
-	if err != nil {
-		log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", err)
+	blockNumberInDB, getLastBlockErr := c.messageMatchLogic.GetLatestBlockNumber(ctx, layer)
+	if getLastBlockErr != nil {
+		log.Error("ContractController.Watch get latest block number failed", "layer", layer, "err", getLastBlockErr)
 		return
 	}
 	log.Info("Block process height in db", "layer", layer, "block number", blockNumberInDB)
@@ -160,9 +161,9 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		c.contractControllerRunningTotal.WithLabelValues(layer.String()).Inc()
 
 		// 2. get latest chain confirmation number
-		confirmationNumber, err := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
-		if err != nil {
-			log.Error("ContractController.watcherStart get latest confirmation block number failed", "layer", layer.String(), "err", err)
+		confirmationNumber, latestConfirmedBlockErr := utils.GetLatestConfirmedBlockNumber(ctx, client, confirmation)
+		if latestConfirmedBlockErr != nil {
+			log.Error("ContractController.watcherStart get latest confirmation block number failed", "layer", layer.String(), "err", latestConfirmedBlockErr)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -180,13 +181,15 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 		var eg errgroup.Group
 		loopStart := start
 		loopEnd := loopStart - 1
+		var mux sync.Mutex
+		var gatewayMessageMatches []orm.GatewayMessageMatch
+		var messengerMessageMatches []orm.MessengerMessageMatch
 		for i := 0; i < concurrency; i++ {
 			if loopStart > confirmationNumber {
 				log.Info("Watcher loop start block number > ConfirmationNumber",
 					"layer", layer.String(),
 					"startBlockNumber", loopStart,
 					"confirmationNumber", confirmationNumber,
-					"err", err,
 				)
 				time.Sleep(time.Second)
 				break
@@ -205,18 +208,31 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			c.contractControllerBlockNumber.WithLabelValues(layer.String()).Set(float64(currentEnd))
 
 			eg.Go(func() error {
+				var retGatewayMessageMatches []orm.GatewayMessageMatch
+				var retMessengerMessageMatches []orm.MessengerMessageMatch
+				var watchErr error
 				switch layer {
 				case types.Layer1:
-					return c.l1Watch(ctx, currentStart, currentEnd)
+					retGatewayMessageMatches, retMessengerMessageMatches, watchErr = c.l1Watch(ctx, currentStart, currentEnd)
+					if watchErr != nil {
+						return watchErr
+					}
 				case types.Layer2:
-					return c.l2Watch(ctx, currentStart, currentEnd)
+					retGatewayMessageMatches, retMessengerMessageMatches, watchErr = c.l2Watch(ctx, currentStart, currentEnd)
+					if watchErr != nil {
+						return watchErr
+					}
 				}
+				mux.Lock()
+				gatewayMessageMatches = append(gatewayMessageMatches, retGatewayMessageMatches...)
+				messengerMessageMatches = append(messengerMessageMatches, retMessengerMessageMatches...)
+				mux.Unlock()
 				return nil
 			})
 		}
 
-		if err = eg.Wait(); err != nil {
-			log.Error("error in watcher goroutine", "layer", layer, "err", err)
+		if egErr := eg.Wait(); egErr != nil {
+			log.Error("error in watcher goroutine", "layer", layer, "err", egErr)
 			continue
 		}
 
@@ -233,24 +249,22 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			}
 
 			// Update last valid message's withdraw trie proof and block status after check.
-			err = c.db.Transaction(func(tx *gorm.DB) error {
+			updateErr := c.db.Transaction(func(tx *gorm.DB) error {
 				if layer == types.Layer2 {
-					if err = c.messengerMessageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); err != nil {
-						return fmt.Errorf("insert or update msg proof and status failed, err: %w, message: %+v", err, lastMessage)
+					if updateMsgProofErr := c.messengerMessageMatchOrm.UpdateMsgProofAndStatus(ctx, lastMessage, tx); updateMsgProofErr != nil {
+						return fmt.Errorf("insert or update msg proof and status failed, err: %w, message: %+v", updateMsgProofErr, lastMessage)
 					}
 				}
 
-				if err = c.messengerMessageMatchOrm.UpdateBlockStatus(ctx, layer, start, loopEnd, tx); err != nil {
-					return fmt.Errorf("update block status failed, err: %w", err)
-				}
-
-				if err = c.gatewayMessageMatchOrm.UpdateBlockStatus(ctx, layer, start, loopEnd, tx); err != nil {
-					return fmt.Errorf("update block status failed, err: %w", err)
+				if insertEventErr := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, layer, gatewayMessageMatches, messengerMessageMatches); insertEventErr != nil {
+					c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
+					log.Error("insert message events failed", "layer", types.Layer1, "error", insertEventErr)
+					return insertEventErr
 				}
 				return nil
 			})
-			if err != nil {
-				log.Error("update db status after check failed", "layer", layer, "from", start, "end", loopEnd, "err", err)
+			if updateErr != nil {
+				log.Error("update db status after check failed", "layer", layer, "from", start, "end", loopEnd, "err", updateErr)
 				continue
 			}
 		}
@@ -260,7 +274,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 	}
 }
 
-func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint64) error {
+func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint64) ([]orm.GatewayMessageMatch, []orm.MessengerMessageMatch, error) {
 	log.Info("watching block number", "layer", types.Layer1, "start", start, "end", end)
 	opts := bind.FilterOpts{
 		Start:   start,
@@ -272,17 +286,17 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 	if err != nil {
 		c.contractControllerFilterGatewayIteratorFailureTotal.WithLabelValues(types.Layer1.String(), types.MessengerEventCategory.String()).Inc()
 		log.Error("get messenger iterator failed", "layer", types.Layer1, "eventCategory", types.MessengerEventCategory, "error", err)
-		return err
+		return nil, nil, err
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer1, types.MessengerEventCategory, messengerIterList)
 	messengerMessageMatches, err := c.messageMatchAssembler.MessageMatchAssembler(messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
-		return err
+		return nil, nil, err
 	}
 
 	if len(messengerMessageMatches) == 0 {
-		return nil
+		return nil, nil, nil
 	}
 
 	var l1GatewayMessageMatches []orm.GatewayMessageMatch
@@ -291,14 +305,14 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		if err != nil {
 			c.contractControllerFilterGatewayIteratorFailureTotal.WithLabelValues(types.Layer1.String(), eventCategory.String()).Inc()
 			log.Error("get contract iterator failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", err)
-			return err
+			return nil, nil, err
 		}
 
 		transferEvents, err := c.contractsLogic.GetGatewayTransfer(ctx, start, end, types.Layer1, eventCategory)
 		if err != nil {
 			c.contractControllerFilterTransferIteratorFailureTotal.WithLabelValues(types.Layer1.String(), "transfer").Inc()
 			log.Error("get gateway related transfer events failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", err)
-			return err
+			return nil, nil, err
 		}
 
 		// parse the gateway and messenger event data
@@ -314,19 +328,14 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		if checkErr != nil {
 			c.contractControllerGatewayCheckFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
 			log.Error("event matcher deal failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", checkErr)
-			return err
+			return nil, nil, err
 		}
 	}
 
-	if err := c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer1, l1GatewayMessageMatches, messengerMessageMatches); err != nil {
-		c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
-		log.Error("insert message events failed", "layer", types.Layer1, "error", err)
-		return err
-	}
-	return nil
+	return l1GatewayMessageMatches, messengerMessageMatches, nil
 }
 
-func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) error {
+func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint64) ([]orm.GatewayMessageMatch, []orm.MessengerMessageMatch, error) {
 	log.Info("watching block number", "layer", types.Layer2, "start", start, "end", end)
 	opts := bind.FilterOpts{
 		Start:   start,
@@ -338,17 +347,17 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 	if err != nil {
 		c.contractControllerFilterGatewayIteratorFailureTotal.WithLabelValues(types.Layer2.String(), types.MessengerEventCategory.String()).Inc()
 		log.Error("get messenger iterator failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
-		return err
+		return nil, nil, err
 	}
 	messengerEvents := c.eventGatherLogic.Dispatch(ctx, types.Layer2, types.MessengerEventCategory, messengerIterList)
 	messengerMessageMatches, err := c.messageMatchAssembler.MessageMatchAssembler(messengerEvents)
 	if err != nil {
 		log.Error("generate messenger message match failed", "layer", types.Layer2, "eventCategory", types.MessengerEventCategory, "error", err)
-		return err
+		return nil, nil, err
 	}
 
 	if len(messengerMessageMatches) == 0 {
-		return nil
+		return nil, nil, nil
 	}
 
 	var l2GatewayMessageMatches []orm.GatewayMessageMatch
@@ -358,7 +367,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		if err != nil {
 			c.contractControllerFilterGatewayIteratorFailureTotal.WithLabelValues(types.Layer2.String(), eventCategory.String()).Inc()
 			log.Error("get contract iterator failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", err)
-			return err
+			return nil, nil, err
 		}
 
 		var transferEvents []events.EventUnmarshaler
@@ -366,7 +375,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		if err != nil {
 			c.contractControllerFilterTransferIteratorFailureTotal.WithLabelValues(types.Layer2.String(), "transfer").Inc()
 			log.Error("get gateway related transfer events failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", err)
-			return err
+			return nil, nil, err
 		}
 
 		// parse the event data
@@ -382,14 +391,8 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		if checkErr != nil {
 			c.contractControllerGatewayCheckFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 			log.Error("event matcher deal failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", checkErr)
-			return err
+			return nil, nil, err
 		}
 	}
-
-	if err = c.messageMatchLogic.InsertOrUpdateMessageMatches(ctx, types.Layer2, l2GatewayMessageMatches, messengerMessageMatches); err != nil {
-		c.contractControllerUpdateOrInsertMessageMatchFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
-		log.Error("insert message events failed", "layer", types.Layer2, "error", err)
-		return err
-	}
-	return nil
+	return l2GatewayMessageMatches, messengerMessageMatches, nil
 }
