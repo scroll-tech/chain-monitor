@@ -31,7 +31,7 @@ type LogicMessengerCrossChain struct {
 	l2MessengerAddr     common.Address
 	checker             *MessengerCrossEventMatcher
 
-	crossChainETHCheckID  *prometheus.GaugeVec
+	crossChainETHTotal    *prometheus.CounterVec
 	startMessengerBalance uint64
 }
 
@@ -47,9 +47,9 @@ func NewLogicMessengerCrossChain(db *gorm.DB, l1Client, l2Client *ethclient.Clie
 		checker:               NewMessengerCrossEventMatcher(),
 		startMessengerBalance: startMessengerBalance,
 
-		crossChainETHCheckID: promauto.With(prometheus.DefaultRegisterer).NewGaugeVec(prometheus.GaugeOpts{
-			Name: "cross_chain_checked_eth_database_id",
-			Help: "the database id of cross chain eth checked",
+		crossChainETHTotal: promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
+			Name: "cross_chain_checked_eth_total",
+			Help: "the total of cross chain eth checked",
 		}, []string{"layer"}),
 	}
 }
@@ -255,7 +255,7 @@ func (c *LogicMessengerCrossChain) checkBlockBalanceOneByOne(ctx context.Context
 func (c *LogicMessengerCrossChain) checkBalance(layer types.LayerType, startBalance, endBalance *big.Int, messages []*orm.MessengerMessageMatch) (bool, *big.Int, *big.Int, error) {
 	balanceDiff := big.NewInt(0)
 	for _, message := range messages {
-		c.crossChainETHCheckID.WithLabelValues(layer.String()).Set(float64(message.ID))
+		c.crossChainETHTotal.WithLabelValues(layer.String()).Inc()
 
 		var amount *big.Int
 		var ok bool
