@@ -20,10 +20,10 @@ import (
 // This is because not every deposit/withdrawal event in the system will have a finalize event,
 // as users have the ability to refund deposits independently.
 type LogicGatewayCrossChain struct {
-	db                       *gorm.DB
-	gatewayMessageOrm        *orm.GatewayMessageMatch
-	checker                  *GatewayCrossEventMatcher
-	crossChainGatewayCheckID *prometheus.GaugeVec
+	db                          *gorm.DB
+	gatewayMessageOrm           *orm.GatewayMessageMatch
+	checker                     *GatewayCrossEventMatcher
+	crossChainGatewayCheckTotal *prometheus.CounterVec
 }
 
 // NewLogicGatewayCrossChain is a constructor for Logic.
@@ -33,9 +33,9 @@ func NewLogicGatewayCrossChain(db *gorm.DB) *LogicGatewayCrossChain {
 		checker:           NewGatewayCrossEventMatcher(),
 		gatewayMessageOrm: orm.NewGatewayMessageMatch(db),
 
-		crossChainGatewayCheckID: promauto.With(prometheus.DefaultRegisterer).NewGaugeVec(prometheus.GaugeOpts{
-			Name: "cross_chain_checked_gateway_event_database_id",
-			Help: "the database id of cross chain gateway checked",
+		crossChainGatewayCheckTotal: promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
+			Name: "cross_chain_checked_gateway_event_check_total",
+			Help: "the total number of cross chain gateway checked",
 		}, []string{"layer"}),
 	}
 }
@@ -57,7 +57,7 @@ func (c *LogicGatewayCrossChain) CheckCrossChainGatewayMessage(ctx context.Conte
 
 	var messageMatchIds []int64
 	for _, message := range messages {
-		c.crossChainGatewayCheckID.WithLabelValues(layerType.String()).Set(float64(message.ID))
+		c.crossChainGatewayCheckTotal.WithLabelValues(layerType.String()).Inc()
 		checkResult := c.checker.GatewayCrossChainCheck(layerType, message)
 		if checkResult == types.MismatchTypeValid {
 			messageMatchIds = append(messageMatchIds, message.ID)

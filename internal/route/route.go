@@ -1,24 +1,23 @@
 package route
 
 import (
-	"net/http"
-
-	// enable the pprof
-	_ "net/http/pprof"
-
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/scroll-tech/chain-monitor/internal/controller"
+	"github.com/scroll-tech/chain-monitor/internal/utils/observability"
 )
 
-// APIHandler routes the APIs
-func APIHandler(db *gorm.DB) http.Handler {
-	router := gin.New()
+// Route register route for coordinator
+func Route(router *gin.Engine) {
 	router.Use(gin.Recovery())
 
-	// use v1 version
-	v1(router.Group("/v1"), db)
-	return router
+	observability.Use(router, "chain_monitor", prometheus.DefaultRegisterer)
+
+	r := router.Group("/v1")
+
+	v1(r)
 }
 
-func v1(router *gin.RouterGroup, db *gorm.DB) {
+func v1(router *gin.RouterGroup) {
+	router.GET("/batch_status", controller.FinalizeBatchCtl.BatchStatus)
 }

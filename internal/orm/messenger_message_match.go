@@ -74,6 +74,18 @@ func (*MessengerMessageMatch) TableName() string {
 	return "messenger_message_match"
 }
 
+// GetBlocksStatus get block status which block number between startBlockNumber and endBlockNumber
+func (m *MessengerMessageMatch) GetBlocksStatus(ctx context.Context, startBlockNumber, endBlockNumber uint64) ([]MessengerMessageMatch, error) {
+	var messages []MessengerMessageMatch
+	db := m.db.WithContext(ctx)
+	db = db.Where("l2_block_number >= ? AND l2_block_number <= ?", startBlockNumber, endBlockNumber)
+	if err := db.Find(&messages).Error; err != nil {
+		log.Warn("MessengerMessageMatch.GetBlocksStatus failed", "error", err)
+		return nil, fmt.Errorf("MessengerMessageMatch.GetBlocksStatus failed err:%w", err)
+	}
+	return messages, nil
+}
+
 // GetUncheckedLatestETHMessageMatch get the latest uncheck eth message match records
 func (m *MessengerMessageMatch) GetUncheckedLatestETHMessageMatch(ctx context.Context, layer types.LayerType, limit int) ([]MessengerMessageMatch, error) {
 	var messages []MessengerMessageMatch

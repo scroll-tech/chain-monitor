@@ -1,6 +1,14 @@
 # chain-monitor
 
-It's a internal chain assets monitor service, call by api.
+Detect real-time threats and events on Scroll blockchains. chain monitor can
+detect ETH, ERC20, ERC721, ERC1155. As for erc20 can support WETH, StandardERC20,
+CustomERC20, USDC, DAI, LIDO.
+
+Detect features:
+1. L2 withdraw root message hash check.
+2. ERC20, ERC721, ERC1155's token id and amount check.
+3. ETH balance check.
+4. Event which happened on L1/L2 can match.
 
 # Dependencies
 

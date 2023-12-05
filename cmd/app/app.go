@@ -2,18 +2,24 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/scroll-tech/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
+	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/controller"
 	"github.com/scroll-tech/chain-monitor/internal/orm/migrate"
+	"github.com/scroll-tech/chain-monitor/internal/route"
 	"github.com/scroll-tech/chain-monitor/internal/utils"
 	"github.com/scroll-tech/chain-monitor/internal/utils/database"
 	"github.com/scroll-tech/chain-monitor/internal/utils/observability"
@@ -86,6 +92,10 @@ func action(ctx *cli.Context) error {
 	crossChainCtl := controller.NewCrossChainController(cfg, db, ethclient.NewClient(l1Client), ethclient.NewClient(l2Client))
 	crossChainCtl.Watch(subCtx)
 
+	apiSrv := apiServer(ctx, cfg, db)
+
+	log.Info("Start chain-monitor successfully.")
+
 	defer func() {
 		contractCtl.Stop()
 		crossChainCtl.Stop()
@@ -98,7 +108,40 @@ func action(ctx *cli.Context) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	<-interrupt
+
+	log.Info("start shutdown chain-monitor server ...")
+
+	closeCtx, cancelExit := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelExit()
+	if err = apiSrv.Shutdown(closeCtx); err != nil {
+		log.Warn("shutdown chain-monitor server failure", "error", err)
+		return nil
+	}
+
+	<-closeCtx.Done()
+	log.Info("chain-monitor server exiting success")
 	return nil
+}
+
+func apiServer(ctx *cli.Context, cfg *config.Config, db *gorm.DB) *http.Server {
+	log.Info("api controller start successful")
+
+	router := gin.New()
+	controller.InitAPI(cfg, db)
+	route.Route(router)
+	port := ctx.String(utils.HTTPPortFlag.Name)
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%s", port),
+		Handler:           router,
+		ReadHeaderTimeout: time.Minute,
+	}
+
+	go func() {
+		if runServerErr := srv.ListenAndServe(); runServerErr != nil && !errors.Is(runServerErr, http.ErrServerClosed) {
+			log.Crit("run coordinator http server failure", "error", runServerErr)
+		}
+	}()
+	return srv
 }
 
 // Run event watcher cmd instance.
