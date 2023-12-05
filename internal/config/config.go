@@ -72,7 +72,7 @@ type Config struct {
 	DBConfig    *database.Config    `json:"db_config"`
 }
 
-// NewConfig return a unmarshalled config instance.
+// NewConfig return an unmarshalled config instance.
 func NewConfig(file string) (*Config, error) {
 	data, err := os.ReadFile(filepath.Clean(file))
 	if err != nil {
