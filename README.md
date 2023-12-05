@@ -8,7 +8,7 @@ Detect features:
 1. L2 withdraw root message hash check.
 2. ERC20, ERC721, ERC1155's token id and amount check.
 3. ETH balance check.
-4. Event which happened on L1/L2 can match.
+4. Event that happened on L1/L2 can match.
 
 # Dependencies
 
