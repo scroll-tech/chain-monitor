@@ -35,7 +35,7 @@ func NewMessageMatchLogic(cfg *config.Config, db *gorm.DB) *LogicMessageMatch {
 // GetBlocksStatus get the status from start block number to end block number
 func (t *LogicMessageMatch) GetBlocksStatus(ctx context.Context, startBlockNumber, endBlockNumber uint64) (bool, bool) {
 	gatewayCheck := t.checkGateway(ctx, startBlockNumber, endBlockNumber)
-	messengerCheck := !t.checkMessenger(ctx, startBlockNumber, endBlockNumber)
+	messengerCheck := t.checkMessenger(ctx, startBlockNumber, endBlockNumber)
 	return gatewayCheck, messengerCheck
 }
 
