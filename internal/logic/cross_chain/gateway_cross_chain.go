@@ -63,6 +63,14 @@ func (c *LogicGatewayCrossChain) CheckCrossChainGatewayMessage(ctx context.Conte
 			messageMatchIds = append(messageMatchIds, message.ID)
 			continue
 		}
+		log.Error("checking cross chain gateway messages failed",
+			"layer", layerType.String(),
+			"l1_number", message.L1BlockNumber,
+			"l2_number", message.L2BlockNumber,
+			"l1_event_type", message.L1EventType,
+			"l2_event_type", message.L2EventType,
+			"mismatch_type", checkResult.String(),
+		)
 		slack.Notify(slack.MrkDwnGatewayCrossChainMessage(message, checkResult))
 	}
 
