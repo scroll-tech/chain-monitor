@@ -89,6 +89,7 @@ func (t *LogicMessageMatch) checkMessenger(ctx context.Context, startBlockNumber
 		if messengerMessageMatch.L2EventType == int(types.L2SentMessage) {
 			if messengerMessageMatch.L2BlockNumber == 0 ||
 				messengerMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
+				messengerMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
 				messengerMessageMatch.L2ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) {
 				return false
 			}
@@ -97,6 +98,8 @@ func (t *LogicMessageMatch) checkMessenger(ctx context.Context, startBlockNumber
 		if messengerMessageMatch.L1BlockNumber != 0 && messengerMessageMatch.L2BlockNumber != 0 {
 			if messengerMessageMatch.L1BlockStatus == int(types.BlockStatusTypeInvalid) ||
 				messengerMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
+				messengerMessageMatch.L1CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
+				messengerMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
 				messengerMessageMatch.L1ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) ||
 				messengerMessageMatch.L2ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) {
 				return false
