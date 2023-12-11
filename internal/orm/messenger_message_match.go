@@ -358,12 +358,16 @@ func (m *MessengerMessageMatch) UpdateETHBalance(ctx context.Context, layer type
 			"l1_messenger_eth_balance":         messageMatch.L1MessengerETHBalance,
 			"l1_eth_balance_status":            types.ETHBalanceStatusTypeValid,
 			"l1_eth_balance_status_updated_at": utils.NowUTC(),
+			"l1_cross_chain_status":            messageMatch.L1CrossChainStatus,
+			"l1_cross_chain_status_updated_at": utils.NowUTC(),
 		}
 	case types.Layer2:
 		updateFields = map[string]interface{}{
 			"l2_messenger_eth_balance":         messageMatch.L2MessengerETHBalance,
 			"l2_eth_balance_status":            types.ETHBalanceStatusTypeValid,
 			"l2_eth_balance_status_updated_at": utils.NowUTC(),
+			"l2_cross_chain_status":            messageMatch.L2CrossChainStatus,
+			"l2_cross_chain_status_updated_at": utils.NowUTC(),
 		}
 	}
 	if err := db.Updates(updateFields).Error; err != nil {

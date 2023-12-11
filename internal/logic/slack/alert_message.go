@@ -34,6 +34,11 @@ var (
 		Help: "The total number of alert cross chain eth event not match total.",
 	})
 
+	crossChainETHEventBalanceNotMatchTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_cross_chain_eth_event_balance_not_match_total",
+		Help: "The total number of alert cross chain eth event balance not match total.",
+	})
+
 	gatewayEventDuplicatedTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
 		Name: "slack_alert_gateway_event_duplicated_total",
 		Help: "The total number of alert gateway event duplicated.",
@@ -122,9 +127,28 @@ func MrkDwnGatewayCrossChainMessage(message orm.GatewayMessageMatch, checkResult
 	return buffer.String()
 }
 
+// MrkDwnETHCrossChainMessage make the markdown message of cross chain alert message
+func MrkDwnETHCrossChainMessage(message orm.MessengerMessageMatch, checkResult types.MismatchType) string {
+	crossChainETHEventNotMatchTotal.Inc()
+
+	var buffer bytes.Buffer
+	buffer.WriteString("\n:bangbang: ")
+	buffer.WriteString("*Cross chain messenger event check failed*\n")
+	buffer.WriteString(fmt.Sprintf("• database id: %d\n", message.ID))
+	buffer.WriteString(fmt.Sprintf("• l1 event type: %s\n", types.EventType(message.L1EventType).String()))
+	buffer.WriteString(fmt.Sprintf("• l2 event type: %s\n", types.EventType(message.L2EventType).String()))
+	buffer.WriteString(fmt.Sprintf("• mismatch type: %s\n", checkResult.String()))
+	buffer.WriteString(fmt.Sprintf("• l1 block number: %d\n", message.L1BlockNumber))
+	buffer.WriteString(fmt.Sprintf("• l2 block number: %d\n", message.L2BlockNumber))
+	buffer.WriteString(fmt.Sprintf("• l1 tx_hash: %s\n", message.L1TxHash))
+	buffer.WriteString(fmt.Sprintf("• l2 tx_hash: %s\n", message.L2TxHash))
+	buffer.WriteString(fmt.Sprintf("• msg_hash: %s\n", message.MessageHash))
+	return buffer.String()
+}
+
 // MrkDwnETHGatewayMessage make the markdown message of cross chain eth alert message
 func MrkDwnETHGatewayMessage(message *orm.MessengerMessageMatch, expectedEndBalance, actualEndBalance *big.Int) string {
-	crossChainETHEventNotMatchTotal.Inc()
+	crossChainETHEventBalanceNotMatchTotal.Inc()
 
 	var buffer bytes.Buffer
 	buffer.WriteString("\n:bangbang: ")

@@ -67,6 +67,11 @@ func (c *MessageMatchAssembler) checkL2WithdrawRoots(ctx context.Context, startB
 				LastWithdrawRoot:     lastWithdrawRoot,
 				ExpectedWithdrawRoot: withdrawRoots[blockNum],
 			}
+			log.Error("withdraw root mismatch",
+				"block number", blockNum,
+				"got", lastWithdrawRoot,
+				"except", withdrawRoots[blockNum],
+			)
 			slack.Notify(slack.MrkDwnWithdrawRootMessage(info))
 			return nil, fmt.Errorf("withdraw root mismatch in %v, got: %v, expected %v", blockNum, lastWithdrawRoot, withdrawRoots[blockNum])
 		}

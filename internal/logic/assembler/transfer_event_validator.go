@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/log"
 
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
@@ -127,6 +128,13 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				info.Error = transferEventBalanceMismatchGatewayEvent
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
+			log.Error("erc20 gateway and transfer not match",
+				"token address", info.TokenAddress.Hex(),
+				"block number", info.BlockNumber,
+				"transfer balance", info.TransferBalance.String(),
+				"gateway balance", info.GatewayBalance.String(),
+				"err info", info.Error,
+			)
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 			return fmt.Errorf("balance mismatch for token %s: transfer balance = %s, gateway balance = %s, info = %v",
 				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String(), info)
@@ -154,6 +162,13 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				info.Error = gatewayEventBalanceMismatchTransferEvent
 				info.TransferBalance = transferMatcherValue.balance
 			}
+			log.Error("erc20 gateway and transfer not match",
+				"token address", info.TokenAddress.Hex(),
+				"block number", info.BlockNumber,
+				"transfer balance", info.TransferBalance.String(),
+				"gateway balance", info.GatewayBalance.String(),
+				"err info", info.Error,
+			)
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 			return fmt.Errorf("balance mismatch for token %s: gateway balance = %s, transfer balance = %s, info = %v",
 				info.TokenAddress.Hex(), info.GatewayBalance.String(), info.TransferBalance.String(), info)
@@ -254,6 +269,13 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 				info.Error = transferEventBalanceMismatchGatewayEvent
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
+			log.Error("erc721 gateway and transfer not match",
+				"token address", info.TokenAddress.Hex(),
+				"block number", info.BlockNumber,
+				"transfer balance", info.TransferBalance.String(),
+				"gateway balance", info.GatewayBalance.String(),
+				"err info", info.Error,
+			)
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 			return fmt.Errorf("erc721 mismatch for tokenAddress %s: transfer amount = %s, gateway amount = %s",
 				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String())
@@ -281,6 +303,13 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 				info.Error = gatewayEventBalanceMismatchTransferEvent
 				info.TransferBalance = transferMatcherValue.balance
 			}
+			log.Error("erc721 gateway and transfer not match",
+				"token address", info.TokenAddress.Hex(),
+				"block number", info.BlockNumber,
+				"transfer balance", info.TransferBalance.String(),
+				"gateway balance", info.GatewayBalance.String(),
+				"err info", info.Error,
+			)
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 			return fmt.Errorf("erc721 mismatch for tokenAddress %s: gateway amount = %s, transfer amount = %s",
 				info.TokenAddress.Hex(), info.GatewayBalance.String(), info.TransferBalance.String())
@@ -380,6 +409,13 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				info.Error = transferEventBalanceMismatchGatewayEvent
 				info.GatewayBalance = gatewayMatcherValue.balance
 			}
+			log.Error("erc1155 gateway and transfer not match",
+				"token address", info.TokenAddress.Hex(),
+				"block number", info.BlockNumber,
+				"transfer balance", info.TransferBalance.String(),
+				"gateway balance", info.GatewayBalance.String(),
+				"err info", info.Error,
+			)
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 			return fmt.Errorf("erc1155 mismatch for tokenAddress %s: transfer amount = %s, gateway amount = %s",
 				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String())
@@ -407,6 +443,13 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				info.Error = gatewayEventBalanceMismatchTransferEvent
 				info.TransferBalance = transferMatcherValue.balance
 			}
+			log.Error("erc1155 gateway and transfer not match",
+				"token address", info.TokenAddress.Hex(),
+				"block number", info.BlockNumber,
+				"transfer balance", info.TransferBalance.String(),
+				"gateway balance", info.GatewayBalance.String(),
+				"err info", info.Error,
+			)
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 			return fmt.Errorf("erc1155 mismatch for token %s: gateway amount = %s, transfer amount = %s",
 				info.TokenAddress.Hex(), info.GatewayBalance.String(), info.TransferBalance.String())

@@ -202,8 +202,6 @@ func (c *LogicMessengerCrossChain) checkBlockBalanceOneByOne(ctx context.Context
 	var startBalance *big.Int
 	var startIndex int
 	for idx, message := range messages {
-		c.checker.MessengerCrossChainCheck(layer, message)
-
 		var blockNumber uint64
 		if layer == types.Layer1 {
 			blockNumber = message.L1BlockNumber
@@ -297,8 +295,6 @@ func (c *LogicMessengerCrossChain) checkBalance(layer types.LayerType, startBala
 func (c *LogicMessengerCrossChain) computeBlockBalance(ctx context.Context, layer types.LayerType, messages []*orm.MessengerMessageMatch, messengerETHBalance *big.Int) {
 	blockNumberAmountMap := make(map[uint64]*big.Int)
 	for _, message := range messages {
-		c.checker.MessengerCrossChainCheck(layer, message)
-
 		if layer == types.Layer1 {
 			if _, ok := blockNumberAmountMap[message.L1BlockNumber]; !ok {
 				blockNumberAmountMap[message.L1BlockNumber] = new(big.Int)
@@ -344,6 +340,21 @@ func (c *LogicMessengerCrossChain) computeBlockBalance(ctx context.Context, laye
 	lastBlockBalance := new(big.Int).Set(messengerETHBalance)
 	lastBlockNumber := uint64(0)
 	for _, v := range messages {
+		crossChainStatus := types.CrossChainStatusTypeValid
+		crossCheckMatchResult := c.checker.MessengerCrossChainCheck(layer, v)
+		if crossCheckMatchResult != types.MismatchTypeValid {
+			crossChainStatus = types.CrossChainStatusTypeInvalid
+			log.Error("checking cross chain eth event messages failed",
+				"layer", layer.String(),
+				"l1_number", v.L1BlockNumber,
+				"l2_number", v.L2BlockNumber,
+				"l1_event_type", v.L1EventType,
+				"l2_event_type", v.L2EventType,
+				"mismatch_type", crossCheckMatchResult.String(),
+			)
+			slack.Notify(slack.MrkDwnETHCrossChainMessage(*v, crossCheckMatchResult))
+		}
+
 		blockNumber := v.L1BlockNumber
 		if layer == types.Layer2 {
 			blockNumber = v.L2BlockNumber
@@ -357,9 +368,11 @@ func (c *LogicMessengerCrossChain) computeBlockBalance(ctx context.Context, laye
 		// update the db
 		mm := orm.MessengerMessageMatch{ID: v.ID}
 		if layer == types.Layer1 {
+			mm.L1CrossChainStatus = int(crossChainStatus)
 			mm.L1MessengerETHBalance = decimal.NewFromBigInt(lastBlockBalance, 0)
 			mm.L1ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)
 		} else {
+			mm.L2CrossChainStatus = int(crossChainStatus)
 			mm.L2MessengerETHBalance = decimal.NewFromBigInt(lastBlockBalance, 0)
 			mm.L2ETHBalanceStatus = int(types.ETHBalanceStatusTypeValid)
 		}
