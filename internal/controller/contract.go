@@ -143,6 +143,10 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 	log.Info("Block process height in db", "layer", layer, "block number", blockNumberInDB)
 	start := blockNumberInDB + 1
 
+	if layer == types.Layer2 {
+		l2CurrentMaxBlockNumber.Store(blockNumberInDB)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -266,6 +270,10 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			if updateErr != nil {
 				log.Error("update db status after check failed", "layer", layer, "from", start, "end", loopEnd, "err", updateErr)
 				continue
+			}
+
+			if layer == types.Layer2 {
+				l2CurrentMaxBlockNumber.Store(loopEnd)
 			}
 		}
 

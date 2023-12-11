@@ -1,9 +1,14 @@
 package controller
 
 import (
-	"github.com/scroll-tech/chain-monitor/internal/config"
+	"sync/atomic"
+
 	"gorm.io/gorm"
+
+	"github.com/scroll-tech/chain-monitor/internal/config"
 )
+
+var l2CurrentMaxBlockNumber atomic.Uint64
 
 // FinalizeBatchCtl the Finalize batch handler
 var FinalizeBatchCtl *FinalizeBatchCheckController

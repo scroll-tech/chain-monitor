@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/scroll-tech/go-ethereum/log"
 	"gorm.io/gorm"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
@@ -43,6 +44,20 @@ func (f *FinalizeBatchCheckController) BatchStatus(ctx *gin.Context) {
 	var finalizeBatchParam types.FinalizeBatchCheckParam
 	err := ctx.ShouldBind(&finalizeBatchParam)
 	if err != nil {
+		log.Error("batch status failed", "error", err)
+		types.RenderJSON(ctx, types.ErrParameterInvalidNo, err, nil)
+		return
+	}
+
+	// because the l2CurrentMaxBlockNumber updated after the contract watcher loop, the block number less than l2CurrentMaxBlockNumber must
+	// have insert to db (If block's event aligns with the event being observed). So, if rollup's query block number less than l2CurrentMaxBlockNumber,
+	// chain_monitor have checked the status of these blocks.
+	if finalizeBatchParam.StartBlockNumber > l2CurrentMaxBlockNumber.Load() || finalizeBatchParam.EndBlockNumber > l2CurrentMaxBlockNumber.Load() {
+		log.Error("batch status failed for query number large than current l2 block number",
+			"current l2 block number", l2CurrentMaxBlockNumber.Load(),
+			"start number", finalizeBatchParam.StartBlockNumber,
+			"end number", finalizeBatchParam.EndBlockNumber,
+		)
 		types.RenderJSON(ctx, types.ErrParameterInvalidNo, err, nil)
 		return
 	}
