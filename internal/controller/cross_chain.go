@@ -58,27 +58,27 @@ func (c *CrossChainController) Stop() {
 func (c *CrossChainController) watcherStart(ctx context.Context, layer types.LayerType) {
 	log.Info("cross chain controller start successful", "layer", layer.String())
 
+	tick := time.NewTicker(2 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
+			tick.Stop()
 			if ctx.Err() != nil {
 				log.Error("CrossChainController watch canceled with error", "layer", layer.String(), "error", ctx.Err())
 			}
 			return
 		case <-c.stopL1CrossChainChan:
+			tick.Stop()
 			log.Info("CrossChainController l1 the run loop exit", "layer", layer.String())
 			return
 		case <-c.stopL2CrossChainChan:
+			tick.Stop()
 			log.Info("CrossChainController l2 the run loop exit", "layer", layer.String())
-		default:
+			return
+		case <-tick.C:
+			c.crossChainControllerRunningTotal.WithLabelValues(layer.String()).Inc()
+			c.gatewayCrossChainLogic.CheckCrossChainGatewayMessage(ctx, layer)
+			c.messengerCrossChainLogic.CheckETHBalance(ctx, layer)
 		}
-
-		c.crossChainControllerRunningTotal.WithLabelValues(layer.String()).Inc()
-
-		c.gatewayCrossChainLogic.CheckCrossChainGatewayMessage(ctx, layer)
-		c.messengerCrossChainLogic.CheckETHBalance(ctx, layer)
-
-		// To prevent frequent database access, obtaining empty values.
-		time.Sleep(10 * time.Second)
 	}
 }
