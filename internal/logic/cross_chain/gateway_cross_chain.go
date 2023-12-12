@@ -2,7 +2,6 @@ package crosschain
 
 import (
 	"context"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -49,7 +48,6 @@ func (c *LogicGatewayCrossChain) CheckCrossChainGatewayMessage(ctx context.Conte
 	}
 
 	if len(messages) == 0 {
-		time.Sleep(time.Second)
 		return
 	}
 
