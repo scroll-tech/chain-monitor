@@ -172,7 +172,7 @@ func (c *LogicMessengerCrossChain) checkETH(ctx context.Context, layer types.Lay
 
 	// because balanceAt can't get the too early block balance, so only can compute the locally l1 messenger balance and
 	// update the l1_messenger_eth_balance/l2_messenger_eth_balance
-	if layer == types.Layer1 && endBlockNumber+ethBalanceGap < latestBlockNumber {
+	if layer == types.Layer1 && startBlockNumber+ethBalanceGap < latestBlockNumber {
 		c.computeBlockBalance(ctx, layer, messages, startBalance)
 		return
 	}
@@ -211,7 +211,7 @@ func (c *LogicMessengerCrossChain) checkBlockBalanceOneByOne(ctx context.Context
 
 		tmpBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
 		if err != nil {
-			log.Error("get balance failed", "block number", blockNumber, "err", err)
+			log.Error("get balance failed", "layer", layer, "block number", blockNumber, "err", err)
 			continue
 		}
 
@@ -244,7 +244,7 @@ func (c *LogicMessengerCrossChain) checkBlockBalanceOneByOne(ctx context.Context
 		ok, expectedEndBalance, actualBalance, err := c.checkBalance(layer, startBalance, endBalance, messages[startIndex:i+1])
 		if !ok || err != nil {
 			log.Error("balance check failed", "block", blockNumber, "expectedEndBalance", expectedEndBalance.String(), "actualBalance", actualBalance.String())
-			slack.MrkDwnETHGatewayMessage(messages[i], expectedEndBalance, actualBalance)
+			slack.Notify(slack.MrkDwnETHGatewayMessage(messages[i], expectedEndBalance, actualBalance))
 			continue
 		}
 	}
