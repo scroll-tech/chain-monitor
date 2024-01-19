@@ -9,7 +9,6 @@ RUN cd /chain-monitor && \
 
 # Pull Geth into a second stage deploy alpine container
 FROM alpine:latest
-
+WORKDIR /app
 COPY --from=builder /chain-monitor/build/bin/chain-monitor /bin/
-
 ENTRYPOINT ["chain-monitor"]
