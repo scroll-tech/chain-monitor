@@ -27,7 +27,6 @@ type l2Contracts struct {
 	erc721GatewayAddress  common.Address
 	ERC1155Gateway        *il2erc1155gateway.Il2erc1155gateway
 	ERC1155GatewayAddress common.Address
-	WETHGatewayAddress    common.Address
 }
 
 func newL2Contracts(c *ethclient.Client) *l2Contracts {
@@ -58,9 +57,6 @@ func (l *l2Contracts) register(conf *config.Config) error {
 	}
 
 	for _, gw := range erc20Gateways {
-		if gw.Token == types.WETH {
-			l.WETHGatewayAddress = gw.Address
-		}
 		if err := l.registerERC20Gateway(gw.Address, gw.Token); err != nil {
 			log.Error("registerERC20Gateway failed", "address", gw.Address, "token", gw.Token, "err", err)
 			return err
