@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - v**
-    branches:
-      - v**
 
 env:
   AWS_REGION: us-west-2
