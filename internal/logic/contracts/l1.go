@@ -59,6 +59,7 @@ func (l *l1Contracts) register(conf *config.Config) error {
 		{conf.L1Config.L1Contracts.DAIGateway, types.DAI},
 		{conf.L1Config.L1Contracts.USDCGateway, types.USDC},
 		{conf.L1Config.L1Contracts.LIDOGateway, types.LIDO},
+		{conf.L1Config.L1Contracts.PufferGateway, types.PUFETH},
 	}
 
 	for _, gw := range erc20Gateways {
