@@ -20,6 +20,7 @@ type Gateway struct {
 	DAIGateway           common.Address `json:"dai_gateway"`
 	USDCGateway          common.Address `json:"usdc_gateway"`
 	LIDOGateway          common.Address `json:"lido_gateway"`
+	PUFFERGateway        common.Address `json:"puffer_gateway"`
 
 	// erc721
 	ERC721Gateway common.Address `json:"erc721_gateway"`

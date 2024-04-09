@@ -20,4 +20,6 @@ const (
 	DAI
 	// LIDO represents Lido DAO token.
 	LIDO
+	// PUFETH represents pufETH.
+	PUFETH
 )
