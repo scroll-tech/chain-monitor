@@ -15,11 +15,12 @@ func _() {
 	_ = x[USDC-4]
 	_ = x[DAI-5]
 	_ = x[LIDO-6]
+	_ = x[PUFETH-7]
 }
 
-const _ERC20_name = "ERC20UnknownWETHStandardERC20CustomERC20USDCDAILIDO"
+const _ERC20_name = "ERC20UnknownWETHStandardERC20CustomERC20USDCDAILIDOPUFETH"
 
-var _ERC20_index = [...]uint8{0, 12, 16, 29, 40, 44, 47, 51}
+var _ERC20_index = [...]uint8{0, 12, 16, 29, 40, 44, 47, 51, 57}
 
 func (i ERC20) String() string {
 	if i < 0 || i >= ERC20(len(_ERC20_index)-1) {
