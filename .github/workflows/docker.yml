@@ -44,6 +44,7 @@ jobs:
           REPOSITORY: chain-monitorv2
           IMAGE_TAG: ${{ github.ref_name }}
         with:
+          platforms: linux/amd64,linux/arm64
           context: .
           file: Dockerfile
           push: true
