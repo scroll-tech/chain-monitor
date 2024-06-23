@@ -2,6 +2,7 @@ package messagematch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/scroll-tech/go-ethereum/log"
@@ -154,7 +155,7 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 
 			if effectRow == 0 {
 				slack.Notify(slack.MrkDwnMessengerMessageMatchDuplicated(layer, message))
-				return fmt.Errorf("messenger event orm insert duplicated")
+				return errors.New("messenger event orm insert duplicated")
 			}
 			effectRows += effectRow
 		}
@@ -174,7 +175,7 @@ func (t *LogicMessageMatch) InsertOrUpdateMessageMatches(ctx context.Context, la
 
 			if effectRow == 0 {
 				slack.Notify(slack.MrkDwnGatewayMessageMatchDuplicated(layer, message))
-				return fmt.Errorf("gateway event orm insert duplicated")
+				return errors.New("gateway event orm insert duplicated")
 			}
 			effectRows += effectRow
 		}
