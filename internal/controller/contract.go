@@ -336,7 +336,7 @@ func (c *ContractController) l1Watch(ctx context.Context, start uint64, end uint
 		if checkErr != nil {
 			c.contractControllerGatewayCheckFailureTotal.WithLabelValues(types.Layer1.String()).Inc()
 			log.Error("event matcher deal failed", "layer", types.Layer1, "eventCategory", eventCategory, "error", checkErr)
-			return nil, nil, err
+			return nil, nil, checkErr
 		}
 	}
 
@@ -399,7 +399,7 @@ func (c *ContractController) l2Watch(ctx context.Context, start uint64, end uint
 		if checkErr != nil {
 			c.contractControllerGatewayCheckFailureTotal.WithLabelValues(types.Layer2.String()).Inc()
 			log.Error("event matcher deal failed", "layer", types.Layer2, "eventCategory", eventCategory, "error", checkErr)
-			return nil, nil, err
+			return nil, nil, checkErr
 		}
 	}
 	return l2GatewayMessageMatches, messengerMessageMatches, nil
