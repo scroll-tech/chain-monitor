@@ -58,6 +58,11 @@ func (t *LogicMessageMatch) checkGateway(ctx context.Context, startBlockNumber, 
 			gatewayMessageMatch.L2EventType == int(types.L2BatchWithdrawERC1155) {
 			if gatewayMessageMatch.L2BlockNumber == 0 ||
 				gatewayMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) {
+				log.Error("Gateway check failed",
+					"ID", gatewayMessageMatch.ID,
+					"L2EventType", gatewayMessageMatch.L2EventType,
+					"L2BlockNumber", gatewayMessageMatch.L2BlockNumber,
+					"L2BlockStatus", gatewayMessageMatch.L2BlockStatus)
 				return false
 			}
 		}
@@ -67,6 +72,12 @@ func (t *LogicMessageMatch) checkGateway(ctx context.Context, startBlockNumber, 
 				gatewayMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
 				gatewayMessageMatch.L1CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
 				gatewayMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) {
+				log.Error("Gateway check failed",
+					"ID", gatewayMessageMatch.ID,
+					"L1BlockStatus", gatewayMessageMatch.L1BlockStatus,
+					"L2BlockStatus", gatewayMessageMatch.L2BlockStatus,
+					"L1CrossChainStatus", gatewayMessageMatch.L1CrossChainStatus,
+					"L2CrossChainStatus", gatewayMessageMatch.L2CrossChainStatus)
 				return false
 			}
 		}
@@ -91,6 +102,12 @@ func (t *LogicMessageMatch) checkMessenger(ctx context.Context, startBlockNumber
 				messengerMessageMatch.L2BlockStatus == int(types.BlockStatusTypeInvalid) ||
 				messengerMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
 				messengerMessageMatch.L2ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) {
+				log.Error("Messenger check failed",
+					"ID", messengerMessageMatch.ID,
+					"L2BlockNumber", messengerMessageMatch.L2BlockNumber,
+					"L2BlockStatus", messengerMessageMatch.L2BlockStatus,
+					"L2CrossChainStatus", messengerMessageMatch.L2CrossChainStatus,
+					"L2ETHBalanceStatus", messengerMessageMatch.L2ETHBalanceStatus)
 				return false
 			}
 		}
@@ -102,6 +119,14 @@ func (t *LogicMessageMatch) checkMessenger(ctx context.Context, startBlockNumber
 				messengerMessageMatch.L2CrossChainStatus == int(types.CrossChainStatusTypeInvalid) ||
 				messengerMessageMatch.L1ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) ||
 				messengerMessageMatch.L2ETHBalanceStatus == int(types.ETHBalanceStatusTypeInvalid) {
+				log.Error("Messenger check failed",
+					"ID", messengerMessageMatch.ID,
+					"L1BlockStatus", messengerMessageMatch.L1BlockStatus,
+					"L2BlockStatus", messengerMessageMatch.L2BlockStatus,
+					"L1CrossChainStatus", messengerMessageMatch.L1CrossChainStatus,
+					"L2CrossChainStatus", messengerMessageMatch.L2CrossChainStatus,
+					"L1ETHBalanceStatus", messengerMessageMatch.L1ETHBalanceStatus,
+					"L2ETHBalanceStatus", messengerMessageMatch.L2ETHBalanceStatus)
 				return false
 			}
 		}
