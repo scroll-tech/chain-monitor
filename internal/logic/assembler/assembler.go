@@ -8,6 +8,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/rpc"
 	"gorm.io/gorm"
 
+	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
@@ -27,11 +28,13 @@ type MessageMatchAssembler struct {
 }
 
 // NewMessageMatchAssembler returns a new message match instance.
-func NewMessageMatchAssembler(db *gorm.DB) *MessageMatchAssembler {
-	return &MessageMatchAssembler{
+func NewMessageMatchAssembler(conf *config.Config, db *gorm.DB) *MessageMatchAssembler {
+	m := &MessageMatchAssembler{
 		messengerMessageMatchOrm: orm.NewMessengerMessageMatch(db),
-		transferMatcher:          NewTransferEventMatcher(),
+		transferMatcher:          NewTransferEventMatcher(conf),
 	}
+
+	return m
 }
 
 // GatewayMessageAssembler assembles the gateway events.

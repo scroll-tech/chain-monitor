@@ -7,6 +7,7 @@ import (
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/log"
 
+	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/logic/events"
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/types"
@@ -47,11 +48,24 @@ type matcherValue struct {
 }
 
 // TransferEventMatcher checks the existence of an event and consistency of the transferred amount.
-type TransferEventMatcher struct{}
+type TransferEventMatcher struct {
+	l1IgnoredTokens map[common.Address]struct{}
+	l2IgnoredTokens map[common.Address]struct{}
+}
 
 // NewTransferEventMatcher creates a new instance of TransferEventMatcher.
-func NewTransferEventMatcher() *TransferEventMatcher {
-	return &TransferEventMatcher{}
+func NewTransferEventMatcher(conf *config.Config) *TransferEventMatcher {
+	t := &TransferEventMatcher{}
+
+	for _, token := range conf.L1Config.IgnoredTokens {
+		t.l1IgnoredTokens[token] = struct{}{}
+	}
+
+	for _, token := range conf.L2Config.IgnoredTokens {
+		t.l2IgnoredTokens[token] = struct{}{}
+	}
+
+	return t
 }
 
 func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []events.ERC20GatewayEventUnmarshaler) error {
@@ -135,9 +149,7 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				"gateway balance", info.GatewayBalance.String(),
 				"err info", info.Error,
 			)
-			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("balance mismatch for token %s: transfer balance = %s, gateway balance = %s, info = %v",
-				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String(), info)
+			return t.sendSlackAlert(info)
 		}
 	}
 
@@ -169,9 +181,7 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				"gateway balance", info.GatewayBalance.String(),
 				"err info", info.Error,
 			)
-			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("balance mismatch for token %s: gateway balance = %s, transfer balance = %s, info = %v",
-				info.TokenAddress.Hex(), info.GatewayBalance.String(), info.TransferBalance.String(), info)
+			return t.sendSlackAlert(info)
 		}
 	}
 	return nil
@@ -276,9 +286,7 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 				"gateway balance", info.GatewayBalance.String(),
 				"err info", info.Error,
 			)
-			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("erc721 mismatch for tokenAddress %s: transfer amount = %s, gateway amount = %s",
-				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String())
+			return t.sendSlackAlert(info)
 		}
 	}
 
@@ -310,9 +318,7 @@ func (t *TransferEventMatcher) erc721Matcher(transferEvents, gatewayEvents []eve
 				"gateway balance", info.GatewayBalance.String(),
 				"err info", info.Error,
 			)
-			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("erc721 mismatch for tokenAddress %s: gateway amount = %s, transfer amount = %s",
-				info.TokenAddress.Hex(), info.GatewayBalance.String(), info.TransferBalance.String())
+			return t.sendSlackAlert(info)
 		}
 	}
 
@@ -416,9 +422,7 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				"gateway balance", info.GatewayBalance.String(),
 				"err info", info.Error,
 			)
-			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("erc1155 mismatch for tokenAddress %s: transfer amount = %s, gateway amount = %s",
-				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String())
+			return t.sendSlackAlert(info)
 		}
 	}
 
@@ -450,11 +454,34 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 				"gateway balance", info.GatewayBalance.String(),
 				"err info", info.Error,
 			)
-			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("erc1155 mismatch for token %s: gateway amount = %s, transfer amount = %s",
-				info.TokenAddress.Hex(), info.GatewayBalance.String(), info.TransferBalance.String())
+			return t.sendSlackAlert(info)
 		}
 	}
 
 	return nil
+}
+
+func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) error {
+	info.TokenIgnored = t.isTokenIgnored(info.Layer, info.TokenAddress)
+	slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
+	if info.TokenIgnored {
+		return nil
+	}
+	return fmt.Errorf("balance mismatch for token %s, token type = %s, transfer amount = %s, gateway amount = %s, info = %v",
+		info.TokenAddress.Hex(), info.TokenType.String(), info.TransferBalance.String(), info.GatewayBalance.String(), info)
+}
+
+func (t *TransferEventMatcher) isTokenIgnored(layer types.LayerType, tokenAddress common.Address) bool {
+	if layer == types.Layer2 {
+		if _, ok := t.l2IgnoredTokens[tokenAddress]; ok {
+			log.Warn("l2 token is ignored", "token address", tokenAddress.Hex())
+			return true
+		}
+	} else {
+		if _, ok := t.l1IgnoredTokens[tokenAddress]; ok {
+			log.Warn("l1 token is ignored", "token address", tokenAddress.Hex())
+			return true
+		}
+	}
+	return false
 }

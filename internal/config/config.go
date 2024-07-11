@@ -39,9 +39,10 @@ type L1Contracts struct {
 type L1Config struct {
 	L1URL                 string `json:"l1_url"`
 	Confirm               rpc.BlockNumber
-	L1Contracts           *L1Contracts `json:"l1_contracts"`
-	StartNumber           uint64       `json:"start_number"`
-	StartMessengerBalance uint64       `json:"start_messenger_balance"`
+	L1Contracts           *L1Contracts     `json:"l1_contracts"`
+	StartNumber           uint64           `json:"start_number"`
+	StartMessengerBalance uint64           `json:"start_messenger_balance"`
+	IgnoredTokens         []common.Address `json:"ignored_tokens"`
 }
 
 // L2Contracts l1chain config.
@@ -53,9 +54,10 @@ type L2Contracts struct {
 
 // L2Config l1 chain config.
 type L2Config struct {
-	L2URL       string `json:"l2_url"`
-	Confirm     rpc.BlockNumber
-	L2Contracts *L2Contracts `json:"l2_contracts"`
+	L2URL         string `json:"l2_url"`
+	Confirm       rpc.BlockNumber
+	L2Contracts   *L2Contracts     `json:"l2_contracts"`
+	IgnoredTokens []common.Address `json:"ignored_tokens"`
 }
 
 // SlackWebhookConfig slack webhook config.
