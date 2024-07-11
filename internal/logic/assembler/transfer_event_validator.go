@@ -55,7 +55,10 @@ type TransferEventMatcher struct {
 
 // NewTransferEventMatcher creates a new instance of TransferEventMatcher.
 func NewTransferEventMatcher(conf *config.Config) *TransferEventMatcher {
-	t := &TransferEventMatcher{}
+	t := &TransferEventMatcher{
+		l1IgnoredTokens: make(map[common.Address]struct{}),
+		l2IgnoredTokens: make(map[common.Address]struct{}),
+	}
 
 	for _, token := range conf.L1Config.IgnoredTokens {
 		t.l1IgnoredTokens[token] = struct{}{}
@@ -64,6 +67,9 @@ func NewTransferEventMatcher(conf *config.Config) *TransferEventMatcher {
 	for _, token := range conf.L2Config.IgnoredTokens {
 		t.l2IgnoredTokens[token] = struct{}{}
 	}
+
+	// Log the ignored tokens
+	log.Info("Ignored Tokens", "L1", t.l1IgnoredTokens, "L2", t.l2IgnoredTokens)
 
 	return t
 }
