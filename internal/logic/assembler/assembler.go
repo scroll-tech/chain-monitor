@@ -29,12 +29,10 @@ type MessageMatchAssembler struct {
 
 // NewMessageMatchAssembler returns a new message match instance.
 func NewMessageMatchAssembler(conf *config.Config, db *gorm.DB) *MessageMatchAssembler {
-	m := &MessageMatchAssembler{
+	return &MessageMatchAssembler{
 		messengerMessageMatchOrm: orm.NewMessengerMessageMatch(db),
 		transferMatcher:          NewTransferEventMatcher(conf),
 	}
-
-	return m
 }
 
 // GatewayMessageAssembler assembles the gateway events.
