@@ -159,6 +159,7 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 			return
 		case <-c.stopL2ContractChan:
 			log.Info("ContractController l2 watch the run loop exit")
+			return
 		default:
 		}
 
