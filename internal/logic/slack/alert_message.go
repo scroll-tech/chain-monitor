@@ -62,6 +62,7 @@ type GatewayTransferInfo struct {
 	Error           string
 	TransferBalance *big.Int
 	GatewayBalance  *big.Int
+	TokenIgnored    bool
 }
 
 // WithdrawRootInfo the alert message of withdraw root info
@@ -99,6 +100,8 @@ func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
 	buffer.WriteString(fmt.Sprintf("• msg_hash: %s\n", info.MessageHash.Hex()))
 	buffer.WriteString(fmt.Sprintf("• transfer balance: %s\n", info.TransferBalance.String()))
 	buffer.WriteString(fmt.Sprintf("• gateway balance: %s\n", info.GatewayBalance.String()))
+	buffer.WriteString(fmt.Sprintf("• token address: %s\n", info.TokenAddress.Hex()))
+	buffer.WriteString(fmt.Sprintf("• token ignored: %t\n", info.TokenIgnored))
 	buffer.WriteString(fmt.Sprintf("• err info:%s\n", info.Error))
 	return buffer.String()
 }

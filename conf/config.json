@@ -19,7 +19,10 @@
       "message_queue": "0xF0B2293F5D834eAe920c6974D50957A1732de763",
       "scroll_chain": "0x2D567EcE699Eabe5afCd141eDB7A4f2D0D6ce8a0"
     },
-    "start_messenger_balance": 10000000000000000000
+    "start_messenger_balance": 10000000000000000000,
+    "ignored_tokens": [
+      "0x70fDD35857f4A765C1416ABa83ed5B19e49F27b9"
+    ]
   },
   "l2_config": {
     "l2_url": "<l2 node rpc url>",
@@ -38,7 +41,8 @@
       },
       "scroll_messenger": "0xBa50f5340FB9F3Bd074bD638c9BE13eCB36E603d",
       "message_queue": "0x5300000000000000000000000000000000000000"
-    }
+    },
+    "ignored_tokens": []
   },
   "slack_webhook_config": {
     "webhook_url": "<slack notify channel>",
