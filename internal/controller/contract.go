@@ -37,8 +37,7 @@ type ContractController struct {
 	messageMatchAssembler *assembler.MessageMatchAssembler
 	messageMatchLogic     *messagematch.LogicMessageMatch
 
-	stopL1ContractChan  chan struct{}
-	stopL2ContractChan  chan struct{}
+	stopContractChan    chan struct{}
 	l1EventCategoryList []types.EventCategory
 	l2EventCategoryList []types.EventCategory
 
@@ -65,8 +64,7 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 		contractsLogic:           contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
 		messageMatchAssembler:    assembler.NewMessageMatchAssembler(conf, db),
 		messageMatchLogic:        messagematch.NewMessageMatchLogic(conf, db),
-		stopL1ContractChan:       make(chan struct{}),
-		stopL2ContractChan:       make(chan struct{}),
+		stopContractChan:         make(chan struct{}),
 		db:                       db,
 		messengerMessageMatchOrm: orm.NewMessengerMessageMatch(db),
 		gatewayMessageMatchOrm:   orm.NewGatewayMessageMatch(db),
@@ -127,8 +125,7 @@ func (c *ContractController) Watch(ctx context.Context) {
 
 // Stop the contract controller
 func (c *ContractController) Stop() {
-	c.stopL1ContractChan <- struct{}{}
-	c.stopL2ContractChan <- struct{}{}
+	c.stopContractChan <- struct{}{}
 }
 
 func (c *ContractController) watcherStart(ctx context.Context, client *ethclient.Client, layer types.LayerType, confirmation rpc.BlockNumber, concurrency int) {
@@ -154,11 +151,9 @@ func (c *ContractController) watcherStart(ctx context.Context, client *ethclient
 				log.Error("ContractController canceled with error", "error", ctx.Err())
 			}
 			return
-		case <-c.stopL1ContractChan:
-			log.Info("ContractController l1 watch the run loop exit")
+		case <-c.stopContractChan:
+			log.Info("ContractController l1 watch & l2 watch the run loop exit")
 			return
-		case <-c.stopL2ContractChan:
-			log.Info("ContractController l2 watch the run loop exit")
 		default:
 		}
 
