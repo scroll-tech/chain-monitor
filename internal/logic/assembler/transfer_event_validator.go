@@ -136,7 +136,7 @@ func (t *TransferEventMatcher) erc20Matcher(transferEvents, gatewayEvents []even
 				"err info", info.Error,
 			)
 			slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-			return fmt.Errorf("balance mismatch for token %s: transfer balance = %s, gateway balance = %s, info = %v",
+			return fmt.Errorf("balance mismatch for token %s: transfer balance = %s, gateway balance = %s, info = %+v",
 				info.TokenAddress.Hex(), info.TransferBalance.String(), info.GatewayBalance.String(), info)
 		}
 	}
