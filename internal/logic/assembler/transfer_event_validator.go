@@ -473,7 +473,7 @@ func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) er
 	if info.TokenIgnored {
 		return nil
 	}
-	return fmt.Errorf("balance mismatch for token %s, token type = %s, transfer amount = %s, gateway amount = %s, info = %v",
+	return fmt.Errorf("balance mismatch for token %s, token type = %s, transfer amount = %s, gateway amount = %s, info = %+v",
 		info.TokenAddress.Hex(), info.TokenType.String(), info.TransferBalance.String(), info.GatewayBalance.String(), info)
 }
 
