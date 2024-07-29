@@ -1,5 +1,5 @@
 # Download Go dependencies
-FROM scrolltech/go-alpine-builder:1.19 as builder
+FROM scrolltech/go-alpine-builder:1.21 as builder
 
 ADD . /chain-monitor
 ENV GOPROXY="https://goproxy.cn,direct"
