@@ -33,6 +33,7 @@ type Gateway struct {
 type L1Contracts struct {
 	Gateway         `json:"l1_gateways"`
 	ScrollMessenger common.Address `json:"scroll_messenger"`
+	GasToken        common.Address `json:"gas_token"`
 }
 
 // L1Config l1 chain config.

@@ -30,11 +30,12 @@ type CrossChainController struct {
 func NewCrossChainController(cfg *config.Config, db *gorm.DB, l1Client, l2Client *ethclient.Client) *CrossChainController {
 	l1MessengerAddr := cfg.L1Config.L1Contracts.ScrollMessenger
 	l2MessengerAddr := cfg.L2Config.L2Contracts.ScrollMessenger
+	gasTokenAddr := cfg.L1Config.L1Contracts.GasToken
 	return &CrossChainController{
 		stopL1CrossChainChan:     make(chan struct{}),
 		stopL2CrossChainChan:     make(chan struct{}),
 		gatewayCrossChainLogic:   crosschain.NewLogicGatewayCrossChain(db),
-		messengerCrossChainLogic: crosschain.NewLogicMessengerCrossChain(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr, cfg.L1Config.StartMessengerBalance),
+		messengerCrossChainLogic: crosschain.NewLogicMessengerCrossChain(db, l1Client, l2Client, l1MessengerAddr, l2MessengerAddr, gasTokenAddr, cfg.L1Config.StartMessengerBalance),
 		crossChainControllerRunningTotal: promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
 			Name: "cross_chain_check_controller_running_total",
 			Help: "The total number of cross chain controllers running.",
