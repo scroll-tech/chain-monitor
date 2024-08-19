@@ -14,9 +14,11 @@ import (
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 
+	"github.com/scroll-tech/chain-monitor/internal/logic/contracts/abi/istandarderc20"
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 	"github.com/scroll-tech/chain-monitor/internal/orm"
 	"github.com/scroll-tech/chain-monitor/internal/types"
+	"github.com/scroll-tech/go-ethereum/accounts/abi/bind"
 )
 
 const ethBalanceGap = 50
@@ -33,10 +35,30 @@ type LogicMessengerCrossChain struct {
 
 	crossChainETHTotal    *prometheus.CounterVec
 	startMessengerBalance uint64
+	gasTokenGateway       common.Address
+	gasToken              *istandarderc20.Istandarderc20Caller
+	gasTokenDecimal       uint8
 }
 
 // NewLogicMessengerCrossChain is a constructor for Logic.
-func NewLogicMessengerCrossChain(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr common.Address, startMessengerBalance uint64) *LogicMessengerCrossChain {
+func NewLogicMessengerCrossChain(db *gorm.DB, l1Client, l2Client *ethclient.Client, l1MessengerAddr, l2MessengerAddr, gasTokenGatewayAddr, gasTokenAddr common.Address, startMessengerBalance uint64) *LogicMessengerCrossChain {
+	var gasToken *istandarderc20.Istandarderc20Caller
+	var gasTokenDecimal uint8
+	if (gasTokenAddr != common.Address{} && gasTokenGatewayAddr != common.Address{}) {
+		var err error
+		gasToken, err = istandarderc20.NewIstandarderc20Caller(gasTokenAddr, l1Client)
+		if err != nil {
+			log.Crit("create gas token contract caller failure", "gasTokenAddr", gasTokenAddr, "error", err)
+			return nil
+		}
+
+		gasTokenDecimal, err = gasToken.Decimals(&bind.CallOpts{})
+		if err != nil {
+			log.Crit("get gas token decimal failure", "gasTokenAddr", gasTokenAddr, "error", err)
+			return nil
+		}
+	}
+
 	return &LogicMessengerCrossChain{
 		db:                    db,
 		messengerMessageOrm:   orm.NewMessengerMessageMatch(db),
@@ -46,6 +68,9 @@ func NewLogicMessengerCrossChain(db *gorm.DB, l1Client, l2Client *ethclient.Clie
 		l2MessengerAddr:       l2MessengerAddr,
 		checker:               NewMessengerCrossEventMatcher(),
 		startMessengerBalance: startMessengerBalance,
+		gasTokenGateway:       gasTokenGatewayAddr,
+		gasToken:              gasToken,
+		gasTokenDecimal:       gasTokenDecimal,
 
 		crossChainETHTotal: promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
 			Name: "cross_chain_checked_eth_total",
@@ -177,7 +202,7 @@ func (c *LogicMessengerCrossChain) checkETH(ctx context.Context, layer types.Lay
 		return
 	}
 
-	endBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(endBlockNumber))
+	endBalance, err := c.getBalanceAt(ctx, layer, client, messengerAddr, endBlockNumber)
 	if err != nil {
 		log.Error("get messenger balance failed", "layer types", layer, "addr", messengerAddr, "end", endBlockNumber, "err", err)
 		return
@@ -209,7 +234,7 @@ func (c *LogicMessengerCrossChain) checkBlockBalanceOneByOne(ctx context.Context
 			blockNumber = message.L2BlockNumber
 		}
 
-		tmpBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
+		tmpBalance, err := c.getBalanceAt(ctx, layer, client, messengerAddr, blockNumber)
 		if err != nil {
 			log.Error("get balance failed", "layer", layer, "block number", blockNumber, "err", err)
 			continue
@@ -236,7 +261,7 @@ func (c *LogicMessengerCrossChain) checkBlockBalanceOneByOne(ctx context.Context
 			continue
 		}
 
-		endBalance, err := client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(blockNumber))
+		endBalance, err := c.getBalanceAt(ctx, layer, client, messengerAddr, blockNumber)
 		if err != nil {
 			continue
 		}
@@ -421,4 +446,25 @@ func (c *LogicMessengerCrossChain) getLatestBlockNumber(ctx context.Context, lay
 		log.Error("Invalid layerType", "layerType", layerType)
 		return 0, fmt.Errorf("invalid layerType: %v", layerType)
 	}
+}
+
+func (c *LogicMessengerCrossChain) getBalanceAt(ctx context.Context, layer types.LayerType, client *ethclient.Client, messengerAddr common.Address, endBlockNumber uint64) (*big.Int, error) {
+	var endBalance *big.Int
+	var err error
+	if c.gasToken != nil && layer == types.Layer1 {
+		endBalance, err = c.gasToken.BalanceOf(&bind.CallOpts{BlockNumber: new(big.Int).SetUint64(endBlockNumber)}, c.gasTokenGateway)
+		if err != nil {
+			return nil, err
+		}
+		// perform scaling here
+		scale := new(big.Int).Exp(big.NewInt(10), new(big.Int).SetUint64(18-uint64(c.gasTokenDecimal)), nil)
+		endBalance = endBalance.Mul(endBalance, scale)
+	} else {
+		endBalance, err = client.BalanceAt(ctx, messengerAddr, new(big.Int).SetUint64(endBlockNumber))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return endBalance, nil
 }

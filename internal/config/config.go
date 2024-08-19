@@ -21,6 +21,7 @@ type Gateway struct {
 	USDCGateway          common.Address `json:"usdc_gateway"`
 	LIDOGateway          common.Address `json:"lido_gateway"`
 	PufferGateway        common.Address `json:"puffer_gateway"`
+	GasTokenGateway      common.Address `json:"gas_token_gateway"`
 
 	// erc721
 	ERC721Gateway common.Address `json:"erc721_gateway"`
@@ -33,6 +34,7 @@ type Gateway struct {
 type L1Contracts struct {
 	Gateway         `json:"l1_gateways"`
 	ScrollMessenger common.Address `json:"scroll_messenger"`
+	GasToken        common.Address `json:"gas_token"`
 }
 
 // L1Config l1 chain config.

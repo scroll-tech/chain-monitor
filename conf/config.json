@@ -13,11 +13,13 @@
         "erc1155_gateway": "0xa5Df8530766A85936EE3E139dECE3bF081c83146",
         "dai_gateway": "0x0000000000000000000000000000000000000000",
         "usdc_gateway": "0x0000000000000000000000000000000000000000",
-        "lido_gateway": "0x0000000000000000000000000000000000000000"
+        "lido_gateway": "0x0000000000000000000000000000000000000000",
+        "gas_token_gateway": "0x8587FE761F1669Fa75C444c8BC959c28a64AD822"
       },
       "scroll_messenger": "0x50c7d3e7f7c656493D1D76aaa1a836CedfCBB16A",
       "message_queue": "0xF0B2293F5D834eAe920c6974D50957A1732de763",
-      "scroll_chain": "0x2D567EcE699Eabe5afCd141eDB7A4f2D0D6ce8a0"
+      "scroll_chain": "0x2D567EcE699Eabe5afCd141eDB7A4f2D0D6ce8a0",
+      "gas_token": "0x0000000000000000000000000000000000000000"
     },
     "start_messenger_balance": 10000000000000000000,
     "ignored_tokens": [
