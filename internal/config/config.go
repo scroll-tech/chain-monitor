@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/log"
 	"github.com/scroll-tech/go-ethereum/rpc"
 
 	"github.com/scroll-tech/chain-monitor/internal/utils/database"
@@ -142,6 +143,7 @@ func overrideConfigWithEnv(cfg interface{}, prefix string) error {
 		default:
 			if envValue, exists := os.LookupEnv(envKey); exists {
 				err := setField(fieldValue, envValue)
+				log.Info("Overriding config with env var", "key", envKey)
 				if err != nil {
 					return err
 				}
