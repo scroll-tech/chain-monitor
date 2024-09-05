@@ -2,7 +2,7 @@
 FROM scrolltech/go-alpine-builder:1.21 as builder
 
 ADD . /chain-monitor
-ENV GOPROXY="https://goproxy.cn,direct"
+ENV GOPROXY="https://proxy.golang.org,direct"
 RUN cd /chain-monitor && \
     go mod tidy &&  \
     go build -v -o ./build/bin/chain-monitor ./cmd/
