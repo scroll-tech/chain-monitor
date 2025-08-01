@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/scroll-tech/go-ethereum"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -60,6 +61,8 @@ type TransferEventMatcher struct {
 
 	l1Client *ethclient.Client
 	l2Client *ethclient.Client
+
+	l1StandardERC20GatewayAddr common.Address
 }
 
 // NewTransferEventMatcher creates a new instance of TransferEventMatcher.
@@ -79,6 +82,7 @@ func NewTransferEventMatcher(conf *config.Config, l1Client, l2Client *ethclient.
 
 	t.l1Client = l1Client
 	t.l2Client = l2Client
+	t.l1StandardERC20GatewayAddr = conf.L1Config.L1Contracts.StandardERC20Gateway
 
 	// Log the ignored tokens
 	log.Info("Ignored Tokens", "L1", t.l1IgnoredTokens, "L2", t.l2IgnoredTokens)
@@ -538,6 +542,12 @@ func (t *TransferEventMatcher) isTokenIgnored(layer types.LayerType, tokenAddres
 }
 
 func (t *TransferEventMatcher) shouldAlertForL1Token(tokenAddress common.Address, blockNumber uint64) (bool, time.Duration, common.Address, bool, error) {
+	// For tokens not going through the standard gateway, we consider it a real problem
+	if tokenAddress != t.l1StandardERC20GatewayAddr {
+		log.Info("Real problem detected - non-standard gateway token", "l1Token", tokenAddress.Hex())
+		return true, 0, common.Address{}, true, nil // return alert: true and hasCode: true to indicate a real problem
+	}
+
 	// Get L1 block timestamp
 	l1Block, err := t.l1Client.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
 	if err != nil {
@@ -556,7 +566,10 @@ func (t *TransferEventMatcher) shouldAlertForL1Token(tokenAddress common.Address
 	timeDiff := l2Timestamp.Sub(l1Timestamp)
 
 	// Use address offset rule to calculate L2 corresponding address
-	l2Address := applyL1ToL2Alias(tokenAddress)
+	l2Address, err := t.getL2ERC20Address(tokenAddress)
+	if err != nil {
+		return false, timeDiff, common.Address{}, false, fmt.Errorf("failed to get L2 address for L1 token %s: %w", tokenAddress.Hex(), err)
+	}
 
 	// Check if L2 corresponding address has code
 	code, err := t.l2Client.CodeAt(context.Background(), l2Address, nil)
@@ -605,26 +618,35 @@ func (t *TransferEventMatcher) shouldAlertForL1Token(tokenAddress common.Address
 	}
 }
 
-// applyL1ToL2Alias applies the L1 to L2 address alias conversion
-func applyL1ToL2Alias(l1Address common.Address) common.Address {
-	// Convert address to uint160
-	l1AddressUint := new(big.Int).SetBytes(l1Address.Bytes())
+// getL2ERC20Address calls L1StandardERC20Gateway.getL2ERC20Address to get the corresponding L2 token address
+func (t *TransferEventMatcher) getL2ERC20Address(l1TokenAddress common.Address) (common.Address, error) {
+	// getL2ERC20Address(address) function signature
+	methodID := "0xc676ad291" // function selector for getL2ERC20Address(address)
 
-	// Parse offset
-	offset := new(big.Int)
-	offset.SetString(addressOffset[2:], 16) // Remove "0x" prefix
+	// Encode the parameter (l1TokenAddress)
+	paddedAddress := common.LeftPadBytes(l1TokenAddress.Bytes(), 32)
 
-	// Add offset
-	l2AddressUint := new(big.Int).Add(l1AddressUint, offset)
+	// Prepare call data
+	callData := append(common.FromHex(methodID), paddedAddress...)
 
-	// Convert back to address format (take lower 160 bits)
-	mask := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 160), big.NewInt(1)) // 2^160 - 1
-	l2AddressUint.And(l2AddressUint, mask)
+	// Make the call
+	msg := ethereum.CallMsg{
+		To:   &t.l1StandardERC20GatewayAddr,
+		Data: callData,
+	}
 
-	// Convert to address
-	l2AddressBytes := l2AddressUint.Bytes()
-	var l2Address common.Address
-	copy(l2Address[20-len(l2AddressBytes):], l2AddressBytes)
+	result, err := t.l1Client.CallContract(context.Background(), msg, nil)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("failed to call getL2ERC20Address: %w", err)
+	}
 
-	return l2Address
+	// Parse the result (should be 32 bytes address)
+	if len(result) != 32 {
+		return common.Address{}, fmt.Errorf("unexpected result length: %d", len(result))
+	}
+
+	// Extract address from the last 20 bytes
+	l2TokenAddress := common.BytesToAddress(result[12:])
+
+	return l2TokenAddress, nil
 }
