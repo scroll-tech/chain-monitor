@@ -23,9 +23,6 @@ const (
 
 	gatewayEventDontHaveTransferEvent        = "the transfer event associated with the gateway event does not exist"
 	gatewayEventBalanceMismatchTransferEvent = "the gateway event's balance don't match the balance of transfer event"
-
-	// Address offset for L1 to L2 conversion
-	addressOffset = "0x1111000000000000000000000000000000001111"
 )
 
 type erc20MatcherKey struct {
