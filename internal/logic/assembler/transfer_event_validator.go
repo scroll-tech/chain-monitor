@@ -1,12 +1,12 @@
 package assembler
 
 import (
-	"context"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 	"time"
 
-	"github.com/scroll-tech/go-ethereum"
 	"github.com/scroll-tech/go-ethereum/common"
 	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
@@ -56,10 +56,7 @@ type TransferEventMatcher struct {
 	l1IgnoredTokens map[common.Address]struct{}
 	l2IgnoredTokens map[common.Address]struct{}
 
-	l1Client *ethclient.Client
-	l2Client *ethclient.Client
-
-	l1StandardERC20GatewayAddr common.Address
+	httpClient *http.Client
 }
 
 // NewTransferEventMatcher creates a new instance of TransferEventMatcher.
@@ -67,6 +64,9 @@ func NewTransferEventMatcher(conf *config.Config, l1Client, l2Client *ethclient.
 	t := &TransferEventMatcher{
 		l1IgnoredTokens: make(map[common.Address]struct{}),
 		l2IgnoredTokens: make(map[common.Address]struct{}),
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 
 	for _, token := range conf.L1Config.IgnoredTokens {
@@ -76,10 +76,6 @@ func NewTransferEventMatcher(conf *config.Config, l1Client, l2Client *ethclient.
 	for _, token := range conf.L2Config.IgnoredTokens {
 		t.l2IgnoredTokens[token] = struct{}{}
 	}
-
-	t.l1Client = l1Client
-	t.l2Client = l2Client
-	t.l1StandardERC20GatewayAddr = conf.L1Config.L1Contracts.StandardERC20Gateway
 
 	// Log the ignored tokens
 	log.Info("Ignored Tokens", "L1", t.l1IgnoredTokens, "L2", t.l2IgnoredTokens)
@@ -483,31 +479,41 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) error {
 	info.TokenIgnored = t.isTokenIgnored(info.Layer, info.TokenAddress)
 
-	// If it's an L1 token, perform additional checks
-	if info.Layer == types.Layer1 {
-		shouldAlert, timeDiff, l2Address, hasCode, err := t.shouldAlertForL1Token(info.TokenAddress, info.BlockNumber)
+	// If it's an L1 token, check CoinGecko
+	if info.Layer == types.Layer1 && info.TokenType == types.TokenTypeERC20 {
+		tokenExists, err := t.checkTokenInCoinGecko(info.TokenAddress)
 		if err != nil {
-			log.Error("failed to check L1 token alert conditions", "token", info.TokenAddress.Hex(), "error", err)
-			// If check fails, still send alert but log the error
-		} else if !shouldAlert {
-			log.Info("L1 token alert suppressed - conditions not met",
+			// API failure or network error, use conservative strategy: send alert
+			log.Error("CoinGecko API check failed, sending alert with conservative strategy",
 				"token", info.TokenAddress.Hex(),
-				"blockNumber", info.BlockNumber,
-				"timeDiff", timeDiff,
-				"l2Address", l2Address.Hex(),
-				"hasCode", hasCode)
-			return nil
+				"error", err.Error())
+
+			info.CoinGeckoStatus = fmt.Sprintf("API check failed: %s", err.Error())
+		} else if tokenExists {
+			// Token exists in CoinGecko -> send alert
+			log.Info("L1 token found in CoinGecko - sending alert",
+				"token", info.TokenAddress.Hex(),
+				"blockNumber", info.BlockNumber)
+			info.CoinGeckoStatus = "found in CoinGecko"
 		} else {
-			// Add time difference and L2 address info to the alert
-			info.TimeDifference = timeDiff
-			info.L2CounterAddress = l2Address
-			info.L2HasCode = hasCode
-			log.Info("L1 token alert conditions met",
+			// Token explicitly not in CoinGecko -> send notification only
+			log.Info("L1 token not found in CoinGecko - sending notification only",
 				"token", info.TokenAddress.Hex(),
-				"blockNumber", info.BlockNumber,
-				"timeDiff", timeDiff,
-				"l2Address", l2Address.Hex(),
-				"hasCode", hasCode)
+				"blockNumber", info.BlockNumber)
+
+			notificationMsg := fmt.Sprintf("ℹ️ L1 Token not found in CoinGecko\n"+
+				"Token: %s\n"+
+				"Block: %d\n"+
+				"Transfer Balance: %s\n"+
+				"Gateway Balance: %s\n"+
+				"Note: This token is not indexed by CoinGecko, may be a non-mainstream token",
+				info.TokenAddress.Hex(),
+				info.BlockNumber,
+				info.TransferBalance.String(),
+				info.GatewayBalance.String())
+
+			slack.Notify(notificationMsg)
+			return nil // Don't treat this as an error
 		}
 	}
 
@@ -518,9 +524,49 @@ func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) er
 
 	time.Sleep(1 * time.Minute) // Sleep for 1 minute to avoid spamming Slack with alerts
 
-	return fmt.Errorf("balance mismatch for token %s, token type = %s, transfer amount = %s, gateway amount = %s, time diff = %v, l2 address = %s, has code = %v, info = %+v",
-		info.TokenAddress.Hex(), info.TokenType.String(), info.TransferBalance.String(), info.GatewayBalance.String(),
-		info.TimeDifference, info.L2CounterAddress.Hex(), info.L2HasCode, info)
+	return fmt.Errorf("balance mismatch for token %s, token type = %s, transfer amount = %s, gateway amount = %s, coingecko status = %s, info = %+v",
+		info.TokenAddress.Hex(), info.TokenType.String(), info.TransferBalance.String(), info.GatewayBalance.String(), info.CoinGeckoStatus, info)
+}
+
+// checkTokenInCoinGecko checks if a token exists in CoinGecko database
+// checkTokenInCoinGecko checks if a token exists in CoinGecko database
+func (t *TransferEventMatcher) checkTokenInCoinGecko(tokenAddress common.Address) (bool, error) {
+	url := fmt.Sprintf("https://api.coingecko.com/api/v3/coins/ethereum/contract/%s", tokenAddress.Hex())
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "chain-monitor/1.0")
+
+	resp, err := t.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("get token info from CoinGecko failed: url %s, error: %w", url, err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Warn("failed to close response body", "error", closeErr)
+		}
+	}()
+
+	// Use status code to determine token existence
+	switch resp.StatusCode {
+	case 200:
+		// Token exists in CoinGecko
+		return true, nil
+	case 404:
+		// Token not found in CoinGecko
+		return false, nil
+	default:
+		// Other errors (API limits, server errors, etc.)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return false, fmt.Errorf("CoinGecko API error (status %d), failed to read response body: %w", resp.StatusCode, readErr)
+		}
+		return false, fmt.Errorf("CoinGecko API error (status %d): %s", resp.StatusCode, string(body))
+	}
 }
 
 func (t *TransferEventMatcher) isTokenIgnored(layer types.LayerType, tokenAddress common.Address) bool {
@@ -536,114 +582,4 @@ func (t *TransferEventMatcher) isTokenIgnored(layer types.LayerType, tokenAddres
 		}
 	}
 	return false
-}
-
-func (t *TransferEventMatcher) shouldAlertForL1Token(tokenAddress common.Address, blockNumber uint64) (bool, time.Duration, common.Address, bool, error) {
-	// For tokens not going through the standard gateway, we consider it a real problem
-	if tokenAddress != t.l1StandardERC20GatewayAddr {
-		log.Info("Real problem detected - non-standard gateway token", "l1Token", tokenAddress.Hex())
-		return true, 0, common.Address{}, true, nil // return alert: true and hasCode: true to indicate a real problem
-	}
-
-	// Get L1 block timestamp
-	l1Block, err := t.l1Client.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
-	if err != nil {
-		return false, 0, common.Address{}, false, fmt.Errorf("failed to get L1 block %d: %w", blockNumber, err)
-	}
-	l1Timestamp := time.Unix(int64(l1Block.Time()), 0)
-
-	// Get L2 chain tip timestamp
-	l2LatestBlock, err := t.l2Client.BlockByNumber(context.Background(), nil)
-	if err != nil {
-		return false, 0, common.Address{}, false, fmt.Errorf("failed to get L2 latest block: %w", err)
-	}
-	l2Timestamp := time.Unix(int64(l2LatestBlock.Time()), 0)
-
-	// Calculate time difference (can be positive or negative)
-	timeDiff := l2Timestamp.Sub(l1Timestamp)
-
-	// Use address offset rule to calculate L2 corresponding address
-	l2Address, err := t.getL2ERC20Address(tokenAddress)
-	if err != nil {
-		return false, timeDiff, common.Address{}, false, fmt.Errorf("failed to get L2 address for L1 token %s: %w", tokenAddress.Hex(), err)
-	}
-
-	// Check if L2 corresponding address has code
-	code, err := t.l2Client.CodeAt(context.Background(), l2Address, nil)
-	if err != nil {
-		return false, timeDiff, l2Address, false, fmt.Errorf("failed to get code at L2 address %s: %w", l2Address.Hex(), err)
-	}
-
-	hasCode := len(code) > 0
-	// Only consider positive time difference for the 20-minute check
-	timeExceeded := timeDiff >= 20*time.Minute
-
-	// Print L2 address information
-	if hasCode {
-		log.Info("L2 counter address has code", "l1Address", tokenAddress.Hex(), "l2Address", l2Address.Hex(), "codeSize", len(code))
-	} else {
-		log.Info("L2 counter address has no code", "l1Address", tokenAddress.Hex(), "l2Address", l2Address.Hex())
-	}
-
-	// Alert condition analysis:
-	// 1. hasCode=true  -> Real problem (should alert regardless of time)
-	// 2. hasCode=false && timeExceeded=true  -> Can dismiss alert (phishing token without L1 deposit)
-	// 3. hasCode=false && timeExceeded=false -> Possible problem (should alert, still early for relaying L1 message)
-
-	if hasCode {
-		// Any case where L2 address has code is a real problem
-		log.Info("Real problem detected - L2 address has code",
-			"l1Address", tokenAddress.Hex(),
-			"l2Address", l2Address.Hex(),
-			"timeDiff", timeDiff,
-			"timeExceeded", timeExceeded)
-		return true, timeDiff, l2Address, hasCode, nil
-	} else if timeExceeded {
-		// No code and time exceeded - can dismiss alert (phishing token without L1 deposit case)
-		log.Info("Alert dismissed - no code on L2 address after 20 minutes (phishing token without L1 deposit)",
-			"l1Address", tokenAddress.Hex(),
-			"l2Address", l2Address.Hex(),
-			"timeDiff", timeDiff)
-		return false, timeDiff, l2Address, hasCode, nil
-	} else {
-		// No code and time not exceeded - possible problem
-		log.Info("Possible problem - no code on L2 address within 20 minutes (L1 message might not be relayed yet)",
-			"l1Address", tokenAddress.Hex(),
-			"l2Address", l2Address.Hex(),
-			"timeDiff", timeDiff)
-		return true, timeDiff, l2Address, hasCode, nil
-	}
-}
-
-// getL2ERC20Address calls L1StandardERC20Gateway.getL2ERC20Address to get the corresponding L2 token address
-func (t *TransferEventMatcher) getL2ERC20Address(l1TokenAddress common.Address) (common.Address, error) {
-	// getL2ERC20Address(address) function signature
-	methodID := "0xc676ad291" // function selector for getL2ERC20Address(address)
-
-	// Encode the parameter (l1TokenAddress)
-	paddedAddress := common.LeftPadBytes(l1TokenAddress.Bytes(), 32)
-
-	// Prepare call data
-	callData := append(common.FromHex(methodID), paddedAddress...)
-
-	// Make the call
-	msg := ethereum.CallMsg{
-		To:   &t.l1StandardERC20GatewayAddr,
-		Data: callData,
-	}
-
-	result, err := t.l1Client.CallContract(context.Background(), msg, nil)
-	if err != nil {
-		return common.Address{}, fmt.Errorf("failed to call getL2ERC20Address: %w", err)
-	}
-
-	// Parse the result (should be 32 bytes address)
-	if len(result) != 32 {
-		return common.Address{}, fmt.Errorf("unexpected result length: %d", len(result))
-	}
-
-	// Extract address from the last 20 bytes
-	l2TokenAddress := common.BytesToAddress(result[12:])
-
-	return l2TokenAddress, nil
 }

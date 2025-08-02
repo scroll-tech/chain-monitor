@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -53,20 +52,18 @@ var (
 
 // GatewayTransferInfo the alert message of gateway and transfer event
 type GatewayTransferInfo struct {
-	TokenAddress     common.Address
-	TokenType        types.TokenType
-	Layer            types.LayerType
-	EventType        types.EventType
-	BlockNumber      uint64
-	TxHash           common.Hash
-	MessageHash      common.Hash
-	Error            string
-	TransferBalance  *big.Int
-	GatewayBalance   *big.Int
-	TokenIgnored     bool
-	TimeDifference   time.Duration
-	L2CounterAddress common.Address
-	L2HasCode        bool
+	TokenAddress    common.Address
+	TokenType       types.TokenType
+	Layer           types.LayerType
+	EventType       types.EventType
+	BlockNumber     uint64
+	TxHash          common.Hash
+	MessageHash     common.Hash
+	Error           string
+	TransferBalance *big.Int
+	GatewayBalance  *big.Int
+	TokenIgnored    bool
+	CoinGeckoStatus string
 }
 
 // WithdrawRootInfo the alert message of withdraw root info
@@ -107,13 +104,6 @@ func MrkDwnGatewayTransferMessage(info GatewayTransferInfo) string {
 	buffer.WriteString(fmt.Sprintf("• token address: %s\n", info.TokenAddress.Hex()))
 	buffer.WriteString(fmt.Sprintf("• token ignored: %t\n", info.TokenIgnored))
 	buffer.WriteString(fmt.Sprintf("• err info:%s\n", info.Error))
-
-	if !info.L2HasCode {
-		buffer.WriteString(fmt.Sprintf("• time difference: %v\n", info.TimeDifference))
-		buffer.WriteString(fmt.Sprintf("• L2 counter address: %s\n", info.L2CounterAddress.Hex()))
-		buffer.WriteString(fmt.Sprintf("• L2 has code: %t\n", info.L2HasCode))
-	}
-
 	return buffer.String()
 }
 
