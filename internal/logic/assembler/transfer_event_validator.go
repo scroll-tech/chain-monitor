@@ -529,7 +529,6 @@ func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) er
 }
 
 // checkTokenInCoinGecko checks if a token exists in CoinGecko database
-// checkTokenInCoinGecko checks if a token exists in CoinGecko database
 func (t *TransferEventMatcher) checkTokenInCoinGecko(tokenAddress common.Address) (bool, error) {
 	url := fmt.Sprintf("https://api.coingecko.com/api/v3/coins/ethereum/contract/%s", tokenAddress.Hex())
 
