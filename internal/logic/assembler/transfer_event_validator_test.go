@@ -108,5 +108,5 @@ func TestTransferEventMatcher_checkTokenInCoinGecko_Debug(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Logf("Existing Token Status Code: %d", resp2.StatusCode)
-	t.Logf("Existing Token Response Body: %s", string(body2)[:200]) // First 200 chars
+	t.Logf("Existing Token Response Body: %s", string(body2))
 }
