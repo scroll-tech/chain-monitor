@@ -1,6 +1,7 @@
 package assembler
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math/big"
@@ -501,18 +502,23 @@ func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) er
 				"token", info.TokenAddress.Hex(),
 				"blockNumber", info.BlockNumber)
 
-			notificationMsg := fmt.Sprintf("ℹ️ L1 Token not found in CoinGecko\n"+
-				"Token: %s\n"+
-				"Block: %d\n"+
-				"Transfer Balance: %s\n"+
-				"Gateway Balance: %s\n"+
-				"Note: This token is not indexed by CoinGecko, may be a non-mainstream token",
-				info.TokenAddress.Hex(),
-				info.BlockNumber,
-				info.TransferBalance.String(),
-				info.GatewayBalance.String())
+			// Create notification message in the same style as MrkDwnGatewayTransferMessage
+			var buffer bytes.Buffer
+			buffer.WriteString("\n:information_source: ")
+			buffer.WriteString("*Token not found in CoinGecko - notification only*\n")
+			buffer.WriteString(fmt.Sprintf("• token type: %s\n", info.TokenType.String()))
+			buffer.WriteString(fmt.Sprintf("• layer type: %s\n", info.Layer.String()))
+			buffer.WriteString(fmt.Sprintf("• event type: %s\n", info.EventType.String()))
+			buffer.WriteString(fmt.Sprintf("• block number: %d\n", info.BlockNumber))
+			buffer.WriteString(fmt.Sprintf("• tx_hash: %s\n", info.TxHash.Hex()))
+			buffer.WriteString(fmt.Sprintf("• msg_hash: %s\n", info.MessageHash.Hex()))
+			buffer.WriteString(fmt.Sprintf("• transfer balance: %s\n", info.TransferBalance.String()))
+			buffer.WriteString(fmt.Sprintf("• gateway balance: %s\n", info.GatewayBalance.String()))
+			buffer.WriteString(fmt.Sprintf("• token address: %s\n", info.TokenAddress.Hex()))
+			buffer.WriteString("• coingecko status: not found\n")
+			buffer.WriteString("• note: This token is not indexed by CoinGecko, may be a non-mainstream token\n")
 
-			slack.Notify(notificationMsg)
+			slack.Notify(buffer.String())
 			return nil // Don't treat this as an error
 		}
 	}
