@@ -1,7 +1,6 @@
 package assembler
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math/big"
@@ -480,56 +479,35 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) error {
 	info.TokenIgnored = t.isTokenIgnored(info.Layer, info.TokenAddress)
 
-	// If it's an L1 token, check CoinGecko
+	shouldReturnNil := false // Whether to return nil (do not block chain-monitor) for non-mainstream tokens
+
+	// If it's an L1 ERC20 token, check CoinGecko
 	if info.Layer == types.Layer1 && info.TokenType == types.TokenTypeERC20 {
 		tokenExists, err := t.checkTokenInCoinGecko(info.TokenAddress)
 		if err != nil {
-			// API failure or network error, use conservative strategy: send alert
-			log.Error("CoinGecko API check failed, sending alert with conservative strategy",
-				"token", info.TokenAddress.Hex(),
-				"error", err.Error())
-
+			log.Error("CoinGecko API check failed, sending alert with conservative strategy", "token", info.TokenAddress.Hex(), "error", err.Error())
 			info.CoinGeckoStatus = fmt.Sprintf("API check failed: %s", err.Error())
 		} else if tokenExists {
-			// Token exists in CoinGecko -> send alert
-			log.Info("L1 token found in CoinGecko - sending alert",
-				"token", info.TokenAddress.Hex(),
-				"blockNumber", info.BlockNumber)
+			log.Info("L1 token found in CoinGecko - sending alert", "token", info.TokenAddress.Hex(), "blockNumber", info.BlockNumber)
 			info.CoinGeckoStatus = "found in CoinGecko"
 		} else {
-			// Token explicitly not in CoinGecko -> send notification only
-			log.Info("L1 token not found in CoinGecko - sending notification only",
-				"token", info.TokenAddress.Hex(),
-				"blockNumber", info.BlockNumber)
-
-			// Create notification message in the same style as MrkDwnGatewayTransferMessage
-			var buffer bytes.Buffer
-			buffer.WriteString("\n:information_source: ")
-			buffer.WriteString("*Token not found in CoinGecko - notification only*\n")
-			buffer.WriteString(fmt.Sprintf("• token type: %s\n", info.TokenType.String()))
-			buffer.WriteString(fmt.Sprintf("• layer type: %s\n", info.Layer.String()))
-			buffer.WriteString(fmt.Sprintf("• event type: %s\n", info.EventType.String()))
-			buffer.WriteString(fmt.Sprintf("• block number: %d\n", info.BlockNumber))
-			buffer.WriteString(fmt.Sprintf("• tx_hash: %s\n", info.TxHash.Hex()))
-			buffer.WriteString(fmt.Sprintf("• msg_hash: %s\n", info.MessageHash.Hex()))
-			buffer.WriteString(fmt.Sprintf("• transfer balance: %s\n", info.TransferBalance.String()))
-			buffer.WriteString(fmt.Sprintf("• gateway balance: %s\n", info.GatewayBalance.String()))
-			buffer.WriteString(fmt.Sprintf("• token address: %s\n", info.TokenAddress.Hex()))
-			buffer.WriteString("• coingecko status: not found\n")
-			buffer.WriteString("• note: This token is not indexed by CoinGecko, may be a non-mainstream token\n")
-
-			slack.Notify(buffer.String())
-			return nil // Don't treat this as an error
+			log.Info("L1 token not found in CoinGecko - sending alert and tagging as non-mainstream", "token", info.TokenAddress.Hex(), "blockNumber", info.BlockNumber)
+			info.CoinGeckoStatus = "not found in CoinGecko, may be a non-mainstream token, after checking in Etherscan you can resolve"
+			shouldReturnNil = true // Mark as non-mainstream token - will return nil later
 		}
 	}
 
+	// Always send Slack alert and increase the alert counter
 	slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-	if info.TokenIgnored {
+
+	// If the token is ignored or is a non-mainstream token (not found in CoinGecko), do not block chain-monitor
+	if info.TokenIgnored || shouldReturnNil {
 		return nil
 	}
 
-	time.Sleep(1 * time.Minute) // Sleep for 1 minute to avoid spamming Slack with alerts
+	time.Sleep(1 * time.Minute) // To avoid spamming Slack with alerts
 
+	// For all other cases, return error to block chain-monitor (oncall needs to investigate)
 	return fmt.Errorf("balance mismatch for token %s, token type = %s, transfer amount = %s, gateway amount = %s, coingecko status = %s, info = %+v",
 		info.TokenAddress.Hex(), info.TokenType.String(), info.TransferBalance.String(), info.GatewayBalance.String(), info.CoinGeckoStatus, info)
 }
@@ -540,7 +518,7 @@ func (t *TransferEventMatcher) checkTokenInCoinGecko(tokenAddress common.Address
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return false, fmt.Errorf("failed to create request: %w", err)
+		return false, fmt.Errorf("failed to create request: url %s, error: %w", url, err)
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -552,7 +530,7 @@ func (t *TransferEventMatcher) checkTokenInCoinGecko(tokenAddress common.Address
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			log.Warn("failed to close response body", "error", closeErr)
+			log.Error("failed to close response body", "url", url, "error", closeErr.Error())
 		}
 	}()
 
@@ -568,9 +546,9 @@ func (t *TransferEventMatcher) checkTokenInCoinGecko(tokenAddress common.Address
 		// Other errors (API limits, server errors, etc.)
 		body, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
-			return false, fmt.Errorf("CoinGecko API error (status %d), failed to read response body: %w", resp.StatusCode, readErr)
+			return false, fmt.Errorf("CoinGecko API error (status %d), url %s, failed to read response body: %w", resp.StatusCode, url, readErr)
 		}
-		return false, fmt.Errorf("CoinGecko API error (status %d): %s", resp.StatusCode, string(body))
+		return false, fmt.Errorf("CoinGecko API error (status %d), url %s: %s", resp.StatusCode, url, string(body))
 	}
 }
 
