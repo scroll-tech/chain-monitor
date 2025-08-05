@@ -63,6 +63,7 @@ type GatewayTransferInfo struct {
 	TransferBalance *big.Int
 	GatewayBalance  *big.Int
 	TokenIgnored    bool
+	CoinGeckoStatus string
 }
 
 // WithdrawRootInfo the alert message of withdraw root info

@@ -2,9 +2,13 @@ package assembler
 
 import (
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
+	"time"
 
 	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/log"
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
@@ -51,13 +55,18 @@ type matcherValue struct {
 type TransferEventMatcher struct {
 	l1IgnoredTokens map[common.Address]struct{}
 	l2IgnoredTokens map[common.Address]struct{}
+
+	httpClient *http.Client
 }
 
 // NewTransferEventMatcher creates a new instance of TransferEventMatcher.
-func NewTransferEventMatcher(conf *config.Config) *TransferEventMatcher {
+func NewTransferEventMatcher(conf *config.Config, l1Client, l2Client *ethclient.Client) *TransferEventMatcher {
 	t := &TransferEventMatcher{
 		l1IgnoredTokens: make(map[common.Address]struct{}),
 		l2IgnoredTokens: make(map[common.Address]struct{}),
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 
 	for _, token := range conf.L1Config.IgnoredTokens {
@@ -469,12 +478,78 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 
 func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) error {
 	info.TokenIgnored = t.isTokenIgnored(info.Layer, info.TokenAddress)
+
+	shouldReturnNil := false // Whether to return nil (do not block chain-monitor) for non-mainstream tokens
+
+	// If it's an L1 ERC20 token, check CoinGecko
+	if info.Layer == types.Layer1 && info.TokenType == types.TokenTypeERC20 {
+		tokenExists, err := t.checkTokenInCoinGecko(info.TokenAddress)
+		if err != nil {
+			log.Error("CoinGecko API check failed, sending alert with conservative strategy", "token", info.TokenAddress.Hex(), "error", err.Error())
+			info.CoinGeckoStatus = fmt.Sprintf("API check failed: %s", err.Error())
+		} else if tokenExists {
+			log.Info("L1 token found in CoinGecko - sending alert", "token", info.TokenAddress.Hex(), "blockNumber", info.BlockNumber)
+			info.CoinGeckoStatus = "found in CoinGecko"
+		} else {
+			log.Info("L1 token not found in CoinGecko - sending alert and tagging as non-mainstream", "token", info.TokenAddress.Hex(), "blockNumber", info.BlockNumber)
+			info.CoinGeckoStatus = "not found in CoinGecko, may be a non-mainstream token, after checking in Etherscan you can resolve"
+			shouldReturnNil = true // Mark as non-mainstream token - will return nil later
+		}
+	}
+
+	// Always send Slack alert and increase the alert counter
 	slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
-	if info.TokenIgnored {
+
+	// If the token is ignored or is a non-mainstream token (not found in CoinGecko), do not block chain-monitor
+	if info.TokenIgnored || shouldReturnNil {
 		return nil
 	}
-	return fmt.Errorf("balance mismatch for token %s, token type = %s, transfer amount = %s, gateway amount = %s, info = %+v",
-		info.TokenAddress.Hex(), info.TokenType.String(), info.TransferBalance.String(), info.GatewayBalance.String(), info)
+
+	time.Sleep(1 * time.Minute) // To avoid spamming Slack with alerts
+
+	// For all other cases, return error to block chain-monitor (oncall needs to investigate)
+	return fmt.Errorf("balance mismatch for token %s, token type = %s, transfer amount = %s, gateway amount = %s, coingecko status = %s, info = %+v",
+		info.TokenAddress.Hex(), info.TokenType.String(), info.TransferBalance.String(), info.GatewayBalance.String(), info.CoinGeckoStatus, info)
+}
+
+// checkTokenInCoinGecko checks if a token exists in CoinGecko database
+func (t *TransferEventMatcher) checkTokenInCoinGecko(tokenAddress common.Address) (bool, error) {
+	url := fmt.Sprintf("https://api.coingecko.com/api/v3/coins/ethereum/contract/%s", tokenAddress.Hex())
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to create request: url %s, error: %w", url, err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "chain-monitor/1.0")
+
+	resp, err := t.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("get token info from CoinGecko failed: url %s, error: %w", url, err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Error("failed to close response body", "url", url, "error", closeErr.Error())
+		}
+	}()
+
+	// Use status code to determine token existence
+	switch resp.StatusCode {
+	case 200:
+		// Token exists in CoinGecko
+		return true, nil
+	case 404:
+		// Token not found in CoinGecko
+		return false, nil
+	default:
+		// Other errors (API limits, server errors, etc.)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return false, fmt.Errorf("CoinGecko API error (status %d), url %s, failed to read response body: %w", resp.StatusCode, url, readErr)
+		}
+		return false, fmt.Errorf("CoinGecko API error (status %d), url %s: %s", resp.StatusCode, url, string(body))
+	}
 }
 
 func (t *TransferEventMatcher) isTokenIgnored(layer types.LayerType, tokenAddress common.Address) bool {

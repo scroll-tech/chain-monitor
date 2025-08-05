@@ -62,7 +62,7 @@ func NewContractController(conf *config.Config, db *gorm.DB, l1Client, l2Client 
 		conf:                     conf,
 		eventGatherLogic:         events.NewEventGather(),
 		contractsLogic:           contracts.NewContracts(ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
-		messageMatchAssembler:    assembler.NewMessageMatchAssembler(conf, db),
+		messageMatchAssembler:    assembler.NewMessageMatchAssembler(conf, db, ethclient.NewClient(l1Client), ethclient.NewClient(l2Client)),
 		messageMatchLogic:        messagematch.NewMessageMatchLogic(conf, db),
 		stopContractChan:         make(chan struct{}),
 		db:                       db,

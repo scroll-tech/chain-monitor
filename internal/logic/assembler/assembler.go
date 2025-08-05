@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/scroll-tech/go-ethereum/common"
+	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/go-ethereum/rpc"
 	"gorm.io/gorm"
 
@@ -28,10 +29,10 @@ type MessageMatchAssembler struct {
 }
 
 // NewMessageMatchAssembler returns a new message match instance.
-func NewMessageMatchAssembler(conf *config.Config, db *gorm.DB) *MessageMatchAssembler {
+func NewMessageMatchAssembler(conf *config.Config, db *gorm.DB, l1Client, l2Client *ethclient.Client) *MessageMatchAssembler {
 	return &MessageMatchAssembler{
 		messengerMessageMatchOrm: orm.NewMessengerMessageMatch(db),
-		transferMatcher:          NewTransferEventMatcher(conf),
+		transferMatcher:          NewTransferEventMatcher(conf, l1Client, l2Client),
 	}
 }
 
