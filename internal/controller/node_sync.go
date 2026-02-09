@@ -19,8 +19,11 @@ import (
 // NodeType represents the type of Ethereum client
 type NodeType string
 
+// Supported node types
 const (
+	// NodeTypeReth represents Reth Ethereum client
 	NodeTypeReth NodeType = "reth"
+	// NodeTypeGeth represents Geth Ethereum client
 	NodeTypeGeth NodeType = "geth"
 )
 

@@ -89,7 +89,6 @@ func action(ctx *cli.Context) error {
 	// Initialize node sync controller if configured
 	var nodeSyncCtl *controller.NodeSyncController
 	if cfg.NodeSyncConfig != nil && cfg.NodeSyncConfig.RethURL != "" && cfg.NodeSyncConfig.GethURL != "" {
-		var err error
 		nodeSyncCtl, err = controller.NewNodeSyncController(subCtx, cfg.NodeSyncConfig)
 		if err != nil {
 			log.Crit("failed to initialize node sync controller, continuing without it", "error", err)
