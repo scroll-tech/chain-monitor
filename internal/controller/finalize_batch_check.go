@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -20,6 +22,7 @@ type FinalizeBatchCheckController struct {
 
 	gatewayBatchFinalizeCheckFailed   prometheus.Counter
 	messengerBatchFinalizeCheckFailed prometheus.Counter
+	nodeSyncCheckFailed               prometheus.Counter
 }
 
 // NewFinalizeBatchCheckController create finalize batch controller instance
@@ -35,6 +38,10 @@ func NewFinalizeBatchCheckController(conf *config.Config, db *gorm.DB) *Finalize
 		messengerBatchFinalizeCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
 			Name: "messenger_batch_finalized_failed_total",
 			Help: "The total number of messenger batch finalized failed.",
+		}),
+		nodeSyncCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+			Name: "node_sync_check_failed_total",
+			Help: "The total number of node sync checks failed in batch status API.",
 		}),
 	}
 }
@@ -62,6 +69,16 @@ func (f *FinalizeBatchCheckController) BatchStatus(ctx *gin.Context) {
 		return
 	}
 
+	// Check if reth/geth nodes have synced to the required height
+	if ok, err := f.checkNodeSyncHeight(finalizeBatchParam.EndBlockNumber); !ok {
+		log.Error("batch status node sync check failed",
+			"required_height", finalizeBatchParam.EndBlockNumber,
+			"error", err,
+		)
+		types.RenderJSON(ctx, types.ErrParameterInvalidNo, err, nil)
+		return
+	}
+
 	gatewayCheck, messengerCheck := f.messageMatchLogic.GetBlocksStatus(ctx, finalizeBatchParam.StartBlockNumber, finalizeBatchParam.EndBlockNumber)
 	if !gatewayCheck {
 		f.gatewayBatchFinalizeCheckFailed.Inc()
@@ -72,4 +89,25 @@ func (f *FinalizeBatchCheckController) BatchStatus(ctx *gin.Context) {
 	}
 
 	types.RenderJSON(ctx, types.Success, nil, gatewayCheck && messengerCheck)
+}
+
+// checkNodeSyncHeight checks if both reth and geth nodes have synced to the required height
+func (f *FinalizeBatchCheckController) checkNodeSyncHeight(requiredHeight uint64) (bool, error) {
+	if NodeSyncCtl == nil {
+		// Node sync monitoring is not configured, skip check
+		return true, nil
+	}
+
+	minHeight, err := NodeSyncCtl.GetMinHeight()
+	if err != nil {
+		f.nodeSyncCheckFailed.Inc()
+		return false, fmt.Errorf("failed to get node sync height: %w", err)
+	}
+
+	if requiredHeight > minHeight {
+		f.nodeSyncCheckFailed.Inc()
+		return false, fmt.Errorf("nodes not synced to required height: required=%d, min_synced=%d", requiredHeight, minHeight)
+	}
+
+	return true, nil
 }

@@ -86,6 +86,22 @@ func action(ctx *cli.Context) error {
 	slackAlert := controller.NewSlackAlertController(subCtx, cfg.AlertConfig)
 	slackAlert.Start()
 
+	// Initialize node sync controller if configured
+	var nodeSyncCtl *controller.NodeSyncController
+	if cfg.NodeSyncConfig != nil && cfg.NodeSyncConfig.RethURL != "" && cfg.NodeSyncConfig.GethURL != "" {
+		var err error
+		nodeSyncCtl, err = controller.NewNodeSyncController(subCtx, cfg.NodeSyncConfig)
+		if err != nil {
+			log.Crit("failed to initialize node sync controller, continuing without it", "error", err)
+		} else {
+			controller.NodeSyncCtl = nodeSyncCtl
+			go nodeSyncCtl.Start(subCtx)
+			log.Info("Node sync controller initialized successfully")
+		}
+	} else {
+		log.Info("Node sync controller not configured, skipping")
+	}
+
 	contractCtl := controller.NewContractController(cfg, db, l1Client, l2Client)
 	contractCtl.Watch(subCtx)
 
@@ -100,6 +116,9 @@ func action(ctx *cli.Context) error {
 		contractCtl.Stop()
 		crossChainCtl.Stop()
 		slackAlert.Stop()
+		if nodeSyncCtl != nil {
+			nodeSyncCtl.Stop()
+		}
 		if err = database.CloseDB(db); err != nil {
 			log.Error("failed to close database", "err", err)
 		}
