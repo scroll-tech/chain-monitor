@@ -9,6 +9,7 @@ Detect features:
 2. ERC20, ERC721, ERC1155's token id and amount check.
 3. ETH balance check.
 4. Event that happened on L1/L2 can match.
+5. Reth/Geth node sync status and block hash consistency monitoring.
 
 # Dependencies
 
@@ -33,15 +34,15 @@ curl -L https://foundry.paradigm.xyz | bash
 * Update dependence
 
 ```
-# compile contracts with foundry and translate abi to go source files 
+# compile contracts with foundry and translate abi to go source files
 make abi CPATH=xxx
 
-# updaye golang depedence
+# update golang dependence
 make update
 ```
 
 * Make chain-monitor
 
 ```
-make 
+make
 ```

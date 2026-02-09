@@ -360,7 +360,7 @@ func (n *NodeSyncController) GetMinHeight() (uint64, error) {
 	defer n.mu.RUnlock()
 
 	if n.consensusStatus == nil {
-		return 0, fmt.Errorf("consensus status not available, nodes may not be in sync yet")
+		return 0, fmt.Errorf("consensus status not available")
 	}
 
 	return n.consensusStatus.Height, nil
