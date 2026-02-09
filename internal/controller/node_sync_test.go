@@ -50,7 +50,7 @@ func TestGetMinHeight(t *testing.T) {
 		errMsg          string
 	}{
 		{
-			name: "consensus available",
+			name: "consensus status available",
 			consensusStatus: &NodeSyncStatus{
 				Height:    100,
 				BlockHash: common.HexToHash("0x123"),
@@ -60,7 +60,7 @@ func TestGetMinHeight(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:            "consensus not available",
+			name:            "consensus status not available",
 			consensusStatus: nil,
 			wantErr:         true,
 			errMsg:          "consensus status not available",
@@ -132,9 +132,9 @@ func TestUpdateConsensusStatusWithScrollRPC(t *testing.T) {
 
 	// Update consensus status (should succeed since using same RPC)
 	err = controller.updateConsensusStatus(ctx, height-10) // Use a confirmed block
-	assert.NoError(t, err, "Consensus update should succeed for same RPC")
+	assert.NoError(t, err, "Consensus status update should succeed for same RPC")
 
-	// Verify consensus status was updated
+	// Verify status was updated
 	consensusStatus, err := controller.GetConsensusStatus()
 	require.NoError(t, err, "Should be able to get consensus status")
 	assert.Equal(t, height-10, consensusStatus.Height, "Consensus height should match")

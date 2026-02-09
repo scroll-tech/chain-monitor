@@ -51,6 +51,12 @@
     "worker_count": 5,
     "worker_buffer_size": 1000
   },
+  "node_sync_config": {
+    "reth_url": "http://reth-node:8545",
+    "geth_url": "http://geth-node:8545",
+    "height_diff_threshold": 32,
+    "check_interval": 3
+  },
   "db_config": {
     "driver_name": "postgres",
     "dsn": "postgres://localhost/scroll?sslmode=disable",

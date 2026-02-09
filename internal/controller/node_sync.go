@@ -43,6 +43,11 @@ type NodeSyncController struct {
 	// Only updated when both nodes have matching block hash at the same height
 	consensusStatus *NodeSyncStatus
 
+	// Alert state tracking to avoid alert storms
+	heightDiffAlerted   bool   // true if height difference alert has been sent
+	hashMismatchAlerted bool   // true if hash mismatch alert has been sent
+	lastMismatchHeight  uint64 // last height where hash mismatch occurred
+
 	stopChan chan struct{}
 
 	// Prometheus metrics
@@ -186,21 +191,40 @@ func (n *NodeSyncController) checkNodeSync(ctx context.Context) {
 		"height_diff", heightDiff,
 	)
 
-	// Alert if height difference exceeds threshold
-	if heightDiff > n.config.HeightDiffThreshold {
+	// Alert on height difference state changes (to avoid alert storms)
+	n.mu.Lock()
+	currentlyAlerting := heightDiff > n.config.HeightDiffThreshold
+	wasAlerting := n.heightDiffAlerted
+	n.heightDiffAlerted = currentlyAlerting
+	n.mu.Unlock()
+
+	// Send alert only on state changes
+	if currentlyAlerting && !wasAlerting {
+		// State changed: normal -> alert
 		n.nodeSyncAlertTotal.WithLabelValues("height_diff").Inc()
-		alertMsg := fmt.Sprintf(
-			"⚠️ *Node Height Difference Alert*\n"+
-				"Reth Height: `%d`\n"+
-				"Geth Height: `%d`\n"+
-				"Difference: `%d` (Threshold: `%d`)",
-			rethStatus.Height,
-			gethStatus.Height,
-			heightDiff,
-			n.config.HeightDiffThreshold,
-		)
-		slack.Notify(alertMsg)
+		info := slack.NodeSyncHeightDiffInfo{
+			RethHeight: rethStatus.Height,
+			GethHeight: gethStatus.Height,
+			Difference: heightDiff,
+			Threshold:  n.config.HeightDiffThreshold,
+		}
+		slack.Notify(slack.MrkDwnNodeSyncHeightDiffAlert(info))
 		log.Warn("Node height difference exceeds threshold",
+			"reth_height", rethStatus.Height,
+			"geth_height", gethStatus.Height,
+			"diff", heightDiff,
+			"threshold", n.config.HeightDiffThreshold,
+		)
+	} else if !currentlyAlerting && wasAlerting {
+		// State changed: alert -> normal (recovery)
+		info := slack.NodeSyncHeightDiffInfo{
+			RethHeight: rethStatus.Height,
+			GethHeight: gethStatus.Height,
+			Difference: heightDiff,
+			Threshold:  n.config.HeightDiffThreshold,
+		}
+		slack.Notify(slack.MrkDwnNodeSyncHeightDiffRecovered(info))
+		log.Info("Node height difference recovered",
 			"reth_height", rethStatus.Height,
 			"geth_height", gethStatus.Height,
 			"diff", heightDiff,
@@ -214,7 +238,7 @@ func (n *NodeSyncController) checkNodeSync(ctx context.Context) {
 		consensusHeight = gethStatus.Height
 	}
 
-	// Verify both nodes agree on the block hash at consensus height
+	// Verify both nodes agree on the block hash at the consensus height
 	if err := n.updateConsensusStatus(ctx, consensusHeight); err != nil {
 		log.Error("Failed to update consensus status", "height", consensusHeight, "error", err)
 	}
@@ -273,19 +297,23 @@ func (n *NodeSyncController) updateConsensusStatus(ctx context.Context, height u
 	if rethBlock.Hash != gethBlock.Hash {
 		// Hash mismatch - do NOT update consensus status
 		n.nodeSyncHashMismatch.Inc()
-		n.nodeSyncAlertTotal.WithLabelValues("hash_mismatch").Inc()
 
-		alertMsg := fmt.Sprintf(
-			"🚨 *Block Hash Mismatch Alert*\n"+
-				"Block Height: `%d`\n"+
-				"Reth Hash: `%s`\n"+
-				"Geth Hash: `%s`\n"+
-				"⚠️ Consensus status NOT updated",
-			height,
-			rethBlock.Hash.Hex(),
-			gethBlock.Hash.Hex(),
-		)
-		slack.Notify(alertMsg)
+		// Alert only on state change or new height (to avoid alert storms)
+		n.mu.Lock()
+		shouldAlert := !n.hashMismatchAlerted || n.lastMismatchHeight != height
+		n.hashMismatchAlerted = true
+		n.lastMismatchHeight = height
+		n.mu.Unlock()
+
+		if shouldAlert {
+			n.nodeSyncAlertTotal.WithLabelValues("hash_mismatch").Inc()
+			info := slack.NodeSyncHashMismatchInfo{
+				Height:   height,
+				RethHash: rethBlock.Hash,
+				GethHash: gethBlock.Hash,
+			}
+			slack.Notify(slack.MrkDwnNodeSyncHashMismatchAlert(info))
+		}
 
 		log.Error("Block hash mismatch detected, consensus status not updated",
 			"height", height,
@@ -298,6 +326,8 @@ func (n *NodeSyncController) updateConsensusStatus(ctx context.Context, height u
 
 	// Hashes match - update consensus status
 	n.mu.Lock()
+	wasHashMismatchAlerting := n.hashMismatchAlerted
+	n.hashMismatchAlerted = false
 	n.consensusStatus = &NodeSyncStatus{
 		Height:    height,
 		BlockHash: rethBlock.Hash, // Both have same hash
@@ -305,10 +335,19 @@ func (n *NodeSyncController) updateConsensusStatus(ctx context.Context, height u
 	}
 	n.mu.Unlock()
 
-	log.Info("Consensus status updated",
-		"height", height,
-		"block_hash", rethBlock.Hash.Hex(),
-	)
+	// Send recovery alert if recovering from hash mismatch
+	if wasHashMismatchAlerting {
+		slack.Notify(slack.MrkDwnNodeSyncHashMismatchRecovered(height, rethBlock.Hash))
+		log.Info("Block hash mismatch recovered",
+			"height", height,
+			"block_hash", rethBlock.Hash.Hex(),
+		)
+	} else {
+		log.Info("Consensus status updated",
+			"height", height,
+			"block_hash", rethBlock.Hash.Hex(),
+		)
+	}
 
 	return nil
 }
