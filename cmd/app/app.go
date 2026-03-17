@@ -18,6 +18,7 @@ import (
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	"github.com/scroll-tech/chain-monitor/internal/controller"
+	nodesync "github.com/scroll-tech/chain-monitor/internal/logic/node_sync"
 	"github.com/scroll-tech/chain-monitor/internal/orm/migrate"
 	"github.com/scroll-tech/chain-monitor/internal/route"
 	"github.com/scroll-tech/chain-monitor/internal/utils"
@@ -86,19 +87,18 @@ func action(ctx *cli.Context) error {
 	slackAlert := controller.NewSlackAlertController(subCtx, cfg.AlertConfig)
 	slackAlert.Start()
 
-	// Initialize node sync controller if configured
-	var nodeSyncCtl *controller.NodeSyncController
+	// Initialize node sync logic if configured
+	var nodeSyncLogic *nodesync.LogicNodeSync
 	if cfg.NodeSyncConfig != nil && cfg.NodeSyncConfig.RethURL != "" && cfg.NodeSyncConfig.GethURL != "" {
-		nodeSyncCtl, err = controller.NewNodeSyncController(subCtx, cfg.NodeSyncConfig)
+		nodeSyncLogic, err = nodesync.NewNodeSyncLogic(subCtx, cfg.NodeSyncConfig)
 		if err != nil {
-			log.Crit("failed to initialize node sync controller, continuing without it", "error", err)
+			log.Crit("failed to initialize node sync logic, continuing without it", "error", err)
 		} else {
-			controller.NodeSyncCtl = nodeSyncCtl
-			go nodeSyncCtl.Start(subCtx)
-			log.Info("Node sync controller initialized successfully")
+			go nodeSyncLogic.Start(subCtx)
+			log.Info("Node sync logic initialized successfully")
 		}
 	} else {
-		log.Info("Node sync controller not configured, skipping")
+		log.Info("Node sync logic not configured, skipping")
 	}
 
 	contractCtl := controller.NewContractController(cfg, db, l1Client, l2Client)
@@ -107,7 +107,7 @@ func action(ctx *cli.Context) error {
 	crossChainCtl := controller.NewCrossChainController(cfg, db, ethclient.NewClient(l1Client), ethclient.NewClient(l2Client))
 	crossChainCtl.Watch(subCtx)
 
-	apiSrv := apiServer(ctx, cfg, db)
+	apiSrv := apiServer(ctx, cfg, db, nodeSyncLogic)
 
 	log.Info("Start chain-monitor successfully.")
 
@@ -115,8 +115,8 @@ func action(ctx *cli.Context) error {
 		contractCtl.Stop()
 		crossChainCtl.Stop()
 		slackAlert.Stop()
-		if nodeSyncCtl != nil {
-			nodeSyncCtl.Stop()
+		if nodeSyncLogic != nil {
+			nodeSyncLogic.Stop()
 		}
 		if err = database.CloseDB(db); err != nil {
 			log.Error("failed to close database", "err", err)
@@ -141,11 +141,11 @@ func action(ctx *cli.Context) error {
 	return nil
 }
 
-func apiServer(ctx *cli.Context, cfg *config.Config, db *gorm.DB) *http.Server {
+func apiServer(ctx *cli.Context, cfg *config.Config, db *gorm.DB, nodeSyncLogic *nodesync.LogicNodeSync) *http.Server {
 	log.Info("api controller start successful")
 
 	router := gin.New()
-	controller.InitAPI(cfg, db)
+	controller.InitAPI(cfg, db, nodeSyncLogic)
 	route.Route(router)
 	port := ctx.String(utils.HTTPPortFlag.Name)
 	srv := &http.Server{

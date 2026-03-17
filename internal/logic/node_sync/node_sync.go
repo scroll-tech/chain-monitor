@@ -1,8 +1,10 @@
-package controller
+package nodesync
 
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,44 +18,41 @@ import (
 	"github.com/scroll-tech/chain-monitor/internal/logic/slack"
 )
 
-// NodeType represents the type of Ethereum client
+// NodeType represents the type of Ethereum client.
 type NodeType string
 
-// Supported node types
+// Supported node types.
 const (
-	// NodeTypeReth represents Reth Ethereum client
+	// NodeTypeReth represents Reth Ethereum client.
 	NodeTypeReth NodeType = "reth"
-	// NodeTypeGeth represents Geth Ethereum client
+	// NodeTypeGeth represents Geth Ethereum client.
 	NodeTypeGeth NodeType = "geth"
 )
 
-// NodeSyncStatus represents the sync status of a node
+// NodeSyncStatus represents the sync status of a node.
 type NodeSyncStatus struct {
 	Height    uint64
 	BlockHash common.Hash
-	Timestamp time.Time
 }
 
-// NodeSyncController monitors and compares sync status of reth and geth nodes
-type NodeSyncController struct {
+// LogicNodeSync monitors and compares sync status of reth and geth nodes.
+type LogicNodeSync struct {
 	rethClient *rpc.Client
 	gethClient *rpc.Client
 	config     *config.NodeSyncConfig
 
-	// Consensus status
-	mu sync.RWMutex
-	// consensusStatus represents the highest block height where both reth and geth agree
-	// Only updated when both nodes have matching block hash at the same height
+	// consensusStatus represents the highest block height where both nodes agree.
+	mu              sync.RWMutex
 	consensusStatus *NodeSyncStatus
 
-	// Alert state tracking to avoid alert storms
-	heightDiffAlerted   bool   // true if height difference alert has been sent
-	hashMismatchAlerted bool   // true if hash mismatch alert has been sent
-	lastMismatchHeight  uint64 // last height where hash mismatch occurred
+	// Alert state tracking to avoid alert storms.
+	heightDiffAlerted   bool
+	hashMismatchAlerted bool
+	lastMismatchHeight  uint64
 
 	stopChan chan struct{}
 
-	// Prometheus metrics
+	// Prometheus metrics.
 	nodeSyncHeight       *prometheus.GaugeVec
 	nodeSyncHeightDiff   prometheus.Gauge
 	nodeSyncHashMismatch prometheus.Counter
@@ -62,8 +61,8 @@ type NodeSyncController struct {
 	nodeSyncAlertTotal   *prometheus.CounterVec
 }
 
-// NewNodeSyncController creates a new NodeSyncController
-func NewNodeSyncController(ctx context.Context, cfg *config.NodeSyncConfig) (*NodeSyncController, error) {
+// NewNodeSyncLogic creates a new LogicNodeSync.
+func NewNodeSyncLogic(ctx context.Context, cfg *config.NodeSyncConfig) (*LogicNodeSync, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("node sync config is nil")
 	}
@@ -79,7 +78,7 @@ func NewNodeSyncController(ctx context.Context, cfg *config.NodeSyncConfig) (*No
 	}
 
 	reg := prometheus.DefaultRegisterer
-	controller := &NodeSyncController{
+	logic := &LogicNodeSync{
 		rethClient: rethClient,
 		gethClient: gethClient,
 		config:     cfg,
@@ -116,33 +115,32 @@ func NewNodeSyncController(ctx context.Context, cfg *config.NodeSyncConfig) (*No
 		}, []string{"alert_type"}),
 	}
 
-	return controller, nil
+	return logic, nil
 }
 
-// Start begins monitoring node sync status
-func (n *NodeSyncController) Start(ctx context.Context) {
+// Start begins monitoring node sync status.
+func (n *LogicNodeSync) Start(ctx context.Context) {
 	interval := time.Duration(n.config.CheckInterval) * time.Second
 	if interval == 0 {
-		interval = 10 * time.Second // default 10 seconds
+		interval = 10 * time.Second
 	}
 
-	log.Info("Node sync controller started", "interval", interval)
+	log.Info("Node sync logic started", "interval", interval)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	// Do initial check immediately
 	n.checkNodeSync(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
 			if ctx.Err() != nil {
-				log.Error("Node sync controller canceled with error", "error", ctx.Err())
+				log.Error("Node sync logic canceled with error", "error", ctx.Err())
 			}
 			return
 		case <-n.stopChan:
-			log.Info("Node sync controller stopped")
+			log.Info("Node sync logic stopped")
 			return
 		case <-ticker.C:
 			n.checkNodeSync(ctx)
@@ -150,137 +148,112 @@ func (n *NodeSyncController) Start(ctx context.Context) {
 	}
 }
 
-// Stop stops the controller
-func (n *NodeSyncController) Stop() {
+// Stop stops the logic.
+func (n *LogicNodeSync) Stop() {
 	close(n.stopChan)
 }
 
-// checkNodeSync checks sync status of both nodes and updates consensus status
-func (n *NodeSyncController) checkNodeSync(ctx context.Context) {
+// checkNodeSync checks sync status of both nodes and updates consensus status.
+func (n *LogicNodeSync) checkNodeSync(ctx context.Context) {
 	n.nodeSyncCheckTotal.Inc()
 
-	// Get reth status
-	rethStatus, err := n.getNodeStatus(ctx, n.rethClient, NodeTypeReth)
+	rethHeight, err := n.getNodeHeight(ctx, n.rethClient, NodeTypeReth)
 	if err != nil {
 		log.Error("Failed to get reth status", "error", err)
 		n.nodeSyncCheckFailure.WithLabelValues(string(NodeTypeReth)).Inc()
 		return
 	}
 
-	// Get geth status
-	gethStatus, err := n.getNodeStatus(ctx, n.gethClient, NodeTypeGeth)
+	gethHeight, err := n.getNodeHeight(ctx, n.gethClient, NodeTypeGeth)
 	if err != nil {
 		log.Error("Failed to get geth status", "error", err)
 		n.nodeSyncCheckFailure.WithLabelValues(string(NodeTypeGeth)).Inc()
 		return
 	}
 
-	// Update metrics (using local variables, no need to store)
-	n.nodeSyncHeight.WithLabelValues(string(NodeTypeReth)).Set(float64(rethStatus.Height))
-	n.nodeSyncHeight.WithLabelValues(string(NodeTypeGeth)).Set(float64(gethStatus.Height))
+	n.nodeSyncHeight.WithLabelValues(string(NodeTypeReth)).Set(float64(rethHeight))
+	n.nodeSyncHeight.WithLabelValues(string(NodeTypeGeth)).Set(float64(gethHeight))
 
-	// Calculate height difference for monitoring
 	var heightDiff uint64
-	if rethStatus.Height > gethStatus.Height {
-		heightDiff = rethStatus.Height - gethStatus.Height
+	if rethHeight > gethHeight {
+		heightDiff = rethHeight - gethHeight
 	} else {
-		heightDiff = gethStatus.Height - rethStatus.Height
+		heightDiff = gethHeight - rethHeight
 	}
 	n.nodeSyncHeightDiff.Set(float64(heightDiff))
 
 	log.Info("Node sync status",
-		"reth_height", rethStatus.Height,
-		"geth_height", gethStatus.Height,
+		"reth_height", rethHeight,
+		"geth_height", gethHeight,
 		"height_diff", heightDiff,
 	)
 
-	// Alert on height difference state changes (to avoid alert storms)
 	n.mu.Lock()
 	currentlyAlerting := heightDiff > n.config.HeightDiffThreshold
 	wasAlerting := n.heightDiffAlerted
 	n.heightDiffAlerted = currentlyAlerting
 	n.mu.Unlock()
 
-	// Send alert only on state changes
 	if currentlyAlerting && !wasAlerting {
-		// State changed: normal -> alert
 		n.nodeSyncAlertTotal.WithLabelValues("height_diff").Inc()
 		info := slack.NodeSyncHeightDiffInfo{
-			RethHeight: rethStatus.Height,
-			GethHeight: gethStatus.Height,
+			RethHeight: rethHeight,
+			GethHeight: gethHeight,
 			Difference: heightDiff,
 			Threshold:  n.config.HeightDiffThreshold,
 		}
 		slack.Notify(slack.MrkDwnNodeSyncHeightDiffAlert(info))
 		log.Warn("Node height difference exceeds threshold",
-			"reth_height", rethStatus.Height,
-			"geth_height", gethStatus.Height,
+			"reth_height", rethHeight,
+			"geth_height", gethHeight,
 			"diff", heightDiff,
 			"threshold", n.config.HeightDiffThreshold,
 		)
 	} else if !currentlyAlerting && wasAlerting {
-		// State changed: alert -> normal (recovery)
 		info := slack.NodeSyncHeightDiffInfo{
-			RethHeight: rethStatus.Height,
-			GethHeight: gethStatus.Height,
+			RethHeight: rethHeight,
+			GethHeight: gethHeight,
 			Difference: heightDiff,
 			Threshold:  n.config.HeightDiffThreshold,
 		}
 		slack.Notify(slack.MrkDwnNodeSyncHeightDiffRecovered(info))
 		log.Info("Node height difference recovered",
-			"reth_height", rethStatus.Height,
-			"geth_height", gethStatus.Height,
+			"reth_height", rethHeight,
+			"geth_height", gethHeight,
 			"diff", heightDiff,
 			"threshold", n.config.HeightDiffThreshold,
 		)
 	}
 
-	// Find consensus height: use the lower height and verify hash consistency
-	consensusHeight := rethStatus.Height
-	if gethStatus.Height < rethStatus.Height {
-		consensusHeight = gethStatus.Height
+	consensusHeight := rethHeight
+	if gethHeight < rethHeight {
+		consensusHeight = gethHeight
 	}
 
-	// Verify both nodes agree on the block hash at the consensus height
 	if err := n.updateConsensusStatus(ctx, consensusHeight); err != nil {
 		log.Error("Failed to update consensus status", "height", consensusHeight, "error", err)
 	}
 }
 
-// getNodeStatus retrieves the current sync status of a node
-func (n *NodeSyncController) getNodeStatus(ctx context.Context, client *rpc.Client, nodeType NodeType) (*NodeSyncStatus, error) {
+// getNodeHeight retrieves the latest block height of a node.
+func (n *LogicNodeSync) getNodeHeight(ctx context.Context, client *rpc.Client, nodeType NodeType) (uint64, error) {
 	var blockNumber string
 	if err := client.CallContext(ctx, &blockNumber, "eth_blockNumber"); err != nil {
-		return nil, fmt.Errorf("failed to get block number from %s: %w", nodeType, err)
+		return 0, fmt.Errorf("failed to get block number from %s: %w", nodeType, err)
 	}
 
-	var height uint64
-	_, err := fmt.Sscanf(blockNumber, "0x%x", &height)
+	height, err := strconv.ParseUint(strings.TrimPrefix(blockNumber, "0x"), 16, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse block number from %s: %s, error: %w", nodeType, blockNumber, err)
+		return 0, fmt.Errorf("failed to parse block number from %s: %s, error: %w", nodeType, blockNumber, err)
 	}
 
-	// Get block hash
-	var block struct {
-		Hash common.Hash `json:"hash"`
-	}
-	if err := client.CallContext(ctx, &block, "eth_getBlockByNumber", blockNumber, false); err != nil {
-		return nil, fmt.Errorf("failed to get block from %s: %w", nodeType, err)
-	}
-
-	return &NodeSyncStatus{
-		Height:    height,
-		BlockHash: block.Hash,
-		Timestamp: time.Now(),
-	}, nil
+	return height, nil
 }
 
-// updateConsensusStatus verifies both nodes agree on block hash at given height
-// and updates the consensus status only if they match
-func (n *NodeSyncController) updateConsensusStatus(ctx context.Context, height uint64) error {
+// updateConsensusStatus verifies both nodes agree on block hash at the given height.
+func (n *LogicNodeSync) updateConsensusStatus(ctx context.Context, height uint64) error {
 	blockNumberHex := fmt.Sprintf("0x%x", height)
 
-	// Get block from reth
 	var rethBlock struct {
 		Hash common.Hash `json:"hash"`
 	}
@@ -288,7 +261,6 @@ func (n *NodeSyncController) updateConsensusStatus(ctx context.Context, height u
 		return fmt.Errorf("failed to get reth block: %w", err)
 	}
 
-	// Get block from geth
 	var gethBlock struct {
 		Hash common.Hash `json:"hash"`
 	}
@@ -296,12 +268,9 @@ func (n *NodeSyncController) updateConsensusStatus(ctx context.Context, height u
 		return fmt.Errorf("failed to get geth block: %w", err)
 	}
 
-	// Check if hashes match
 	if rethBlock.Hash != gethBlock.Hash {
-		// Hash mismatch - do NOT update consensus status
 		n.nodeSyncHashMismatch.Inc()
 
-		// Alert only on state change or new height (to avoid alert storms)
 		n.mu.Lock()
 		shouldAlert := !n.hashMismatchAlerted || n.lastMismatchHeight != height
 		n.hashMismatchAlerted = true
@@ -327,18 +296,15 @@ func (n *NodeSyncController) updateConsensusStatus(ctx context.Context, height u
 		return fmt.Errorf("hash mismatch at height %d", height)
 	}
 
-	// Hashes match - update consensus status
 	n.mu.Lock()
 	wasHashMismatchAlerting := n.hashMismatchAlerted
 	n.hashMismatchAlerted = false
 	n.consensusStatus = &NodeSyncStatus{
 		Height:    height,
-		BlockHash: rethBlock.Hash, // Both have same hash
-		Timestamp: time.Now(),
+		BlockHash: rethBlock.Hash,
 	}
 	n.mu.Unlock()
 
-	// Send recovery alert if recovering from hash mismatch
 	if wasHashMismatchAlerting {
 		slack.Notify(slack.MrkDwnNodeSyncHashMismatchRecovered(height, rethBlock.Hash))
 		log.Info("Block hash mismatch recovered",
@@ -355,10 +321,8 @@ func (n *NodeSyncController) updateConsensusStatus(ctx context.Context, height u
 	return nil
 }
 
-// GetMinHeight returns the consensus height where both reth and geth agree
-// This is the highest block height where both nodes have matching block hash
-// This is the PRIMARY method for external queries (e.g., batch status API)
-func (n *NodeSyncController) GetMinHeight() (uint64, error) {
+// GetMinHeight returns the consensus height where both reth and geth agree.
+func (n *LogicNodeSync) GetMinHeight() (uint64, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 
@@ -369,8 +333,8 @@ func (n *NodeSyncController) GetMinHeight() (uint64, error) {
 	return n.consensusStatus.Height, nil
 }
 
-// GetConsensusStatus returns the full consensus status
-func (n *NodeSyncController) GetConsensusStatus() (*NodeSyncStatus, error) {
+// GetConsensusStatus returns the full consensus status.
+func (n *LogicNodeSync) GetConsensusStatus() (*NodeSyncStatus, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 
@@ -378,7 +342,6 @@ func (n *NodeSyncController) GetConsensusStatus() (*NodeSyncStatus, error) {
 		return nil, fmt.Errorf("consensus status not available")
 	}
 
-	// Return a copy to avoid external modification
 	statusCopy := *n.consensusStatus
 	return &statusCopy, nil
 }

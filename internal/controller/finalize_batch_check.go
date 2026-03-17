@@ -11,6 +11,7 @@ import (
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	messagematch "github.com/scroll-tech/chain-monitor/internal/logic/message_match"
+	nodesync "github.com/scroll-tech/chain-monitor/internal/logic/node_sync"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
@@ -19,6 +20,7 @@ type FinalizeBatchCheckController struct {
 	db *gorm.DB
 
 	messageMatchLogic *messagematch.LogicMessageMatch
+	nodeSyncLogic     *nodesync.LogicNodeSync
 
 	gatewayBatchFinalizeCheckFailed   prometheus.Counter
 	messengerBatchFinalizeCheckFailed prometheus.Counter
@@ -26,10 +28,11 @@ type FinalizeBatchCheckController struct {
 }
 
 // NewFinalizeBatchCheckController create finalize batch controller instance
-func NewFinalizeBatchCheckController(conf *config.Config, db *gorm.DB) *FinalizeBatchCheckController {
+func NewFinalizeBatchCheckController(conf *config.Config, db *gorm.DB, nodeSyncLogic *nodesync.LogicNodeSync) *FinalizeBatchCheckController {
 	return &FinalizeBatchCheckController{
 		db:                db,
 		messageMatchLogic: messagematch.NewMessageMatchLogic(conf, db),
+		nodeSyncLogic:     nodeSyncLogic,
 
 		gatewayBatchFinalizeCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
 			Name: "gateway_batch_finalized_failed_total",
@@ -93,12 +96,12 @@ func (f *FinalizeBatchCheckController) BatchStatus(ctx *gin.Context) {
 
 // checkNodeSyncHeight checks if both reth and geth nodes have synced to the required height
 func (f *FinalizeBatchCheckController) checkNodeSyncHeight(requiredHeight uint64) (bool, error) {
-	if NodeSyncCtl == nil {
+	if f.nodeSyncLogic == nil {
 		// Node sync monitoring is not configured, skip check
 		return true, nil
 	}
 
-	minHeight, err := NodeSyncCtl.GetMinHeight()
+	minHeight, err := f.nodeSyncLogic.GetMinHeight()
 	if err != nil {
 		f.nodeSyncCheckFailed.Inc()
 		return false, fmt.Errorf("failed to get node sync height: %w", err)
