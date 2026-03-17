@@ -29,8 +29,8 @@ const (
 	NodeTypeGeth NodeType = "geth"
 )
 
-// NodeSyncStatus represents the sync status of a node.
-type NodeSyncStatus struct {
+// Status represents the sync status of a node.
+type Status struct {
 	Height    uint64
 	BlockHash common.Hash
 }
@@ -43,7 +43,7 @@ type LogicNodeSync struct {
 
 	// consensusStatus represents the highest block height where both nodes agree.
 	mu              sync.RWMutex
-	consensusStatus *NodeSyncStatus
+	consensusStatus *Status
 
 	// Alert state tracking to avoid alert storms.
 	heightDiffAlerted   bool
@@ -299,7 +299,7 @@ func (n *LogicNodeSync) updateConsensusStatus(ctx context.Context, height uint64
 	n.mu.Lock()
 	wasHashMismatchAlerting := n.hashMismatchAlerted
 	n.hashMismatchAlerted = false
-	n.consensusStatus = &NodeSyncStatus{
+	n.consensusStatus = &Status{
 		Height:    height,
 		BlockHash: rethBlock.Hash,
 	}
@@ -334,7 +334,7 @@ func (n *LogicNodeSync) GetMinHeight() (uint64, error) {
 }
 
 // GetConsensusStatus returns the full consensus status.
-func (n *LogicNodeSync) GetConsensusStatus() (*NodeSyncStatus, error) {
+func (n *LogicNodeSync) GetConsensusStatus() (*Status, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 

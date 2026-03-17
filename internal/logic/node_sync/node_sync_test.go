@@ -39,14 +39,14 @@ func TestGetNodeHeightWithScrollRPC(t *testing.T) {
 func TestGetMinHeight(t *testing.T) {
 	tests := []struct {
 		name            string
-		consensusStatus *NodeSyncStatus
+		consensusStatus *Status
 		wantHeight      uint64
 		wantErr         bool
 		errMsg          string
 	}{
 		{
 			name: "consensus status available",
-			consensusStatus: &NodeSyncStatus{
+			consensusStatus: &Status{
 				Height:    100,
 				BlockHash: common.HexToHash("0x123"),
 			},
@@ -61,7 +61,7 @@ func TestGetMinHeight(t *testing.T) {
 		},
 		{
 			name: "high consensus height",
-			consensusStatus: &NodeSyncStatus{
+			consensusStatus: &Status{
 				Height:    1000000,
 				BlockHash: common.HexToHash("0xabc"),
 			},
