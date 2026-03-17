@@ -50,8 +50,6 @@ type LogicNodeSync struct {
 	hashMismatchAlerted bool
 	lastMismatchHeight  uint64
 
-	stopChan chan struct{}
-
 	// Prometheus metrics.
 	nodeSyncHeight       *prometheus.GaugeVec
 	nodeSyncHeightDiff   prometheus.Gauge
@@ -82,7 +80,6 @@ func NewNodeSyncLogic(ctx context.Context, cfg *config.NodeSyncConfig) (*LogicNo
 		rethClient: rethClient,
 		gethClient: gethClient,
 		config:     cfg,
-		stopChan:   make(chan struct{}),
 
 		nodeSyncHeight: promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
 			Name: "node_sync_height",
@@ -139,18 +136,10 @@ func (n *LogicNodeSync) Start(ctx context.Context) {
 				log.Error("Node sync logic canceled with error", "error", ctx.Err())
 			}
 			return
-		case <-n.stopChan:
-			log.Info("Node sync logic stopped")
-			return
 		case <-ticker.C:
 			n.checkNodeSync(ctx)
 		}
 	}
-}
-
-// Stop stops the logic.
-func (n *LogicNodeSync) Stop() {
-	close(n.stopChan)
 }
 
 // checkNodeSync checks sync status of both nodes and updates consensus status.

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -28,11 +29,10 @@ type FinalizeBatchCheckController struct {
 }
 
 // NewFinalizeBatchCheckController create finalize batch controller instance
-func NewFinalizeBatchCheckController(conf *config.Config, db *gorm.DB, nodeSyncLogic *nodesync.LogicNodeSync) *FinalizeBatchCheckController {
-	return &FinalizeBatchCheckController{
+func NewFinalizeBatchCheckController(ctx context.Context, conf *config.Config, db *gorm.DB) (*FinalizeBatchCheckController, error) {
+	controller := &FinalizeBatchCheckController{
 		db:                db,
 		messageMatchLogic: messagematch.NewMessageMatchLogic(conf, db),
-		nodeSyncLogic:     nodeSyncLogic,
 
 		gatewayBatchFinalizeCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
 			Name: "gateway_batch_finalized_failed_total",
@@ -47,6 +47,16 @@ func NewFinalizeBatchCheckController(conf *config.Config, db *gorm.DB, nodeSyncL
 			Help: "The total number of node sync checks failed in batch status API.",
 		}),
 	}
+
+	if conf.NodeSyncConfig != nil && conf.NodeSyncConfig.RethURL != "" && conf.NodeSyncConfig.GethURL != "" {
+		nodeSyncLogic, err := nodesync.NewNodeSyncLogic(ctx, conf.NodeSyncConfig)
+		if err != nil {
+			return nil, err
+		}
+		controller.nodeSyncLogic = nodeSyncLogic
+	}
+
+	return controller, nil
 }
 
 // BatchStatus get the upcoming finalized batch status
