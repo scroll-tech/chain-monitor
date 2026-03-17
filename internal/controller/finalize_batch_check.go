@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -9,6 +12,7 @@ import (
 
 	"github.com/scroll-tech/chain-monitor/internal/config"
 	messagematch "github.com/scroll-tech/chain-monitor/internal/logic/message_match"
+	nodesync "github.com/scroll-tech/chain-monitor/internal/logic/node_sync"
 	"github.com/scroll-tech/chain-monitor/internal/types"
 )
 
@@ -17,14 +21,16 @@ type FinalizeBatchCheckController struct {
 	db *gorm.DB
 
 	messageMatchLogic *messagematch.LogicMessageMatch
+	nodeSyncLogic     *nodesync.LogicNodeSync
 
 	gatewayBatchFinalizeCheckFailed   prometheus.Counter
 	messengerBatchFinalizeCheckFailed prometheus.Counter
+	nodeSyncCheckFailed               prometheus.Counter
 }
 
 // NewFinalizeBatchCheckController create finalize batch controller instance
-func NewFinalizeBatchCheckController(conf *config.Config, db *gorm.DB) *FinalizeBatchCheckController {
-	return &FinalizeBatchCheckController{
+func NewFinalizeBatchCheckController(ctx context.Context, conf *config.Config, db *gorm.DB) (*FinalizeBatchCheckController, error) {
+	controller := &FinalizeBatchCheckController{
 		db:                db,
 		messageMatchLogic: messagematch.NewMessageMatchLogic(conf, db),
 
@@ -36,7 +42,21 @@ func NewFinalizeBatchCheckController(conf *config.Config, db *gorm.DB) *Finalize
 			Name: "messenger_batch_finalized_failed_total",
 			Help: "The total number of messenger batch finalized failed.",
 		}),
+		nodeSyncCheckFailed: promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+			Name: "node_sync_check_failed_total",
+			Help: "The total number of node sync checks failed in batch status API.",
+		}),
 	}
+
+	if conf.NodeSyncConfig != nil && conf.NodeSyncConfig.RethURL != "" && conf.NodeSyncConfig.GethURL != "" {
+		nodeSyncLogic, err := nodesync.NewNodeSyncLogic(ctx, conf.NodeSyncConfig)
+		if err != nil {
+			return nil, err
+		}
+		controller.nodeSyncLogic = nodeSyncLogic
+	}
+
+	return controller, nil
 }
 
 // BatchStatus get the upcoming finalized batch status
@@ -62,6 +82,16 @@ func (f *FinalizeBatchCheckController) BatchStatus(ctx *gin.Context) {
 		return
 	}
 
+	// Check if reth/geth nodes have synced to the required height
+	if ok, err := f.checkNodeSyncHeight(finalizeBatchParam.EndBlockNumber); !ok {
+		log.Error("batch status node sync check failed",
+			"required_height", finalizeBatchParam.EndBlockNumber,
+			"error", err,
+		)
+		types.RenderJSON(ctx, types.ErrParameterInvalidNo, err, nil)
+		return
+	}
+
 	gatewayCheck, messengerCheck := f.messageMatchLogic.GetBlocksStatus(ctx, finalizeBatchParam.StartBlockNumber, finalizeBatchParam.EndBlockNumber)
 	if !gatewayCheck {
 		f.gatewayBatchFinalizeCheckFailed.Inc()
@@ -72,4 +102,25 @@ func (f *FinalizeBatchCheckController) BatchStatus(ctx *gin.Context) {
 	}
 
 	types.RenderJSON(ctx, types.Success, nil, gatewayCheck && messengerCheck)
+}
+
+// checkNodeSyncHeight checks if both reth and geth nodes have synced to the required height
+func (f *FinalizeBatchCheckController) checkNodeSyncHeight(requiredHeight uint64) (bool, error) {
+	if f.nodeSyncLogic == nil {
+		// Node sync monitoring is not configured, skip check
+		return true, nil
+	}
+
+	minHeight, err := f.nodeSyncLogic.GetMinHeight()
+	if err != nil {
+		f.nodeSyncCheckFailed.Inc()
+		return false, fmt.Errorf("failed to get node sync height: %w", err)
+	}
+
+	if requiredHeight > minHeight {
+		f.nodeSyncCheckFailed.Inc()
+		return false, fmt.Errorf("nodes not synced to required height: required=%d, min_synced=%d", requiredHeight, minHeight)
+	}
+
+	return true, nil
 }

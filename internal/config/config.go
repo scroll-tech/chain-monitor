@@ -74,12 +74,21 @@ type SlackWebhookConfig struct {
 	WorkerBufferSize int    `json:"worker_buffer_size"`
 }
 
+// NodeSyncConfig node sync monitoring config.
+type NodeSyncConfig struct {
+	RethURL             string `json:"reth_url"`
+	GethURL             string `json:"geth_url"`
+	HeightDiffThreshold uint64 `json:"height_diff_threshold"`
+	CheckInterval       int    `json:"check_interval"`
+}
+
 // Config chain-monitor main config.
 type Config struct {
-	L1Config    *L1Config           `json:"l1_config"`
-	L2Config    *L2Config           `json:"l2_config"`
-	AlertConfig *SlackWebhookConfig `json:"slack_webhook_config"`
-	DBConfig    *database.Config    `json:"db_config"`
+	L1Config       *L1Config           `json:"l1_config"`
+	L2Config       *L2Config           `json:"l2_config"`
+	AlertConfig    *SlackWebhookConfig `json:"slack_webhook_config"`
+	DBConfig       *database.Config    `json:"db_config"`
+	NodeSyncConfig *NodeSyncConfig     `json:"node_sync_config,omitempty"`
 }
 
 // NewConfig return an unmarshalled config instance.

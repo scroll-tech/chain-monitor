@@ -92,7 +92,7 @@ func action(ctx *cli.Context) error {
 	crossChainCtl := controller.NewCrossChainController(cfg, db, ethclient.NewClient(l1Client), ethclient.NewClient(l2Client))
 	crossChainCtl.Watch(subCtx)
 
-	apiSrv := apiServer(ctx, cfg, db)
+	apiSrv := apiServer(subCtx, ctx, cfg, db)
 
 	log.Info("Start chain-monitor successfully.")
 
@@ -123,11 +123,13 @@ func action(ctx *cli.Context) error {
 	return nil
 }
 
-func apiServer(ctx *cli.Context, cfg *config.Config, db *gorm.DB) *http.Server {
+func apiServer(subCtx context.Context, ctx *cli.Context, cfg *config.Config, db *gorm.DB) *http.Server {
 	log.Info("api controller start successful")
 
 	router := gin.New()
-	controller.InitAPI(cfg, db)
+	if err := controller.InitAPI(subCtx, cfg, db); err != nil {
+		log.Crit("failed to initialize api controller", "error", err)
+	}
 	route.Route(router)
 	port := ctx.String(utils.HTTPPortFlag.Name)
 	srv := &http.Server{

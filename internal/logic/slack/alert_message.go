@@ -48,6 +48,16 @@ var (
 		Name: "slack_alert_messenger_event_duplicated_total",
 		Help: "The total number of alert messenger event duplicated.",
 	})
+
+	nodeSyncHeightDiffAlertTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_node_sync_height_diff_total",
+		Help: "The total number of node sync height difference alerts.",
+	})
+
+	nodeSyncHashMismatchAlertTotal = promauto.With(prometheus.DefaultRegisterer).NewCounter(prometheus.CounterOpts{
+		Name: "slack_alert_node_sync_hash_mismatch_total",
+		Help: "The total number of node sync hash mismatch alerts.",
+	})
 )
 
 // GatewayTransferInfo the alert message of gateway and transfer event
@@ -71,6 +81,21 @@ type WithdrawRootInfo struct {
 	BlockNumber          uint64
 	LastWithdrawRoot     common.Hash
 	ExpectedWithdrawRoot common.Hash
+}
+
+// NodeSyncHeightDiffInfo the alert message of node sync height difference
+type NodeSyncHeightDiffInfo struct {
+	RethHeight uint64
+	GethHeight uint64
+	Difference uint64
+	Threshold  uint64
+}
+
+// NodeSyncHashMismatchInfo the alert message of node sync hash mismatch
+type NodeSyncHashMismatchInfo struct {
+	Height   uint64
+	RethHash common.Hash
+	GethHash common.Hash
 }
 
 // MrkDwnWithdrawRootMessage make the markdown message of withdraw root alert message
@@ -209,5 +234,59 @@ func MrkDwnMessengerMessageMatchDuplicated(layer types.LayerType, message orm.Me
 		buffer.WriteString(fmt.Sprintf("• l2 tx_hash: %s\n", message.L2TxHash))
 	}
 	buffer.WriteString(fmt.Sprintf("• msg_hash: %s\n", message.MessageHash))
+	return buffer.String()
+}
+
+// MrkDwnNodeSyncHeightDiffAlert make the markdown message of node sync height difference alert
+func MrkDwnNodeSyncHeightDiffAlert(info NodeSyncHeightDiffInfo) string {
+	nodeSyncHeightDiffAlertTotal.Inc()
+
+	var buffer bytes.Buffer
+	buffer.WriteString("\n:warning: ")
+	buffer.WriteString("*Node Height Difference Alert*\n")
+	buffer.WriteString(fmt.Sprintf("• reth height: `%d`\n", info.RethHeight))
+	buffer.WriteString(fmt.Sprintf("• geth height: `%d`\n", info.GethHeight))
+	buffer.WriteString(fmt.Sprintf("• difference: `%d`\n", info.Difference))
+	buffer.WriteString(fmt.Sprintf("• threshold: `%d`\n", info.Threshold))
+	buffer.WriteString("• status: :x: *ALERTING*\n")
+	return buffer.String()
+}
+
+// MrkDwnNodeSyncHeightDiffRecovered make the markdown message of node sync height difference recovery
+func MrkDwnNodeSyncHeightDiffRecovered(info NodeSyncHeightDiffInfo) string {
+	var buffer bytes.Buffer
+	buffer.WriteString("\n:white_check_mark: ")
+	buffer.WriteString("*Node Height Difference Recovered*\n")
+	buffer.WriteString(fmt.Sprintf("• reth height: `%d`\n", info.RethHeight))
+	buffer.WriteString(fmt.Sprintf("• geth height: `%d`\n", info.GethHeight))
+	buffer.WriteString(fmt.Sprintf("• difference: `%d`\n", info.Difference))
+	buffer.WriteString(fmt.Sprintf("• threshold: `%d`\n", info.Threshold))
+	buffer.WriteString("• status: :white_check_mark: *NORMAL*\n")
+	return buffer.String()
+}
+
+// MrkDwnNodeSyncHashMismatchAlert make the markdown message of node sync hash mismatch alert
+func MrkDwnNodeSyncHashMismatchAlert(info NodeSyncHashMismatchInfo) string {
+	nodeSyncHashMismatchAlertTotal.Inc()
+
+	var buffer bytes.Buffer
+	buffer.WriteString("\n:rotating_light: ")
+	buffer.WriteString("*Block Hash Mismatch Alert*\n")
+	buffer.WriteString(fmt.Sprintf("• block height: `%d`\n", info.Height))
+	buffer.WriteString(fmt.Sprintf("• reth hash: `%s`\n", info.RethHash.Hex()))
+	buffer.WriteString(fmt.Sprintf("• geth hash: `%s`\n", info.GethHash.Hex()))
+	buffer.WriteString("• :warning: consensus status NOT updated\n")
+	buffer.WriteString("• status: :x: *ALERTING*\n")
+	return buffer.String()
+}
+
+// MrkDwnNodeSyncHashMismatchRecovered make the markdown message of node sync hash mismatch recovery
+func MrkDwnNodeSyncHashMismatchRecovered(height uint64, blockHash common.Hash) string {
+	var buffer bytes.Buffer
+	buffer.WriteString("\n:white_check_mark: ")
+	buffer.WriteString("*Block Hash Mismatch Recovered*\n")
+	buffer.WriteString(fmt.Sprintf("• block height: `%d`\n", height))
+	buffer.WriteString(fmt.Sprintf("• block hash: `%s`\n", blockHash.Hex()))
+	buffer.WriteString("• status: :white_check_mark: *NORMAL*\n")
 	return buffer.String()
 }
