@@ -479,6 +479,11 @@ func (t *TransferEventMatcher) erc1155Matcher(transferEvents, gatewayEvents []ev
 func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) error {
 	info.TokenIgnored = t.isTokenIgnored(info.Layer, info.TokenAddress)
 
+	// If the token is ignored, do not send alert, do not increment counter, do not block chain-monitor
+	if info.TokenIgnored {
+		return nil
+	}
+
 	shouldReturnNil := false // Whether to return nil (do not block chain-monitor) for non-mainstream tokens
 
 	// If it's an L1 ERC20 token, check CoinGecko
@@ -497,11 +502,11 @@ func (t *TransferEventMatcher) sendSlackAlert(info slack.GatewayTransferInfo) er
 		}
 	}
 
-	// Always send Slack alert and increase the alert counter
+	// Send Slack alert and increase the alert counter
 	slack.Notify(slack.MrkDwnGatewayTransferMessage(info))
 
-	// If the token is ignored or is a non-mainstream token (not found in CoinGecko), do not block chain-monitor
-	if info.TokenIgnored || shouldReturnNil {
+	// If it's a non-mainstream token (not found in CoinGecko), do not block chain-monitor
+	if shouldReturnNil {
 		return nil
 	}
 
